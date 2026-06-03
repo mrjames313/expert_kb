@@ -91,6 +91,46 @@ When a decision exercises an under_test concept, real-world use of the decision 
 
 ---
 
+## Session lifecycle awareness
+
+### Distributed lifecycle awareness across existing skills
+
+**Observed during:** Dogfood-pass operational discussion about when to `/clear` and when to restart Claude Code.
+
+The framework has clean session boundaries via `/start` (open) and `/wrap-up` (close), plus three Claude Code hooks (SessionStart, SessionEnd, PreCompact). But the *transitions* between sessions are unsupported. Specifically:
+
+- **Role switches.** Going from role A to role B currently requires the user to remember three things in order: `/wrap-up` for A, then `/clear` (Claude Code primitive), then `/start B`. The middle step is on the user; forgetting it means B's session starts with A's context still loaded.
+- **Resuming interrupted work.** If Claude Code exits without `/wrap-up`, the next session has no awareness of that fact — the user has to remember they were mid-flight in role X and explicitly `/start X` again. The pulse log being non-empty is a signal but no skill surfaces it.
+- **Clean continuation within the same role for a new spec.** Less common, but the same friction — context from the previous spec lingers when it doesn't help the new one.
+
+The friction isn't dramatic, but it's recurring and the cognitive load adds up over many sessions.
+
+**Why deferred:** This needs more dogfood evidence on actual transition patterns — how often role switches happen, what fraction of sessions end without clean wrap-up, whether the friction is mostly role-switch or something else. Also touches multiple skills (cross-cutting concern), so the change is non-trivial.
+
+**What addressing it would look like:**
+
+A distributed approach where several existing skills become lifecycle-aware, sharing an on-disk session-state marker:
+
+1. **Session-state marker on disk** — `_framework/telemetry/.session-state.json` recording current role, session-start timestamp, last wrap-up timestamp, whether the last exit was clean. Updated by `/start`, `/wrap-up`, and the session-end hook.
+
+2. **`/start` detects state.** Before adopting the requested role, check the marker:
+   - If a prior session is open and unwrapped: "Last session as role X didn't wrap up cleanly. Wrap-up first, or override and adopt Y now?" (Override is needed for cases where the prior session was abandoned and isn't recoverable.)
+   - If `/start B` invoked while role A is active: detect role mismatch, recommend the wrap-up → `/clear` → `/start B` sequence explicitly with each step.
+
+3. **`/wrap-up` asks about next action.** At the end of its flow: "Continuing this session, switching role, or done?" If continuing, suggest `/clear` for a clean frame. If switching, suggest `/clear` then `/start <new-role>`. If done, no action needed.
+
+4. **Other skills detect mid-flight inconsistency.** `/plan`, `/implement`, `/ingest`, `/replan` could check the session-state marker on invocation. If invoked without a fresh `/start` after a `/clear` (i.e., the marker says role A was last wrapped up but no role is currently open), surface a brief reminder rather than silently proceeding.
+
+5. **SessionStart hook surfaces last-session state.** Beyond the existing CLAUDE.md / areas-index / INBOX dump, also show: "Last session: role X, ended <cleanly | abruptly> on <date>. Run `/start X` to resume, or `/start <other>` to switch."
+
+A new `/switch-role` skill *could* sit on top of this as a convenience wrapper for the common case, but it isn't required — the distributed awareness solves the core problem and `/switch-role` would just save one invocation.
+
+**Revisit when:** v2 dogfood pass exercises multiple roles in the same project. Friction patterns will be clearer when there are 2-3 areas with separate roles being switched between in real work. Without that evidence, the design risks optimizing for cases that don't actually occur.
+
+**Implementation order if this lands:** Session-state marker first (everything else depends on it). Then `/start` detection. Then `/wrap-up` end-prompt. Then SessionStart hook enrichment. Other skills' inconsistency detection last — likely overkill for v1 of this work; can wait for evidence it's needed.
+
+---
+
 ## Commons growth control
 
 ### `commons_coverage` config parameter

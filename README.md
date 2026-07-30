@@ -1,6 +1,8 @@
-# Project Orchestration Framework
+# Expert Knowledge Orchestration
 
-A lightweight framework for orchestrating multi-area project development with Claude Code agents. Knowledge, code, and data are organized around shared project structures and area-specific structures, with disciplined paths for information to flow between them.
+A lightweight framework for orchestrating expert knowledge for multi-area project development with Claude Code agents. Handles the creation and application of knowledge across multiple interrelated domains working toward a common objective (the project).  Knowledge can take the form of text-based documents, code, or data - including artifacts created by agentic experts through research, experiments, or any other means.  The knowledge artifacts are organized by areas of expertise, and includes explicit mechanisms for managing shared / common knowledge across structures and exchanging information. 
+
+A typical workflow involves interacting with one or more Claude Code agents, each of which has their own areas of expertise informed by, and interacting with, the knowledge base.  Agents can be instructed to expand the knowledge base in a variety of ways; to produce plans, reports, and analyses; or to design and build SW systems - all while staying consistent with the accumulated knowledge.
 
 ## Getting started
 

@@ -2,7 +2,10 @@
 
 A lightweight framework for orchestrating expert knowledge for multi-area project development with Claude Code agents. Handles the creation and application of knowledge across multiple interrelated domains working toward a common objective (the project).  Knowledge can take the form of text-based documents, code, or data - including artifacts created by agentic experts through research, experiments, or any other means.  The knowledge artifacts are organized by areas of expertise, and includes explicit mechanisms for managing shared / common knowledge across structures and exchanging information. 
 
-A typical workflow involves interacting with one or more Claude Code agents, each of which has their own areas of expertise informed by, and interacting with, the knowledge base.  Agents can be instructed to expand the knowledge base in a variety of ways; to produce plans, reports, and analyses; or to design and build SW systems - all while staying consistent with the accumulated knowledge.
+A typical workflow involves interacting with one or more Claude Code agents, each of which is assigned an area of expertise that is informed by, and interacting with, the knowledge base.  Agents can be instructed to expand the knowledge base in a variety of ways; to produce plans, reports, and analyses; or to design and build SW systems - but critically they will consistently load and utilize their expertise while executing tasks - staying grounded and consistent with the accumulated knowledge.
+
+Typically, a project will kick off by developing relevant knowledge bases for a few areas (literature reviews to develop technical background, design and execution of experiments to collect first-hand data or resolve open questions, customer research and business analysis for commercial projects), then move to project alignment, planning, and execution.  A non-commercial project can take different forms, for example, it could consist of a collection of expert agents all collaborating on a common technical design.
+
 
 ## Getting started
 

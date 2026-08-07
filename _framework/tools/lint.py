@@ -120,7 +120,7 @@ def _exit_code(findings: list[Finding]) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run lint over the project_kb repo.")
+    parser = argparse.ArgumentParser(description="Run lint over the expert_kb repo.")
     parser.add_argument(
         "--rule",
         help="run only this rule (module name, e.g. rule_01_frontmatter, or short form 01)",

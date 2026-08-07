@@ -80,7 +80,7 @@ def find_repo_root(start: Path | None = None) -> Path:
         if (candidate / "_framework").is_dir():
             return candidate
     raise RuntimeError(
-        f"could not find _framework/ in {here} or any parent — not a project_kb workspace"
+        f"could not find _framework/ in {here} or any parent — not a expert_kb workspace"
     )
 
 

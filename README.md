@@ -1,4 +1,4 @@
-# Expert Knowledge Orchestration
+# Expert Coordination
 
 A lightweight framework for orchestrating expert knowledge for multi-area project development with Claude Code agents. Handles the creation and application of knowledge across multiple interrelated domains working toward a common objective (the project).  Knowledge can take the form of text-based documents, code, or data - including artifacts created by agentic experts through research, experiments, or any other means.  The knowledge artifacts are organized by areas of expertise, and includes explicit mechanisms for managing shared / common knowledge across structures and exchanging information. 
 
@@ -11,7 +11,7 @@ Typically, a project will kick off by developing relevant knowledge bases for a 
 
 Launch Claude Code in a fresh directory and ask it:
 
-> Follow the setup instructions at https://github.com/mrjames313/project_kb/blob/main/SETUP.md
+> Follow the setup instructions at https://github.com/mrjames313/expert_kb/blob/main/SETUP.md
 
 Claude will read [SETUP.md](SETUP.md), ask you a handful of questions (project name, what it's about, your first area, your first role), and bootstrap a customized project for you. Setup takes 5–10 minutes.
 

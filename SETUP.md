@@ -1,10 +1,10 @@
-# Setup: Project Orchestration Framework
+# Setup: Expert Coordination
 
-This is a setup script for the [Project Orchestration Framework](https://github.com/mrjames313/project_kb).
+This is a setup script for [Expert Coordination](https://github.com/mrjames313/expert_kb).
 
 **For humans:** to use this script, launch Claude Code in a fresh directory and tell it:
 
-> Follow the setup instructions at https://github.com/mrjames313/project_kb/blob/main/SETUP.md
+> Follow the setup instructions at https://github.com/mrjames313/expert_kb/blob/main/SETUP.md
 
 Claude will read this document and bootstrap a new project, asking you the necessary questions along the way. Setup takes 5–10 minutes.
 
@@ -39,7 +39,7 @@ Don't overwrite without explicit confirmation.
 Run:
 
 ```bash
-git clone https://github.com/mrjames313/project_kb.git $PROJECT_NAME
+git clone https://github.com/mrjames313/expert_kb.git $PROJECT_NAME
 cd $PROJECT_NAME
 rm -rf .git
 git init -b main

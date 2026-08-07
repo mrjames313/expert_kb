@@ -23,7 +23,7 @@ That's enough conceptual ground to start.
 
 Launch Claude Code in a fresh directory, then ask it to follow the setup guide:
 
-> Follow the setup instructions at https://github.com/mrjames313/project_kb/blob/main/SETUP.md
+> Follow the setup instructions at https://github.com/mrjames313/expert_kb/blob/main/SETUP.md
 
 Claude will read the guide, ask you a handful of questions (project name, what it's about, your first area, your first role), and bootstrap the project for you. The whole thing takes a few minutes.
 

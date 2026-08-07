@@ -1,6 +1,6 @@
 # Framework Specification
 
-This is the maximal specification for the Project Orchestration Framework — every directory, every file type, every capability, every rule. Bootstrap a new project via [SETUP.md](../SETUP.md); learn what's needed when from the [adoption guide](adoption-guide.md); reach for this document when you want the full reference.
+This is the maximal specification for the Expert Coordination framework — every directory, every file type, every capability, every rule. Bootstrap a new project via [SETUP.md](../SETUP.md); learn what's needed when from the [adoption guide](adoption-guide.md); reach for this document when you want the full reference.
 
 A lightweight framework for orchestrating multi-area project development with Claude Code agents. Knowledge, code, and data are organized around shared project structures and area-specific structures, with disciplined paths for information to flow between them.
 

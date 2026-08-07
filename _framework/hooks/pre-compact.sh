@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." 2>/dev/null && pwd)"
 
 if [ ! -d "$REPO_ROOT/_framework" ]; then
-  echo "(pre-compact hook: not in a project_kb workspace; skipping)" >&2
+  echo "(pre-compact hook: not in a expert_kb workspace; skipping)" >&2
   exit 0
 fi
 

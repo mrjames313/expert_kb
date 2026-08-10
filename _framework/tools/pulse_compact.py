@@ -203,6 +203,11 @@ SENTENCE_ABBREVIATIONS = [
     "Dr.",
     "Mr.",
     "Mrs.",
+    "etc.",
+    "vs.",
+    "et al.",
+    "fig.",
+    "eq.",
 ]
 
 # A sentence terminator is . ! or ? followed by whitespace or end of string.

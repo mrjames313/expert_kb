@@ -459,6 +459,17 @@ class TestFirstSentence:
     def test_abbreviation_at_end_returns_whole(self) -> None:
         assert first_sentence("Followed up with Dr.") == "Followed up with Dr."
 
+    def test_additional_abbreviations(self) -> None:
+        assert first_sentence("Compared A vs. B on the bench.") == "Compared A vs. B on the bench"
+        assert first_sentence("See Smith et al. for the derivation.") == (
+            "See Smith et al. for the derivation"
+        )
+        assert first_sentence("Refer to fig. 4 for the layout.") == "Refer to fig. 4 for the layout"
+        assert first_sentence("Plug into eq. 2 and solve.") == "Plug into eq. 2 and solve"
+        assert first_sentence("Added logs, metrics, etc. all wired up.") == (
+            "Added logs, metrics, etc. all wired up"
+        )
+
     def test_empty_and_whitespace(self) -> None:
         assert first_sentence("") == ""
         assert first_sentence("   ") == ""

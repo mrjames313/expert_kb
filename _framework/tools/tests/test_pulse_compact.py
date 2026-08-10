@@ -12,6 +12,7 @@ import pytest
 from pulse_compact import (
     LogEntry,
     compact_area,
+    first_sentence,
     parse_pulse_log,
     split_sections,
     update_current_focus,
@@ -412,3 +413,57 @@ class TestCompactArea:
         compact_area(area_dir, tmp_path, DEFAULT_CONFIG)
         second = (area_dir / "pulse.md").read_text()
         assert first == second
+
+
+# --- first_sentence ---
+
+class TestFirstSentence:
+    def test_plain_two_sentences(self) -> None:
+        assert first_sentence("Chose Postgres. Considered MySQL.") == "Chose Postgres"
+
+    def test_strips_trailing_terminator(self) -> None:
+        assert first_sentence("Adopted the new schema.") == "Adopted the new schema"
+
+    def test_no_terminator_returns_whole(self) -> None:
+        assert first_sentence("Bumped the pinned version") == "Bumped the pinned version"
+
+    def test_decimal_version_not_split(self) -> None:
+        assert first_sentence("Shipped v3.5 of the API.") == "Shipped v3.5 of the API"
+
+    def test_decimal_version_no_trailing_period(self) -> None:
+        assert first_sentence("Bumped to 3.5") == "Bumped to 3.5"
+
+    def test_exclamation_and_question(self) -> None:
+        assert first_sentence("It works! Ship it.") == "It works"
+        assert first_sentence("Ready? Not yet.") == "Ready"
+
+    def test_abbreviation_eg_not_split(self) -> None:
+        assert first_sentence("Use a cache, e.g. Redis, for hot keys.") == (
+            "Use a cache, e.g. Redis, for hot keys"
+        )
+
+    def test_abbreviation_ie_not_split(self) -> None:
+        assert first_sentence("Prefer the lint tool, i.e. run check first.") == (
+            "Prefer the lint tool, i.e. run check first"
+        )
+
+    def test_abbreviation_titles_not_split(self) -> None:
+        assert first_sentence("Met Dr. Lee about the rig.") == "Met Dr. Lee about the rig"
+        assert first_sentence("Mr. and Mrs. Chen signed off.") == "Mr. and Mrs. Chen signed off"
+
+    def test_abbreviation_case_insensitive(self) -> None:
+        assert first_sentence("Compared options, E.G. Postgres vs MySQL.") == (
+            "Compared options, E.G. Postgres vs MySQL"
+        )
+
+    def test_abbreviation_at_end_returns_whole(self) -> None:
+        assert first_sentence("Followed up with Dr.") == "Followed up with Dr."
+
+    def test_empty_and_whitespace(self) -> None:
+        assert first_sentence("") == ""
+        assert first_sentence("   ") == ""
+
+    def test_real_second_sentence_still_splits_after_abbreviation(self) -> None:
+        assert first_sentence("Use e.g. Redis. Details in the finding.") == (
+            "Use e.g. Redis"
+        )

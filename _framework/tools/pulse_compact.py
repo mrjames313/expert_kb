@@ -192,6 +192,43 @@ def filter_recent_by_active_days(
     return [e for e in entries if e.updated and e.updated >= cutoff_iso]
 
 
+# --- First-sentence extraction ---
+
+# Abbreviations whose trailing period must NOT be treated as a sentence end.
+# Matched case-insensitively, including the trailing period(s). Grow this list
+# as new false-split cases surface (e.g. "vs.", "Inc.", "Fig.", "No.").
+SENTENCE_ABBREVIATIONS = [
+    "e.g.",
+    "i.e.",
+    "Dr.",
+    "Mr.",
+    "Mrs.",
+]
+
+# A sentence terminator is . ! or ? followed by whitespace or end of string.
+# The lookahead keeps decimals like "v3.5" (period followed by a digit) from
+# counting as a break.
+_SENTENCE_END = re.compile(r"[.!?](?=\s|$)")
+
+
+def first_sentence(text: str) -> str:
+    """Return the first sentence of `text`, trailing terminator stripped; the
+    whole (stripped) string if there is no sentence break.
+
+    A period ends a sentence only when followed by whitespace or end of string,
+    so decimals such as "v3.5" don't split. A candidate terminator that closes a
+    known abbreviation (see SENTENCE_ABBREVIATIONS) is skipped."""
+    text = text.strip()
+    lowered = text.lower()
+    abbrevs = [a.lower() for a in SENTENCE_ABBREVIATIONS]
+    for match in _SENTENCE_END.finditer(text):
+        end = match.start() + 1  # index just past the terminator
+        if any(lowered.endswith(abbr, 0, end) for abbr in abbrevs):
+            continue
+        return text[: match.start()]
+    return text
+
+
 # --- Section regenerators ---
 
 def regenerate_recent_decisions(
@@ -206,7 +243,7 @@ def regenerate_recent_decisions(
         lines.append("_None._")
     else:
         for e in recent:
-            summary = e.summary.split(".")[0] if e.summary else e.title
+            summary = first_sentence(e.summary) if e.summary else e.title
             lines.append(f"- [[{e.page_id}]] — {summary}")
     lines.append("")
     return lines
@@ -222,7 +259,7 @@ def regenerate_concepts_under_test(kb_entries: list[KbEntry]) -> list[str]:
     else:
         for e in concepts:
             conf = f" · {e.confidence} confidence" if e.confidence else ""
-            summary = e.summary.split(".")[0] if e.summary else e.title
+            summary = first_sentence(e.summary) if e.summary else e.title
             lines.append(f"- [[{e.page_id}]]{conf} — {summary}")
     lines.append("")
     return lines
@@ -238,7 +275,7 @@ def regenerate_recent_findings(kb_entries: list[KbEntry], max_count: int = 5) ->
         lines.append("_None._")
     else:
         for e in findings:
-            summary = e.summary.split(".")[0] if e.summary else e.title
+            summary = first_sentence(e.summary) if e.summary else e.title
             lines.append(f"- [[{e.page_id}]] — {summary}")
     lines.append("")
     return lines

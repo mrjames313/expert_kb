@@ -1,0 +1,57 @@
+# Maintaining the framework
+
+Author-facing notes for evolving the Expert Coordination framework itself. This file and `future-work.md` are **template-repo-only**: SETUP.md removes both during bootstrap, so they never ship into a live project.
+
+## Keep spec.md in sync with reality
+
+`_framework/spec.md` is the maximal specification, but **nothing enforces it**: no tool parses it, and it's in no role preload (agents read it on demand, section by section). So it drifts silently — the only guard is discipline. Whenever a change lands, update spec.md in the *same* commit:
+
+| If you change… | Update in spec.md | And also |
+|---|---|---|
+| a file/dir under `_framework/` (tool, schema doc, hook, lint-rule module) | §2 directory-layout tree + §2 file-maintenance table | — |
+| a capability (add / rename / behavior) | §3 Capabilities | `_framework/schema/capabilities.md`, `_framework/schema/claude-snippets/<cap>.md` |
+| a skill (add / remove / trigger) | §15 Skills | ship `.claude/skills/<name>/SKILL.md` |
+| a lint rule | §14 Lint rules | `_framework/schema/lint-rules.md`, `_framework/tools/lint_rules/rule_*.py` |
+| frontmatter / types / lifecycle | §5 Frontmatter | `_framework/schema/frontmatter.md` |
+| link / promotion / exchange / commons-extension rules | §13 / §16 / §12 (+ the protocol) | matching `_framework/schema/*-protocol.md` |
+| the bootstrap flow | `SETUP.md` | "Building / refreshing the template" below |
+
+Rule of thumb: if a change would make the §2 tree or any protocol section wrong, the change isn't done until spec.md is fixed too. Treat spec.md as documentation that must be re-derived from reality — nothing else will catch the drift.
+
+## Building / refreshing the template
+
+1. Create the template repo with `_framework/` populated, plus empty `commons/` and `areas/` skeletons. Write `CLAUDE.md` (always-on sections only), `_framework/config.yml` with initial state (all four capabilities off; all warnings shadowed).
+
+2. Write the deterministic Python tools under `_framework/tools/` — `lint.py` (plus the `lint_rules/` modules), `pulse_compact.py`, `promote.py`, `manifest_validate.py`, `commons_extension.py`, `activity_days.py`, `token_estimate.py`, `telemetry.py`, and `framework.py`, with shared helpers in `common.py`.
+
+3. Write the always-available skills as `.claude/skills/<name>/SKILL.md` with explicit trigger language. Write the capability-gated skills too — all skills ship with the template; the `framework` skill manages activation state via `config.yml`.
+
+4. Write `_framework/schema/capabilities.md` and the four snippet files in `_framework/schema/claude-snippets/` (one per capability) declaratively describing what each enable/disable operation does.
+
+5. Pick one project to instantiate. Write `commons/brief.md`. Pick 2 areas to start. Write area `brief.md` and one role per area.
+
+6. **Pre-created at setup**: `INBOX.md` (empty), `areas-index.md` (lint populates), `roles/<role>/role.md` per area, `raw/` per area (empty subdirs), `kb/` per area (empty subdirs), `pulse.md` per area (empty template), `_journal/pulse.log` per area (empty). **On-demand**: exchanges (`/exchange` bootstraps), specs (`/plan` bootstraps), `_proposed/` entries (`/propose-promotion` bootstraps), POR files (when `/framework enable por` runs).
+
+7. Run one end-to-end exercise: ingest 2–3 sources, run one spec brief → outcome, propose a finding to commons, promote it.
+
+8. As the project grows, enable capabilities as signals appear. The framework skill handles all the mechanics.
+
+## Open design questions
+
+**Pulse line cap.** Default 80 lines. Reasonable across areas, or do some areas need different caps?
+
+**Auto-debug retry limit.** Default 2 rejections before auto-debug fires (applies when `formal_review` on).
+
+**Cross-area specs.** Default: spec lives under the area that owns the outcome; coordination via exchanges. Alternative: top-level `cross-area-specs/`. I'd avoid the alternative unless we find we need it.
+
+**Sub-area POR.** Default: include but allow it to be a stub or omitted with a parent-POR note.
+
+**Manifest type.** Marked `type: source`. Could add `type: data` if friction emerges.
+
+**Raw subdirectory structure.** Suggested `papers/`, `articles/`, `transcripts/`, `web/`. Areas can add subdirs as needed; framework doesn't constrain.
+
+**Shadow trigger threshold.** Default 5 findings before suggesting enable. Tunable in `config.yml`.
+
+---
+
+Deferred feature ideas with "revisit when" triggers live in `future-work.md`.

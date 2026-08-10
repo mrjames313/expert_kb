@@ -1,6 +1,6 @@
 # Framework Specification
 
-This is the maximal specification for the Expert Coordination framework — every directory, every file type, every capability, every rule. Bootstrap a new project via [SETUP.md](../SETUP.md); learn what's needed when from the [adoption guide](adoption-guide.md); reach for this document when you want the full reference.
+This is the maximal specification for the Expert Coordination framework — every directory, every file type, every capability, every rule. Bootstrap a new project via [SETUP.md](https://github.com/mrjames313/expert_kb/blob/main/SETUP.md); learn what's needed when from the [adoption guide](adoption-guide.md); reach for this document when you want the full reference.
 
 A lightweight framework for orchestrating multi-area project development with Claude Code agents. Knowledge, code, and data are organized around shared project structures and area-specific structures, with disciplined paths for information to flow between them.
 
@@ -35,15 +35,23 @@ project-root/
 │
 ├── _framework/                        # all framework infrastructure
 │   ├── spec.md                        # maximal specification (this document)
+│   ├── adoption-guide.md              # how to start minimal and extend
 │   ├── config.yml                     # current configuration
 │   ├── schema/
 │   │   ├── frontmatter.md
 │   │   ├── link-conventions.md
 │   │   ├── lint-rules.md
+│   │   ├── index-format.md
 │   │   ├── exchange-protocol.md
 │   │   ├── promotion-protocol.md
+│   │   ├── commons-extension-protocol.md
 │   │   ├── role-template.md
 │   │   ├── capabilities.md            # describes each togglable capability
+│   │   ├── claude-snippets/           # per-capability CLAUDE.md sections
+│   │   │   ├── multi_area.md
+│   │   │   ├── por.md
+│   │   │   ├── task_subagents.md
+│   │   │   └── formal_review.md
 │   │   └── spec-template/
 │   │       ├── brief.md.tmpl
 │   │       ├── plan.md.tmpl
@@ -52,11 +60,18 @@ project-root/
 │   │       └── outcome.md.tmpl
 │   ├── tools/                         # deterministic helpers (python)
 │   │   ├── lint.py
+│   │   ├── lint_rules/                # one module per lint rule
+│   │   ├── common.py                  # shared helpers
 │   │   ├── pulse_compact.py
 │   │   ├── promote.py
+│   │   ├── commons_extension.py
 │   │   ├── manifest_validate.py
 │   │   ├── activity_days.py
-│   │   └── framework.py
+│   │   ├── token_estimate.py
+│   │   ├── telemetry.py
+│   │   ├── framework.py
+│   │   ├── requirements.txt
+│   │   └── tests/
 │   └── hooks/
 │       ├── session-start.sh
 │       ├── pre-compact.sh
@@ -987,44 +1002,6 @@ Manifests link bidirectionally with kb. Lint enforces both directions.
 - CI integration (lint in CI).
 - Web search ingest.
 - Cross-spec contradiction review.
-
----
-
-## 21. Bootstrap path
-
-1. Create the template repo with `_framework/` populated, plus empty `commons/` and `areas/` skeletons. Write `CLAUDE.md` (always-on sections only), `_framework/config.yml` with initial state (all four capabilities off; all warnings shadowed).
-
-2. Write `lint.py`, `pulse_compact.py`, `promote.py`, `framework.py`, `activity_days.py`, `token_estimate.py`, and `telemetry.py` as deterministic Python.
-
-3. Write the always-available skills as `.claude/skills/<name>/SKILL.md` with explicit trigger language. Write the capability-gated skills too — all skills ship with the template; the `framework` skill manages activation state via `config.yml`.
-
-4. Write `_framework/schema/capabilities.md` and the four snippet files in `_framework/schema/claude-snippets/` (one per capability) declaratively describing what each enable/disable operation does.
-
-5. Pick one project to instantiate. Write `commons/brief.md`. Pick 2 areas to start. Write area `brief.md` and one role per area.
-
-6. **Pre-created at setup**: `INBOX.md` (empty), `areas-index.md` (lint populates), `roles/<role>/role.md` per area, `raw/` per area (empty subdirs), `kb/` per area (empty subdirs), `pulse.md` per area (empty template), `_journal/pulse.log` per area (empty). **On-demand**: exchanges (`/exchange` bootstraps), specs (`/plan` bootstraps), `_proposed/` entries (`/propose-promotion` bootstraps), POR files (when `/framework enable por` runs).
-
-7. Run one end-to-end exercise: ingest 2–3 sources, run one spec brief → outcome, propose a finding to commons, promote it.
-
-8. As the project grows, enable capabilities as signals appear. The framework skill handles all the mechanics.
-
----
-
-## 22. Open questions
-
-**Pulse line cap.** Default 80 lines. Reasonable across areas, or do some areas need different caps?
-
-**Auto-debug retry limit.** Default 2 rejections before auto-debug fires (applies when `formal_review` on).
-
-**Cross-area specs.** Default: spec lives under the area that owns the outcome; coordination via exchanges. Alternative: top-level `cross-area-specs/`. I'd avoid the alternative unless we find we need it.
-
-**Sub-area POR.** Default: include but allow it to be a stub or omitted with a parent-POR note.
-
-**Manifest type.** Marked `type: source`. Could add `type: data` if friction emerges.
-
-**Raw subdirectory structure.** Suggested `papers/`, `articles/`, `transcripts/`, `web/`. Areas can add subdirs as needed; framework doesn't constrain.
-
-**Shadow trigger threshold.** Default 5 findings before suggesting enable. Tunable in `config.yml`.
 
 ---
 

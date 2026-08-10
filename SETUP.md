@@ -144,7 +144,31 @@ Write the filled-in file to `areas/$AREA_NAME/roles/$ROLE_NAME/role.md`. Show it
 
 ---
 
-### Step 6: Verify and commit
+### Step 6: Clean up, verify, and commit
+
+**Clean up template artifacts.** The clone brought in files that only exist to bootstrap and have no place in a live project. Do this before committing — you already hold the rest of this runbook in context, so removing `SETUP.md` won't interrupt you.
+
+Replace the framework's README with a short project-specific one drawn from the brief:
+
+```markdown
+# $PROJECT_NAME
+
+[1–2 sentence summary of the project, drawn from `commons/brief.md`.]
+
+Built on the Expert Coordination framework. See `CLAUDE.md` for how this project operates, and `_framework/adoption-guide.md` to extend it.
+```
+
+Show it to the user for confirmation, then remove the bootstrap runbook and the framework-authoring docs — none of these belong in a live project:
+
+```bash
+rm SETUP.md _framework/future-work.md _framework/maintaining.md
+```
+
+Ask the user about the license:
+
+> The template ships under the MIT license (`LICENSE`), which covers the framework itself. Keep it, replace it with your own project's license, or remove it?
+
+Follow their choice.
 
 Install the lint tool's dependencies (one-time per project):
 

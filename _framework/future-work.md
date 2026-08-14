@@ -313,7 +313,7 @@ Two related gaps surfaced in the same dogfood pass: there is no way to *push* a 
 
 **Revisit when:** A second cross-area handoff need arises, or when tackling preload maintenance — they probably want a shared design.
 
-**Status:** Now designed and scoped — see "Planned: brief (proactive-A) mode for `/exchange`" below.
+**Status:** Implemented — see "Shipped: brief (proactive-A) mode for `/exchange`" below.
 
 ### Role preload lists are the real handoff surface and nothing maintains them
 
@@ -345,9 +345,9 @@ There is also no tooled path today for adding a role to an *existing* area — r
 
 ---
 
-## Planned: brief (proactive-A) mode for `/exchange`
+## Shipped: brief (proactive-A) mode for `/exchange`
 
-Designed and scoped; ready to implement. Concretizes the "push/brief primitive" note above. `/add-role` and the automated preload-diff engine are explicitly out of scope (deferred separately).
+**Shipped** in commits ~exchange-briefs 1–4; canonical behavior now lives in `exchange-protocol.md` and the exchange skills. Kept here for design rationale. Concretized the "push/brief primitive" note above. `/add-role` and the automated preload-diff engine are explicitly out of scope (deferred separately).
 
 **Goal.** Extend `/exchange` from pull-only Q&A to also carry one-way *briefs* — an area hands a conclusion to specific role(s) in another area, with no responder obligation — reusing the exchange machinery, and fix the surfacing gap that makes any of it land.
 
@@ -376,7 +376,7 @@ Designed and scoped; ready to implement. Concretizes the "push/brief primitive" 
 
 **Flags.** All `SKILL.md`/schema-doc edits — no code, so no automated tests; verify by reading + dogfood. Natural sequencing: schema → `/exchange` → generalized close → `/start` scan (3–4 commits).
 
-**Revisit when:** Ready to implement — this is the next actionable framework-dev item, not blocked on evidence.
+**Remaining follow-ups:** `/add-role` + onboarding review (deferred, above); the automated preload-diff engine; and `/answer-from-kb` step 5 still tells agents to cite cross-area pages with the non-resolving full-path form (`[[areas/research/kb/findings/f-…]]`) — move it to the `area:` prefix (`[[research:findings/f-…]]`).
 
 ---
 

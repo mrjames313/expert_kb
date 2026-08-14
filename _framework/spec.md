@@ -709,45 +709,37 @@ A session that ends without `/wrap-up` and without hooks firing leaves a stale l
 
 ## 12. Exchange protocol — capability: `multi_area`
 
-Exchanges are how agents in one area get authoritative answers from another area without deep-reading the other area's kb.
+Exchanges are how areas communicate across boundaries without deep-reading each other's kb. An exchange has a **kind**: `query` (pull — area X asks area Y an authoritative question) or `brief` (push — area X hands a conclusion to specific role(s) in area Y, no responder obligation). Both share the directory, index, `from`/`to` identifiers, and persistence; they differ in lifecycle. Full detail in `_framework/schema/exchange-protocol.md`.
 
-**Filing.** Asker in area X invokes `/exchange <other-area> <question>`. Skill:
-
-1. If `exchanges/<a>--<b>/` doesn't exist, creates it with `OWNERS`, `README.md`, `index.md`.
-2. Creates `q-<date>-<slug>.md`:
+**Filing.** `/exchange <other-area> <text> [--kind query|brief]` (default `query`). Creates `exchanges/<a>--<b>/` (with `OWNERS`, `README.md`, `index.md`) if absent, writes `<id>.md`, appends an index line. Parties are named neutrally: `from_area`/`from_role` (filer), `to_area` (receiving area), and — briefs only — `to_roles` (targeted roles, snapshot at file time).
 
 ```yaml
 ---
-id: ex-2026-05-08-thermal-sensitivity
-status: open                  # open | answered | follow_up | closed
-asker_area: engineering
-asker_role: hardware-engineer
-responder_area: research
+id: ex-2026-05-08-drift-model-update
+kind: brief
+status: open                 # query: open|answered|follow_up|closed.  brief: open|closed
+from_area: research
+from_role: optics-researcher
+to_area: engineering
+to_roles: [hardware-engineer, firmware-engineer]   # brief only
+open_for: [hardware-engineer, firmware-engineer]   # brief only; drained on disposition
 created: 2026-05-08
-relevant_to: [thermal budget, detector responsivity]
 ---
-
-# Question
-What's the temperature dependence of responsivity for the 1310 nm
-photodetector?
-
+# Brief
+The drift model now predicts ~2x the responsivity swing at 85 C.
 ## Context
-[[concepts/c-2026-04-shot-noise]]; spec [[specs/2026-05-detector-thermal/brief]]
-
-# Response
-(filled in by responder)
-
-# Follow-up
-(optional; asker can drill in)
+[[research:findings/f-2026-05-drift-model]]
+# Dispositions
+(each targeted role records what it did)
 ```
 
-3. Appends an entry to `exchanges/<a>--<b>/index.md`.
+**Query lifecycle.** Responder invokes `/respond-exchange <id>` (spawns a role-context subagent when `task_subagents` is on; may use `/answer-from-kb`); status flips to `answered`. The asker reviews and closes via the disposition step.
 
-**Responding.** When work in the responder area happens, the responder invokes `/respond-exchange <id>`. If `task_subagents` is on, the responder spawns a subagent with the responder area's role context, restricted to writing the Response section. Subagent may use `/answer-from-kb` to pull existing kb pages by reference. On completion, status flips to `answered`.
+**Brief lifecycle.** No responder obligation. Each role in `to_roles` disposes independently (`/close-exchange`), recording a `# Dispositions` entry and dropping itself from `open_for`; status flips to `closed` when `open_for` is empty. `open_for` is frozen — new roles catch up via the deferred `/add-role`. Declining is an explicit `none`.
 
-**Reviewing the answer.** Asker reviews. If sufficient, `/close-exchange <id>` flips status to `closed`. If not, asker edits the Follow-up section and flips status to `follow_up`; the cycle repeats.
+**Disposing (close).** The party that received information disposes and closes — the asker for a query, each targeted role for a brief. Options: **preload** the referenced page into the disposing role's `role.md`, **file/cite** it in that role's kb, or **none**.
 
-**Staleness.** Lint flags exchanges with `status: open` aged past the activity-day threshold; entries surface to INBOX under "Heads up."
+**Surfacing.** `/start` scans `exchanges/*/` for the adopted role and surfaces open queries to answer, answered queries to close, and briefs where the role is still in `open_for`. Staleness lint flags open queries and briefs with a non-empty `open_for` to INBOX.
 
 **On disable.** Existing exchange directories remain. Skills become unavailable; CLAUDE.md's "Cross-area reads" section is removed. Re-enabling picks up existing exchanges.
 

@@ -1,47 +1,21 @@
 # Exchange Protocol
 
-How agents in one area get authoritative answers from another area without reading through all of the other area's pages. Available when the `multi_area` capability is enabled.
+How areas communicate across boundaries without deep-reading each other's kb. Available when the `multi_area` capability is enabled.
 
-## Filing an exchange
+An exchange has a **kind**:
 
-An agent in area X (the **asker**) invokes `/exchange <other-area> <question>`. The skill:
+- **`query`** (pull — Q&A) — area X asks area Y an authoritative question; Y's role answers from its kb; X reviews and closes. The original exchange.
+- **`brief`** (push — proactive A) — area X hands a conclusion to specific role(s) in area Y that they need but wouldn't know to ask for. No responder obligation; each targeted role disposes of it on its own.
 
-1. If `exchanges/<a>--<b>/` doesn't exist, creates it with `OWNERS`, `README.md`, and `index.md`.
-2. Creates a new question file `q-<date>-<slug>.md`.
-3. Appends an entry to `exchanges/<a>--<b>/index.md`.
+Both kinds share the same directory, index, `from`/`to` identifiers, and persistence. They differ in lifecycle.
 
-The question file:
+## Parties
 
-```yaml
----
-id: ex-2026-05-08-thermal-sensitivity
-status: open                  # open | answered | follow_up | closed
-asker_area: engineering
-asker_role: hardware-engineer
-responder_area: research
-created: 2026-05-08
-relevant_to:
-  - thermal budget
-  - detector responsivity
----
+Parties are named neutrally so the fields read correctly for both kinds:
 
-# Question
-
-What's the temperature dependence of responsivity for the 1310 nm
-photodetector? We're sizing the thermal management envelope.
-
-## Context
-
-[[concepts/c-2026-04-shot-noise]]; spec [[specs/2026-05-detector-thermal/brief]]
-
-# Response
-
-_(filled in by responder)_
-
-# Follow-up
-
-_(optional; asker can drill in)_
-```
+- `from_area`, `from_role` — who filed it (the asker of a query, the briefer of a brief).
+- `to_area` — the receiving area.
+- `to_roles` — (brief only) the specific roles targeted, snapshotted at file time. Queries omit this; any role in `to_area` may respond.
 
 ## Directory naming
 
@@ -51,49 +25,128 @@ Exchange directories are named with the two areas in alphabetical order, joined 
 exchanges/engineering--research/        # not "research--engineering"
 ```
 
-This is enforced so a given pair has exactly one canonical directory regardless of which area asks first.
+One canonical directory per pair regardless of direction — the direction lives in the `from`/`to` fields. Each directory has `OWNERS`, `README.md`, and `index.md`; the skill creates them if the directory doesn't exist.
 
-## Responding
+## Filing
 
-When work in the responder area happens, the responder invokes `/respond-exchange <id>`.
+An agent invokes `/exchange <other-area> <text> [--kind query|brief]` (default `query`). The skill creates the directory if needed, writes the exchange file `<id>.md` (`id: ex-<date>-<slug>`), and appends an index line:
 
-When `task_subagents` is enabled, this spawns a subagent with the responder area's role context, restricted to writing the Response section. The subagent may use `/answer-from-kb` to pull existing kb pages by reference (with summarization, not duplication) — this is where the "expert summarization" payoff happens.
+```markdown
+- [[<id>]] — <kind> from <from_role>@<from_area>, <status>, YYYY-MM-DD
+```
 
-On completion, status flips to `answered`.
+### Query file
 
-## Asker review
+```yaml
+---
+id: ex-2026-05-08-thermal-sensitivity
+kind: query
+status: open                  # open | answered | follow_up | closed
+from_area: engineering
+from_role: hardware-engineer
+to_area: research
+created: 2026-05-08
+relevant_to: [thermal budget, detector responsivity]
+---
 
-The asker reviews the response.
+# Question
+What's the temperature dependence of responsivity for the 1310 nm photodetector?
 
-If sufficient: `/close-exchange <id>` flips status to `closed`.
+## Context
+[[research:concepts/c-2026-04-shot-noise]]; spec [[specs/2026-05-detector-thermal/brief]]
 
-If insufficient: the asker edits the Follow-up section and flips status to `follow_up`. The responder cycle repeats.
+# Response
+_(filled in by responder)_
 
-## Staleness
+# Follow-up
+_(optional; asker can drill in)_
+```
 
-The linter (Rule 14, runs only when `multi_area` is enabled) flags exchanges with `status: open` aged past `exchange_stale_active_days` (default 7). Stale exchanges surface to INBOX under "Heads up."
+### Brief file
+
+```yaml
+---
+id: ex-2026-05-08-drift-model-update
+kind: brief
+status: open                  # open | closed  (closed when open_for is empty)
+from_area: research
+from_role: optics-researcher
+to_area: engineering
+to_roles: [hardware-engineer, firmware-engineer]   # snapshot at file time
+open_for: [hardware-engineer, firmware-engineer]   # drained as each disposes
+created: 2026-05-08
+relevant_to: [thermal budget]
+---
+
+# Brief
+The drift model now predicts ~2x the responsivity swing at 85 C — size the
+thermal envelope accordingly.
+
+## Context
+[[research:findings/f-2026-05-drift-model]]
+
+# Dispositions
+_(each targeted role records what it did — see "Disposing")_
+```
+
+## Query lifecycle
+
+**Respond.** The responder area invokes `/respond-exchange <id>`. When `task_subagents` is on, this spawns a subagent with the responder area's role context, restricted to the Response section; it may use `/answer-from-kb` to pull kb pages by reference (summarize, don't duplicate) — the "expert summarization" payoff. On completion, status flips to `answered`.
+
+**Review & close.** The asker — the receiver of the answer — reviews. If sufficient, `/close-exchange <id>` runs the disposition step (below) and sets status `closed`. If not, the asker fills the Follow-up section, sets status `follow_up`, and the responder cycle repeats.
+
+## Brief lifecycle
+
+A brief has **no responder obligation** and no answer cycle. Each role in `to_roles` disposes of it independently:
+
+1. A targeted role reviews the brief.
+2. It runs the disposition step (`/close-exchange <id>`), recording what it did in a `# Dispositions` entry and removing itself from `open_for`.
+3. When `open_for` is empty, status flips to `closed`.
+
+`open_for` is **frozen** — a role created after the brief is filed is never auto-added. (Catching a new role up on the archive is the deferred `/add-role` skill's job.) Declining is an explicit disposition (`none`), so an indifferent role still clears from `open_for`.
+
+## Disposing (the receiver's close step)
+
+The party that *received* information disposes of it and closes — the asker for a query, each targeted role for a brief. Options:
+
+- **preload** — add the referenced page (`[[area:findings/f-…]]`) to *the disposing role's* `role.md` preload (human-confirmed; preloads are `H`).
+- **file / cite** — write a finding/concept/decision in the disposing role's area kb, citing the exchange as provenance.
+- **none** — nothing durable; still recorded so the item clears.
+
+For a brief, each disposition appends an entry:
+
+```markdown
+# Dispositions
+## hardware-engineer — 2026-05-09
+Preloaded [[research:findings/f-2026-05-drift-model]] into role.md (full tier).
+## firmware-engineer
+_(pending)_
+```
+
+## Surfacing
+
+Pending exchanges reach the right role two ways:
+
+- **`/start`** scans `exchanges/*/` for the adopted role R in area A and surfaces: open queries `to_area==A` (respond), answered queries `from_area==A` (close), and briefs `to_area==A` where `R ∈ open_for` (dispose).
+- **Staleness lint** flags items aged past `exchange_stale_active_days` — open queries, and briefs with a non-empty `open_for` (naming the outstanding roles) — to INBOX under "Heads up."
 
 ## Persistence
 
-Exchange files are kept indefinitely after closing. They're frequently the best institutional record of "why does X area think Y about Z." Closed exchanges are an audit trail; they don't get deleted or archived automatically.
+Exchange files are kept indefinitely after closing — often the best institutional record of "why does X area think Y about Z," or "what did research hand engineering, and when." Closed exchanges are an audit trail; they aren't deleted or archived automatically.
 
 ## OWNERS and README
 
-Each exchange directory has two human-authored support files:
-
-- `OWNERS` — names the two areas as joint owners. Lint refuses to delete an exchange directory whose OWNERS file is intact.
-- `README.md` — describes the scope of the exchange (what kinds of questions belong here). Drafted on directory creation; can be updated as the exchange's scope clarifies.
+- `OWNERS` — names the two areas as joint owners; lint refuses to delete a directory whose OWNERS file is intact.
+- `README.md` — describes the scope of the pair's exchanges; drafted on creation, refined as scope clarifies.
 
 ## On disable
 
 When `multi_area` is disabled via `/framework disable multi_area`:
 
 - Existing exchange directories remain on disk.
-- The four exchange skills become unavailable.
-- CLAUDE.md's "Cross-area reads" section is removed.
+- The exchange skills become unavailable.
+- The "Cross-area reads" CLAUDE.md section is removed.
 - Role files have exchange-related skills removed from their `Allowed skills` lists.
-- Lint Rule 14 stops running.
+- Staleness lint stops running.
 
-Re-enabling later picks up existing exchanges where they were.
-
-If `multi_area` is disabled while exchange directories contain content, the `framework` skill warns the user in conversation before applying the change.
+Re-enabling later picks up existing exchanges. If directories contain content, the `framework` skill warns the user in conversation before applying the change.

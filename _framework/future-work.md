@@ -345,6 +345,30 @@ There is also no tooled path today for adding a role to an *existing* area — r
 
 ---
 
+## Promotion copies pages and then abandons the relationship
+
+Two faces of one gap (report issues 5c/5d), both consequences of commons pages being *copies* with no ongoing link to their source.
+
+**Observed during:** The first promotions in the dogfood project — a paragraph in a promoted page went stale within an hour and had to be fixed by hand in both the area copy and the commons copy.
+
+### 5c — no drift detection
+
+Promotion copies the area page into `commons/kb/` under a distinct id and (correctly, per the 2A1 fix) leaves the area original unchanged — so two independent copies coexist with no link between them. The commons page records `promoted_from_page`, but nothing reads it; and Rule 13 (backlinker freshness) can't help, because the copies don't link to each other. Edit either and the other silently drifts. This drift is the direct cost of the 2A1 coexistence decision (superseding the source would break its inbound citations, so coexistence is correct — but coexistence is what enables the drift).
+
+### 5d — internal links aren't rewritten
+
+A promoted page's body still cites the *source area's* pages, so a reader of a commons briefing follows a citation straight into one area's kb — undercutting the premise that commons is a standalone, project-wide layer. The `/add-area` commons-extension step already flags this as a deferred, per-link judgment.
+
+**Why deferred:** The real question is architectural — **is a commons page a COPY or a REFERENCE?** Copy (today) is standalone-ish but drifts (5c) and leaks links (5d); reference (a pointer to the single source-of-truth area page) removes both but makes commons non-self-contained and turns every commons read into a cross-area read (the very thing exchanges and bounded preloads exist to limit). Neither is free, and the choice interacts with the coexistence model, Rule 18 ids, and the commons-extension pathway.
+
+**What addressing it would look like:**
+- *Stay "copy" + detect* (pragmatic near-term): a drift-detection lint rule that pairs copies via `promoted_from_page` and warns when their `updated` dates or content diverge; plus a warning when a commons page cites area-local pages (5d). Optionally, rewrite internal links to commons versions on promotion when the dependency is also in commons (ties to the deferred "promotion doesn't pull dependencies along" idea).
+- *Switch to "reference"* (deeper): commons holds a pointer to the source page instead of a copy — no drift, no link rewriting, but commons is no longer standalone.
+
+**Revisit when:** Promotions become frequent enough that manual drift-reconciliation is a real cost, or when revisiting the commons data model. Related: future-work's Rule 4 (cross-area finding citation patterns) and Rule 9 (unresolved cross-area citations) cover parts of the detect side.
+
+---
+
 ## Shipped: brief (proactive-A) mode for `/exchange`
 
 **Shipped** in commits ~exchange-briefs 1–4; canonical behavior now lives in `exchange-protocol.md` and the exchange skills. Kept here for design rationale. Concretized the "push/brief primitive" note above. `/add-role` and the automated preload-diff engine are explicitly out of scope (deferred separately).

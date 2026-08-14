@@ -507,3 +507,35 @@ class TestFirstSentence:
         assert first_sentence("Use e.g. Redis. Details in the finding.") == (
             "Use e.g. Redis"
         )
+
+    def test_abbreviation_not_matched_as_word_suffix(self) -> None:
+        # " no." must not fire inside "casino."; " ca." not inside "Rica."
+        assert first_sentence("We visited the casino. Then home.") == "We visited the casino"
+        assert first_sentence("Flew to Costa Rica. Then back.") == "Flew to Costa Rica"
+
+    def test_single_letter_initial_not_split(self) -> None:
+        assert first_sentence("Fitted by W. Gurnee in 2024.") == "Fitted by W. Gurnee in 2024"
+
+    def test_initial_at_start_not_truncated(self) -> None:
+        assert first_sentence("W. Gurnee ran the fit. Results held.") == "W. Gurnee ran the fit"
+
+    def test_abbreviation_at_start_not_truncated(self) -> None:
+        assert first_sentence("Vs. the baseline, latency dropped. Details below.") == (
+            "Vs. the baseline, latency dropped"
+        )
+
+    def test_newly_added_abbreviations(self) -> None:
+        assert first_sentence("Compare cf. the prior finding for context.") == (
+            "Compare cf. the prior finding for context"
+        )
+        assert first_sentence("Runtime is approx. 2x on the new rig.") == (
+            "Runtime is approx. 2x on the new rig"
+        )
+        assert first_sentence("Cited in sec. 3 of the paper.") == "Cited in sec. 3 of the paper"
+        assert first_sentence("Tracked as no. 5 in the queue.") == "Tracked as no. 5 in the queue"
+        assert first_sentence("Filed with the U.S. regulator last week.") == (
+            "Filed with the U.S. regulator last week"
+        )
+        assert first_sentence("Reviewed by her Ph.D. advisor first.") == (
+            "Reviewed by her Ph.D. advisor first"
+        )

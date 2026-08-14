@@ -195,19 +195,32 @@ def filter_recent_by_active_days(
 # --- First-sentence extraction ---
 
 # Abbreviations whose trailing period must NOT be treated as a sentence end.
-# Matched case-insensitively, including the trailing period(s). Grow this list
-# as new false-split cases surface (e.g. "vs.", "Inc.", "Fig.", "No.").
+# Each entry keeps a **leading space** so it only matches as a whole word, not
+# as the suffix of a longer word — otherwise " no." would fire inside "casino."
+# and " ca." inside "Rebecca." Matched case-insensitively; an abbreviation at
+# the very start of the text is matched too. Grow this list as new false-split
+# cases surface (keep the leading space).
 SENTENCE_ABBREVIATIONS = [
-    "e.g.",
-    "i.e.",
-    "Dr.",
-    "Mr.",
-    "Mrs.",
-    "etc.",
-    "vs.",
-    "et al.",
-    "fig.",
-    "eq.",
+    " e.g.",
+    " i.e.",
+    " etc.",
+    " vs.",
+    " et al.",
+    " cf.",
+    " approx.",
+    " resp.",
+    " ca.",
+    " fig.",
+    " eq.",
+    " sec.",
+    " app.",
+    " tab.",
+    " no.",
+    " Dr.",
+    " Mr.",
+    " Mrs.",
+    " Ph.D.",
+    " U.S.",
 ]
 
 # A sentence terminator is . ! or ? followed by whitespace or end of string.
@@ -215,20 +228,31 @@ SENTENCE_ABBREVIATIONS = [
 # counting as a break.
 _SENTENCE_END = re.compile(r"[.!?](?=\s|$)")
 
+# A single-letter initial ("W" in "Fitted by W. Gurnee") right before the
+# terminator: a lone letter preceded by whitespace or start-of-string. Kept out
+# of the abbreviation list because it can't be enumerated letter by letter.
+_INITIAL = re.compile(r"(?:^|\s)[A-Za-z]\Z")
+
 
 def first_sentence(text: str) -> str:
     """Return the first sentence of `text`, trailing terminator stripped; the
     whole (stripped) string if there is no sentence break.
 
     A period ends a sentence only when followed by whitespace or end of string,
-    so decimals such as "v3.5" don't split. A candidate terminator that closes a
-    known abbreviation (see SENTENCE_ABBREVIATIONS) is skipped."""
+    so decimals such as "v3.5" don't split. A candidate terminator is skipped
+    when it closes a known abbreviation (SENTENCE_ABBREVIATIONS) or a
+    single-letter initial — in both cases matched as a whole token."""
     text = text.strip()
     lowered = text.lower()
     abbrevs = [a.lower() for a in SENTENCE_ABBREVIATIONS]
     for match in _SENTENCE_END.finditer(text):
-        end = match.start() + 1  # index just past the terminator
-        if any(lowered.endswith(abbr, 0, end) for abbr in abbrevs):
+        prefix = lowered[: match.start() + 1]  # up to and including the terminator
+        before = text[: match.start()]         # up to (not including) the terminator
+        # Known abbreviation ending here (whole word: leading space, or at start)?
+        if any(prefix.endswith(a) or prefix == a.lstrip() for a in abbrevs):
+            continue
+        # Single-letter initial ending here?
+        if _INITIAL.search(before):
             continue
         return text[: match.start()]
     return text

@@ -763,6 +763,8 @@ Within `kb/` directories, agents use Obsidian-style `[[wikilinks]]`. For files o
 
 **Cross-area links are valid but watched.** Lint warns when a single page accumulates links to multiple distinct areas (default 3+). Pages with `area: commons` are exempt.
 
+**Cross-area links may carry an `area:` prefix** naming the target's area — `[[engineering:findings/f-...]]`, `[[commons:...]]`, nested `[[research/optics:...]]` (split on the first colon). The prefix is a readability aid; resolution doesn't require it (ids are project-unique). Rule 2 errors if a present prefix doesn't match the target's actual area.
+
 **Bidirectional content consistency** requires both lint and convention:
 
 - **Lint (Rule 13)**: flag pages whose `links_out` point to pages updated more recently than the page itself. Output goes to INBOX or `/check` summary.

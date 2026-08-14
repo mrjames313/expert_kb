@@ -16,39 +16,16 @@ import yaml
 
 from common import (
     Finding,
+    build_wikilink_index,
     extract_wikilinks,
     iter_kb_pages,
+    page_area,
     parse_frontmatter,
+    split_wikilink,
 )
 
 RULE_ID = "rule_02"
 SEVERITY = "error"
-
-
-def _build_wikilink_index(repo_root: Path) -> dict[str, Path]:
-    """
-    Build a map from wikilink target to the resolving file path.
-
-    Targets are matched in priority order: full relative path (e.g.,
-    "concepts/c-2026-04-shot-noise"), then bare id ("c-2026-04-shot-noise").
-    """
-    index: dict[str, Path] = {}
-    for page in iter_kb_pages(repo_root):
-        rel = page.relative_to(repo_root)
-        # Strip the leading "areas/<area>/kb/" or "commons/kb/" to get the
-        # within-kb path the wikilink would use, like "concepts/c-2026-...".
-        # We also register the bare id for convenience.
-        parts = rel.parts
-        if "kb" in parts:
-            kb_idx = parts.index("kb")
-            within_kb = "/".join(parts[kb_idx + 1:])
-            # Without extension
-            target_with_dir = within_kb[:-3] if within_kb.endswith(".md") else within_kb
-            index[target_with_dir] = page
-            # Also register bare id (the filename without extension)
-            bare = page.stem
-            index.setdefault(bare, page)
-    return index
 
 
 def _check_page(
@@ -68,16 +45,33 @@ def _check_page(
         return findings  # rule 1 will flag
 
     # Wikilinks in body
-    for target in extract_wikilinks(body):
-        if target not in wikilink_index:
+    for raw in extract_wikilinks(body):
+        prefix, target = split_wikilink(raw)
+        resolved = wikilink_index.get(target)
+        if resolved is None:
             findings.append(
                 Finding(
                     RULE_ID,
                     SEVERITY,
                     rel,
-                    f"wikilink [[{target}]] does not resolve to any kb page",
+                    f"wikilink [[{raw}]] does not resolve to any kb page",
                 )
             )
+            continue
+        # If the link carries an area prefix, it must name the target's actual
+        # area (readability convention; a wrong label is misleading).
+        if prefix is not None:
+            actual = page_area(resolved, repo_root)
+            if actual != prefix:
+                findings.append(
+                    Finding(
+                        RULE_ID,
+                        SEVERITY,
+                        rel,
+                        f"wikilink [[{raw}]] declares area '{prefix}' but its "
+                        f"target resolves to '{actual}'",
+                    )
+                )
 
     # Source-page raw_path
     if fm and fm.get("type") == "source":
@@ -103,7 +97,7 @@ def _check_page(
 
 def check(repo_root: Path, config: dict) -> list[Finding]:
     findings: list[Finding] = []
-    index = _build_wikilink_index(repo_root)
+    index = build_wikilink_index(repo_root)
     for path in iter_kb_pages(repo_root):
         findings.extend(_check_page(path, repo_root, index))
     return findings

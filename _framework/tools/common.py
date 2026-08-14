@@ -334,3 +334,54 @@ _WIKILINK_RE = re.compile(r"\[\[([^\]|]+?)(?:\|[^\]]+)?\]\]")
 def extract_wikilinks(text: str) -> list[str]:
     """Return all wikilink targets (no alias, no extension) from markdown text."""
     return [m.group(1).strip() for m in _WIKILINK_RE.finditer(text)]
+
+
+def split_wikilink(raw: str) -> tuple[str | None, str]:
+    """Split an optional ``area:`` prefix from a wikilink target.
+
+    Splits on the first colon only, so a nested prefix like ``research/optics``
+    and a slash-bearing target like ``concepts/c-foo`` both survive intact.
+    Returns ``(area_prefix_or_None, target)``.
+    """
+    if ":" in raw:
+        prefix, target = raw.split(":", 1)
+        return prefix.strip(), target.strip()
+    return None, raw.strip()
+
+
+def page_area(page: Path, repo_root: Path) -> str | None:
+    """The area a kb page belongs to, as it appears in a wikilink prefix.
+
+    ``"commons"``, a leaf area like ``"engineering"``, or a nested area like
+    ``"research/optics"``. Returns None if the path isn't under a ``kb/`` dir.
+    """
+    parts = page.relative_to(repo_root).parts
+    if "kb" not in parts:
+        return None
+    kb_idx = parts.index("kb")
+    if parts[0] == "commons":
+        return "commons"
+    if parts[0] == "areas":
+        return "/".join(parts[1:kb_idx])
+    return None
+
+
+def build_wikilink_index(repo_root: Path) -> dict[str, Path]:
+    """Map every wikilink target to its resolving kb page, across commons and
+    all areas.
+
+    Keyed by within-kb path (e.g. ``concepts/c-foo``) and by bare id (the
+    filename stem). Area prefixes are not part of the key — strip them with
+    :func:`split_wikilink` before lookup.
+    """
+    index: dict[str, Path] = {}
+    for page in iter_kb_pages(repo_root):
+        parts = page.relative_to(repo_root).parts
+        if "kb" not in parts:
+            continue
+        kb_idx = parts.index("kb")
+        within_kb = "/".join(parts[kb_idx + 1:])
+        target_with_dir = within_kb[:-3] if within_kb.endswith(".md") else within_kb
+        index[target_with_dir] = page
+        index.setdefault(page.stem, page)
+    return index

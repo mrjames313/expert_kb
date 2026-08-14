@@ -75,7 +75,7 @@ The `start` skill loads both at session start. During work, when evaluating whet
 
 ## Links and provenance
 
-Use `[[wikilinks]]` for kb cross-references. Forward links are written by agents; the linter maintains backlinks via `.links.json` sidecars. See `_framework/schema/link-conventions.md` for details, including the convention for content-consistency checks when updating pages with backlinkers.
+Use `[[wikilinks]]` for kb cross-references. Forward links are written by agents; the linter maintains backlinks via `.links.json` sidecars. When a wikilink points into another area or commons, prefix the target with its area for readability — `[[engineering:findings/f-...]]`, `[[commons:...]]`, nested `[[research/optics:...]]`; lint errors if the prefix names the wrong area. See `_framework/schema/link-conventions.md` for details, including the convention for content-consistency checks when updating pages with backlinkers.
 
 ## Pulse discipline
 

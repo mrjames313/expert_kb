@@ -266,6 +266,59 @@ class TestRule02ForwardLinks:
         findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
         assert any("raw_path does not resolve" in f.message for f in findings)
 
+    def test_cross_area_prefix_ok(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/engineering", "finding", "thermal")
+        write_kb_page(
+            tmp_path, "areas/research", "finding", "cites-eng",
+            body="See [[engineering:findings/f-2026-05-thermal]].",
+        )
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert findings == []
+
+    def test_cross_area_prefix_mismatch(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/engineering", "finding", "thermal")
+        write_kb_page(
+            tmp_path, "areas/research", "finding", "wrong-prefix",
+            body="See [[research:f-2026-05-thermal]].",  # actually lives in engineering
+        )
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert any(
+            "declares area 'research'" in f.message and "engineering" in f.message
+            for f in findings
+        )
+
+    def test_nested_area_prefix_ok(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/research/optics", "concept", "coating")
+        write_kb_page(
+            tmp_path, "areas/research", "finding", "cites-optics",
+            body="Builds on [[research/optics:concepts/c-2026-05-coating]].",
+        )
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert findings == []
+
+    def test_commons_prefix_ok(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "commons", "decision", "policy")
+        write_kb_page(
+            tmp_path, "areas/research", "finding", "cites-commons",
+            body="Per [[commons:decisions/d-2026-05-policy]].",
+        )
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert findings == []
+
+    def test_unprefixed_cross_area_still_resolves(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/engineering", "finding", "thermal")
+        write_kb_page(
+            tmp_path, "areas/research", "finding", "bare-xarea",
+            body="See [[f-2026-05-thermal]].",
+        )
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert findings == []
+
 
 # --- Rule 3: Backlink synchronization (fixup) ---
 
@@ -293,6 +346,22 @@ class TestRule03Backlinks:
         assert concept_sidecar.is_file()
         data = json.loads(concept_sidecar.read_text())
         assert any("f-2026-05-y" in p for p in data["links_in"])
+
+    def test_prefixed_cross_area_link_creates_backlink(self, tmp_path: Path) -> None:
+        """An area-prefixed cross-area link still resolves for backlink purposes."""
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/engineering", "finding", "thermal")
+        write_kb_page(
+            tmp_path, "areas/research", "finding", "cites-eng",
+            body="See [[engineering:findings/f-2026-05-thermal]].",
+        )
+        findings = rule_03_backlinks.check(tmp_path, DEFAULT_CONFIG)
+        assert findings == []
+        import json
+        eng_sidecar = tmp_path / "areas/engineering/kb/findings/f-2026-05-thermal.md.links.json"
+        assert eng_sidecar.is_file()
+        data = json.loads(eng_sidecar.read_text())
+        assert any("f-2026-05-cites-eng" in p for p in data["links_in"])
 
 
 # --- Rule 5: Supersession integrity ---

@@ -13,6 +13,12 @@ This builds on [[concepts/c-2026-04-shot-noise]] and contradicts
 
 Wikilink targets are resolved by the linter — it walks the kb tree and matches the path. Targets do not need the `.md` extension.
 
+### Area prefixes on cross-area links
+
+A wikilink target may carry an `area:` prefix naming where the target lives — `[[engineering:findings/f-...]]`, `[[commons:decisions/d-...]]`, or a nested `[[research/optics:concepts/c-...]]`. The split is on the first colon, so slashes in a nested prefix or in the target are fine.
+
+The prefix is a **readability** aid — resolution still works without it, since ids are project-unique (Rule 18). But when a prefix *is* present, the linter checks it against the target's actual area and **errors on a mismatch** (Rule 2). Keep same-area links bare; add the prefix when you link into another area or commons, so the reader sees the boundary being crossed.
+
 ## Markdown links for everything else
 
 For files outside `kb/` (code, manifests, specs, raw materials, exchange files), use relative markdown links with explicit paths:
@@ -55,7 +61,7 @@ When you discover a forward link points to a now-superseded page, follow `supers
 
 ## Cross-area links
 
-Cross-area links are valid but watched. Lint warns when a single page accumulates links to 3 or more distinct areas — it may indicate that the topic belongs in commons (via promotion) or in an exchange (when `multi_area` is enabled).
+Cross-area links are valid but watched. Prefix them with the target's area (see "Area prefixes" above). Lint warns when a single page accumulates links to 3 or more distinct areas — it may indicate that the topic belongs in commons (via promotion) or in an exchange (when `multi_area` is enabled).
 
 Pages with `area: commons` are exempt from this rule — commons is by definition relevant to everyone.
 

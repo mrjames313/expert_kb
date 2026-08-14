@@ -22,34 +22,21 @@ import yaml
 
 from common import (
     Finding,
+    build_wikilink_index,
     extract_wikilinks,
     iter_kb_pages,
     parse_frontmatter,
+    split_wikilink,
 )
 
 RULE_ID = "rule_03"
 SEVERITY = "error"
 
 
-def _build_wikilink_index(repo_root: Path) -> dict[str, Path]:
-    """Same indexing logic as rule 2 — maps targets to resolving pages."""
-    index: dict[str, Path] = {}
-    for page in iter_kb_pages(repo_root):
-        rel = page.relative_to(repo_root)
-        parts = rel.parts
-        if "kb" in parts:
-            kb_idx = parts.index("kb")
-            within_kb = "/".join(parts[kb_idx + 1:])
-            target_with_dir = within_kb[:-3] if within_kb.endswith(".md") else within_kb
-            index[target_with_dir] = page
-            index.setdefault(page.stem, page)
-    return index
-
-
 def check(repo_root: Path, config: dict) -> list[Finding]:
     """Regenerate sidecars. Returns findings only on write failures."""
     findings: list[Finding] = []
-    index = _build_wikilink_index(repo_root)
+    index = build_wikilink_index(repo_root)
 
     # Forward edges: from path -> set of resolved-target paths
     out_edges: dict[Path, set[Path]] = defaultdict(set)
@@ -63,7 +50,8 @@ def check(repo_root: Path, config: dict) -> list[Finding]:
         except (OSError, yaml.YAMLError):
             continue  # other rules flag
 
-        for target in extract_wikilinks(body):
+        for raw in extract_wikilinks(body):
+            _prefix, target = split_wikilink(raw)
             resolved = index.get(target)
             if resolved is None:
                 continue  # rule 2 flags unresolved links

@@ -40,6 +40,12 @@ Picks a role, loads its preload context, records a session_start telemetry event
    - Read `pulse.md` end-to-end. Note especially the "Current focus" and "Open questions" sections.
    - Read `_journal/pulse.log` if it's non-empty. (A non-empty log usually means the previous session didn't wrap up; offer to run `/wrap-up` first.)
    - If an in-progress spec lives under `areas/<area>/specs/`, read its `plan.md` and `tasks.md`.
+   - **If `multi_area` is enabled**, scan `exchanges/*/` for items involving this area and surface them:
+     - Open queries with `to_area` == this area → to answer (`/respond-exchange`).
+     - Answered queries with `from_area` == this area → to close (`/close-exchange`).
+     - Open briefs with `to_area` == this area where the adopted role is in `open_for` → to dispose (`/close-exchange`).
+
+     Read only the frontmatter to triage; open a body when the user picks one to act on.
 
 6. **Brief the user.** In one short paragraph: where the role left off, what's open, and one or two suggestions for what to work on next. Don't start working — wait for the user to choose.
 

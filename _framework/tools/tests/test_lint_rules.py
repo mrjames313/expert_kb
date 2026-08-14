@@ -319,6 +319,41 @@ class TestRule02ForwardLinks:
         findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
         assert findings == []
 
+    def test_frontmatter_wikilink_resolves(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/research", "source", "src")
+        write_kb_page(
+            tmp_path, "areas/research", "concept", "cited",
+            frontmatter_overrides={"status": "supported", "evidence": ["[[s-2026-05-src]]"]},
+        )
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert findings == []
+
+    def test_frontmatter_wikilink_broken(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(
+            tmp_path, "areas/research", "concept", "badcite",
+            frontmatter_overrides={"status": "supported", "evidence": ["[[s-2026-05-nope]]"]},
+        )
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert any(
+            "frontmatter wikilink" in f.message and "does not resolve" in f.message
+            for f in findings
+        )
+
+    def test_frontmatter_wikilink_prefix_mismatch(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/engineering", "source", "src")
+        write_kb_page(
+            tmp_path, "areas/research", "concept", "wrongarea",
+            frontmatter_overrides={"status": "supported", "evidence": ["[[research:s-2026-05-src]]"]},
+        )
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert any(
+            "frontmatter wikilink" in f.message and "declares area 'research'" in f.message
+            for f in findings
+        )
+
 
 # --- Rule 3: Backlink synchronization (fixup) ---
 

@@ -1,7 +1,12 @@
 """
 Rule 2 — Forward-link integrity.
 
-- Every [[wikilink]] in a kb page resolves to an existing kb page.
+- Every [[wikilink]] in a kb page body resolves to an existing kb page.
+- Every [[wikilink]] in a frontmatter value (e.g. `evidence`, `provenance.ref`,
+  `alternatives_considered`, `superseded_by`) resolves too. Frontmatter links
+  used to be invisible to lint, which let tools that re-serialize frontmatter
+  corrupt them silently.
+- A present area prefix (`[[area:target]]`) must name the target's real area.
 - Every source page's provenance.raw_path resolves to an existing file.
 
 Builds an index of available wikilink targets first, then validates each
@@ -28,6 +33,54 @@ RULE_ID = "rule_02"
 SEVERITY = "error"
 
 
+def _frontmatter_wikilinks(value) -> list[str]:
+    """Every [[wikilink]] target in a frontmatter value, recursing through
+    dicts and lists. Wikilink values load as strings (see
+    common.parse_frontmatter), so extract_wikilinks finds them."""
+    found: list[str] = []
+    if isinstance(value, str):
+        found.extend(extract_wikilinks(value))
+    elif isinstance(value, dict):
+        for v in value.values():
+            found.extend(_frontmatter_wikilinks(v))
+    elif isinstance(value, list):
+        for v in value:
+            found.extend(_frontmatter_wikilinks(v))
+    return found
+
+
+def _check_wikilink(
+    raw: str, rel: str, repo_root: Path, wikilink_index: dict, where: str
+) -> list[Finding]:
+    """Validate one wikilink: it must resolve, and a present area prefix must
+    match the target's real area. `where` labels the location (`""` for body,
+    `"frontmatter "` for frontmatter)."""
+    prefix, target = split_wikilink(raw)
+    resolved = wikilink_index.get(target)
+    if resolved is None:
+        return [
+            Finding(
+                RULE_ID,
+                SEVERITY,
+                rel,
+                f"{where}wikilink [[{raw}]] does not resolve to any kb page",
+            )
+        ]
+    if prefix is not None:
+        actual = page_area(resolved, repo_root)
+        if actual != prefix:
+            return [
+                Finding(
+                    RULE_ID,
+                    SEVERITY,
+                    rel,
+                    f"{where}wikilink [[{raw}]] declares area '{prefix}' but its "
+                    f"target resolves to '{actual}'",
+                )
+            ]
+    return []
+
+
 def _check_page(
     path: Path, repo_root: Path, wikilink_index: dict[str, Path]
 ) -> list[Finding]:
@@ -44,34 +97,16 @@ def _check_page(
     except yaml.YAMLError:
         return findings  # rule 1 will flag
 
-    # Wikilinks in body
+    # Wikilinks in the body
     for raw in extract_wikilinks(body):
-        prefix, target = split_wikilink(raw)
-        resolved = wikilink_index.get(target)
-        if resolved is None:
-            findings.append(
-                Finding(
-                    RULE_ID,
-                    SEVERITY,
-                    rel,
-                    f"wikilink [[{raw}]] does not resolve to any kb page",
-                )
+        findings.extend(_check_wikilink(raw, rel, repo_root, wikilink_index, ""))
+
+    # Wikilinks in frontmatter values (evidence, provenance.ref, etc.)
+    if fm:
+        for raw in _frontmatter_wikilinks(fm):
+            findings.extend(
+                _check_wikilink(raw, rel, repo_root, wikilink_index, "frontmatter ")
             )
-            continue
-        # If the link carries an area prefix, it must name the target's actual
-        # area (readability convention; a wrong label is misleading).
-        if prefix is not None:
-            actual = page_area(resolved, repo_root)
-            if actual != prefix:
-                findings.append(
-                    Finding(
-                        RULE_ID,
-                        SEVERITY,
-                        rel,
-                        f"wikilink [[{raw}]] declares area '{prefix}' but its "
-                        f"target resolves to '{actual}'",
-                    )
-                )
 
     # Source-page raw_path
     if fm and fm.get("type") == "source":

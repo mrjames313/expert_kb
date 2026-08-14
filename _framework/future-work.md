@@ -313,6 +313,8 @@ Two related gaps surfaced in the same dogfood pass: there is no way to *push* a 
 
 **Revisit when:** A second cross-area handoff need arises, or when tackling preload maintenance — they probably want a shared design.
 
+**Status:** Now designed and scoped — see "Planned: brief (proactive-A) mode for `/exchange`" below.
+
 ### Role preload lists are the real handoff surface and nothing maintains them
 
 **Observed during:** An area transition where whether the receiving role would see the relevant pages depended entirely on a hand-edited preload list in `role.md`.
@@ -326,6 +328,55 @@ The preload list in each `role.md` decides what a role loads at session start �
 - Human confirmation stays in the loop (preloads are `H`), but the *proposal* is generated rather than left to memory.
 
 **Revisit when:** Preload drift causes a visible miss, or alongside the push/brief primitive above.
+
+### `/add-role` skill with exchange onboarding
+
+**Observed during:** Design of the brief (proactive-A) exchange mode. A brief's `open_for` set is frozen at file time, so a role created *after* a brief won't be obligated on it. That's the right call for the brief mechanism, but it leaves a new role blind to the area's accumulated cross-area knowledge.
+
+There is also no tooled path today for adding a role to an *existing* area — roles are only created by `/add-area` (a new area, which has no exchange history) or at bootstrap. Hand-editing `role.md` is the current path.
+
+**Why deferred:** Out of scope for the initial brief/exchange work; wanted to ship the exchange-specific parts first. The onboarding review only pays off once adding roles to populated areas is common.
+
+**What addressing it would look like:**
+- A `/add-role` skill for joining an existing area. Its distinguishing step: **review the area's exchange archive** — briefs directed to the area (`to_area`, including closed) and answered/closed queries in both directions (`from_area`/`to_area`) — filter by relevance to the new role's scope, and propose preload additions / kb citations (human-confirmed, since preloads are `H`). Voluntary incorporation only; the new role is never added to any frozen `open_for`.
+- Converges with the preload-maintenance gap above: both are "generate a preload-diff proposal, human confirms."
+
+**Revisit when:** Adding roles to populated areas becomes common, or right after the brief/exchange work lands.
+
+---
+
+## Planned: brief (proactive-A) mode for `/exchange`
+
+Designed and scoped; ready to implement. Concretizes the "push/brief primitive" note above. `/add-role` and the automated preload-diff engine are explicitly out of scope (deferred separately).
+
+**Goal.** Extend `/exchange` from pull-only Q&A to also carry one-way *briefs* — an area hands a conclusion to specific role(s) in another area, with no responder obligation — reusing the exchange machinery, and fix the surfacing gap that makes any of it land.
+
+**Locked decisions.** `kind: query | brief` (query default); one `/exchange` skill with a `--kind` arg (no separate `/brief` skill for now); neutral `from_area`/`from_role`/`to_area` fields (rename from asker/responder — template-only, no data migration); briefs add `to_roles` (snapshot at file time) + `open_for` (drained on disposition); per-role incremental disposition; `open_for` frozen (a new role catches up via the deferred `/add-role`, never auto-added); receiver disposes-and-closes (preload / file / cite / none); cross-area links use the `area:` prefix.
+
+**Work items (all doc/skill edits — no Python):**
+
+1. **Frontmatter schema** (`exchange-protocol.md`, spec §12, the `/exchange` template):
+   - Rename `asker_area`/`asker_role`/`responder_area` → `from_area`/`from_role`/`to_area`.
+   - Add `kind` (default `query`).
+   - Brief-only: `to_roles: [...]`, `open_for: [...]`.
+   - Kind-specific status: query `open → answered → [follow_up] → closed`; brief `open → closed` (closed ⇔ `open_for` empty).
+   - Neutral, kind-aware index line (`<kind> from <from_role>@<from_area>`).
+
+2. **`/exchange` skill** — add `--kind query|brief`; branch "When to use" (I-need-info vs they-need-info) and the written payload. A brief writes a statement + `to_roles`/`open_for` + a Context section using `[[area:…]]` prefixed links; no responder obligation.
+
+3. **`/close-exchange` → generalized disposition** — the receiver's step. Query: the asker reviews the response, disposes (now including a preload option), closes. Brief: a targeted role disposes (preload *its own* `role.md` / file in its kb / cite / **none**), appends a `# Dispositions` entry, and drops itself from `open_for`; status flips to `closed` only when `open_for` is empty; declining is an explicit `none`. Decide whether to rename the skill for its dual use.
+
+4. **`/respond-exchange`** — unchanged except the field rename; briefs never enter it.
+
+5. **`/start` step 5** — add the exchange scan: for role R in area A, surface open queries `to_area==A` (respond), answered queries `from_area==A` (close), and briefs `to_area==A ∧ R∈open_for` (dispose). This also fixes the pre-existing query-surfacing gap — the respond/close skills already *assume* `/start` scans exchanges, but it currently doesn't.
+
+6. **Docs sync** (per `maintaining.md`) — `exchange-protocol.md`, spec §12, CLAUDE.md "Cross-area reads."
+
+**Out of scope (deferred):** `/add-role` + onboarding review, and the automated preload-diff engine — note the in-scope disposition still offers a *manual, human-confirmed* preload edit.
+
+**Flags.** All `SKILL.md`/schema-doc edits — no code, so no automated tests; verify by reading + dogfood. Natural sequencing: schema → `/exchange` → generalized close → `/start` scan (3–4 commits).
+
+**Revisit when:** Ready to implement — this is the next actionable framework-dev item, not blocked on evidence.
 
 ---
 

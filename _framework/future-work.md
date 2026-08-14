@@ -295,6 +295,40 @@ The framework doesn't manage `~/.claude/projects/` — it's Claude Code's domain
 
 ---
 
+## Cross-area handoff is under-served
+
+Two related gaps surfaced in the same dogfood pass: there is no way to *push* a targeted conclusion to another area, and the surface that actually controls what another area sees — role preload lists — has almost no tooling. They likely share a solution.
+
+### A push/brief primitive (exchanges are pull-only)
+
+**Observed during:** A promotion another area needed to know about, and a conclusion one area wanted to hand to another unprompted.
+
+`/exchange` is pull-only — the asker requests information. There is no primitive for *pushing* a conclusion an area needs but wouldn't know to ask for. The only push channel is commons promotion, which is human-gated and project-wide — far too heavy for a targeted, one-time handoff. This gap also caused the `/propose-promotion` step-4 defect: with no push channel, the step reached for an illegal cross-area `_journal/pulse.log` write (fixed by routing through INBOX + `/exchange`, but that's a workaround, not the right primitive).
+
+**Why deferred:** Needs a design decision on shape and on write boundaries — a push necessarily lands in another area's territory, which the ownership model forbids for direct writes.
+
+**What addressing it would look like:**
+- A `/brief` (or `/handoff`) skill that drops a note into a boundary-safe surface the target area owns and picks up — e.g. an area-scoped inbox, or an `exchanges/`-style record with `status: fyi` and no responder obligation.
+- Whatever the shape, closing the loop with preload maintenance (below) is what makes the pushed content actually get loaded by the receiving role.
+
+**Revisit when:** A second cross-area handoff need arises, or when tackling preload maintenance — they probably want a shared design.
+
+### Role preload lists are the real handoff surface and nothing maintains them
+
+**Observed during:** An area transition where whether the receiving role would see the relevant pages depended entirely on a hand-edited preload list in `role.md`.
+
+The preload list in each `role.md` decides what a role loads at session start — the highest-leverage file at an area transition — yet it is entirely hand-maintained. Additions surface only as INBOX suggestions needing human confirmation; pruning runs only through `/budget` and `/framework prune`. Nothing keeps a preload aligned with the knowledge actually accumulating, so a role can silently miss newly-relevant findings or decisions. The existing piecemeal ideas (Rule 8 slot-lift, Rule 9 preload-staleness above) each address one axis; what's missing is a cohesive, transition-timed proposal step.
+
+**Why deferred:** The right degree of automation is unclear — too eager and it bloats preloads (the exact thing `/budget` fights); too passive and it's the status quo. Needs usage evidence on how preloads drift in practice.
+
+**What addressing it would look like:**
+- A skill (or `/wrap-up` / `/start` step) that, at an area transition, proposes a preload diff — pages whose `relevant_to`/citation patterns argue for inclusion in a given role, and stale entries to drop — consolidating Rule 8 and Rule 9's signals into one human-confirmed proposal.
+- Human confirmation stays in the loop (preloads are `H`), but the *proposal* is generated rather than left to memory.
+
+**Revisit when:** Preload drift causes a visible miss, or alongside the push/brief primitive above.
+
+---
+
 ## Done since this list started
 
 For reference, items that started as "future work" and have since been completed (so they don't re-enter the backlog by mistake):

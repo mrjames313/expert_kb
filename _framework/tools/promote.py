@@ -191,6 +191,9 @@ def promote(slug: str, repo_root: Path) -> PromoteResult:
     fm["promoted_on"] = today
     fm["promotion_path"] = "proposal-and-promote"
     fm["updated"] = today
+    # relevant_to is omitted on commons pages — commons is relevant to everyone
+    # by definition (see frontmatter.md).
+    fm.pop("relevant_to", None)
 
     # Write the new file
     target_path.parent.mkdir(parents=True, exist_ok=True)

@@ -171,6 +171,15 @@ class TestPromote:
             promote("test-slug", tmp_path)
         assert "already exists" in str(exc_info.value)
 
+    def test_drops_relevant_to_on_commons(self, tmp_path: Path) -> None:
+        """relevant_to is omitted on commons pages (Issue 5e)."""
+        make_minimal_repo(tmp_path)
+        _write_proposal(tmp_path, "rt-slug", "finding", "f-2026-05-rt")
+        promote("rt-slug", tmp_path)
+        content = (tmp_path / "commons" / "kb" / "findings" / "f-commons-rt.md").read_text()
+        fm, _ = parse_frontmatter(content)
+        assert "relevant_to" not in fm
+
     def test_preserves_frontmatter_wikilinks(self, tmp_path: Path) -> None:
         """Regression (Issue 1): promote must not mangle [[wikilinks]] in
         frontmatter into nested YAML sequences, and must keep `|` block scalars."""

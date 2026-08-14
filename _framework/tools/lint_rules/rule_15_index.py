@@ -10,6 +10,7 @@ This is a fixup rule — it writes files and produces findings only on write fai
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
@@ -26,6 +27,25 @@ from common import (
 
 RULE_ID = "rule_15"
 SEVERITY = "error"
+
+
+_STAMP_RE = re.compile(r"_Last regenerated: (\d{4}-\d{2}-\d{2})_")
+
+
+def _effective_stamp(existing_path: Path) -> str:
+    """Today's date — unless the file's existing stamp is *newer*, in which case
+    keep it. Guards against a clock that trails the previous committer's, which
+    would otherwise roll the stamp backwards and produce a spurious diff."""
+    today = date.today()
+    try:
+        m = _STAMP_RE.search(existing_path.read_text(encoding="utf-8"))
+        if m:
+            prev = date.fromisoformat(m.group(1))
+            if prev > today:
+                return prev.isoformat()
+    except (OSError, ValueError):
+        pass
+    return today.isoformat()
 
 
 def _read_brief_summary(brief_path: Path) -> str:
@@ -66,7 +86,7 @@ def _generate_areas_index(repo_root: Path) -> str:
         "# Areas Index",
         "",
         "_Auto-maintained by lint; do not edit by hand._",
-        f"_Last regenerated: {date.today().isoformat()}_",
+        f"_Last regenerated: {_effective_stamp(repo_root / 'areas-index.md')}_",
         "",
     ]
 
@@ -152,7 +172,7 @@ def _generate_kb_index(kb_dir: Path, repo_root: Path) -> str:
         f"# {area_rel} kb index",
         "",
         "_Auto-generated; do not edit by hand._",
-        f"_Last regenerated: {date.today().isoformat()}_",
+        f"_Last regenerated: {_effective_stamp(kb_dir / 'index.md')}_",
         "",
     ]
 

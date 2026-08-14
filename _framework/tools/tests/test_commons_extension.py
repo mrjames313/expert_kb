@@ -239,6 +239,14 @@ class TestApplyExtension:
         assert "Original body content." in new_text
         assert result.refined is False
 
+    def test_drops_relevant_to_on_commons(self, tmp_path: Path) -> None:
+        """relevant_to is omitted on commons pages (Issue 5e)."""
+        make_minimal_repo(tmp_path)
+        add_area_with_finding(tmp_path, "research", "f-2026-05-26-rt", relevant_to=["thermal"])
+        result = ce.apply_extension(tmp_path, "f-2026-05-26-rt", "newarea")
+        new_text = (tmp_path / result.new_commons_path).read_text(encoding="utf-8")
+        assert "relevant_to" not in new_text
+
     def test_with_refined_body(self, tmp_path: Path) -> None:
         make_minimal_repo(tmp_path)
         add_area_with_finding(tmp_path, "research", "f-2026-05-26-test-finding")

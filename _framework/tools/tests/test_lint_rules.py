@@ -625,6 +625,17 @@ class TestRule15Index:
         assert "f-2026-05-shot-noise" in content
         assert "c-2026-05-ut1" in content
 
+    def test_index_stamp_does_not_move_backwards(self, tmp_path: Path) -> None:
+        """Rule 15 keeps a newer existing stamp instead of rolling it back (5h)."""
+        make_minimal_repo(tmp_path)
+        idx = tmp_path / "areas-index.md"
+        idx.write_text(
+            "# Areas Index\n\n_Auto-maintained by lint; do not edit by hand._\n"
+            "_Last regenerated: 2999-01-01_\n\n"
+        )
+        rule_15_index.check(tmp_path, DEFAULT_CONFIG)
+        assert "_Last regenerated: 2999-01-01_" in idx.read_text()
+
 
 # --- Rule 18: ID uniqueness across the project ---
 

@@ -51,13 +51,11 @@ Don't propose for promotion:
 
 4. **If other areas are affected**: notify them *without writing into their paths* — file an INBOX "Heads up" entry pointing at `commons/_proposed/<slug>/` (listing the affected areas), and/or open an `/exchange` if the review needs a real back-and-forth. (Do **not** append to another area's `_journal/pulse.log`; path ownership forbids writing into areas you don't own.) **When `formal_review` is on**, each affected area then files a `verdict-<area>.md` (APPROVE / OBJECT / ABSTAIN) via `/review-promotion`; when it's off, the human reviews the proposal directly. (See `_framework/schema/promotion-protocol.md` for the full protocol.)
 
-5. **Record in pulse.log.**
+5. **Record in pulse.log.** The proposal itself (`proposal.md`) is the durable record of the rationale — don't create a separate decision page for it.
    ```
    ## [YYYY-MM-DD HH:MM] decision <role>
-   Proposed <page-id> for promotion to commons.
-   → to be filed: decisions/d-YYYY-MM-DD-propose-<slug>
+   Proposed <page-id> for promotion to commons (see commons/_proposed/<slug>/).
    ```
-   Create a corresponding decision page that documents the rationale.
 
 6. **Verify.** Run `python _framework/tools/lint.py`. The proposal directory's `page.md` should be lint-clean (it's just a copy of an already-lint-clean page).
 

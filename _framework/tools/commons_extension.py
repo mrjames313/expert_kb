@@ -243,10 +243,8 @@ def apply_extension(
                        "rationale_summary", "superseded_by", "when_to_load"):
         if field_name in source_fm:
             new_fm[field_name] = source_fm[field_name]
-    # relevant_to: omit for commons (commons content is relevant by definition)
-    # but if present in source, preserve as a hint
-    if "relevant_to" in source_fm:
-        new_fm["relevant_to"] = source_fm["relevant_to"]
+    # relevant_to is omitted on commons pages — commons is relevant to everyone
+    # by definition (see frontmatter.md). Don't carry it forward.
 
     # Promotion provenance — distinguishable from /promote's proposal-based path
     new_fm["promoted_from_page"] = source_page_id

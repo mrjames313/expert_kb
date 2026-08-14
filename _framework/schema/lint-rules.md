@@ -14,7 +14,11 @@ Required fields present. `type` is one of `source`, `concept`, `finding`, `decis
 
 ### Rule 2 — Forward-link integrity
 
-Every `[[wikilink]]` resolves to an existing page. Every relative markdown link to a repo path resolves to an existing file.
+Every `[[wikilink]]` resolves to an existing page — in the page **body and in frontmatter values** (`evidence`, `provenance.ref`, `alternatives_considered`, `superseded_by`, …). Frontmatter links are checked because tools that re-serialize frontmatter can corrupt them silently.
+
+A link may carry an area prefix (`[[area:target]]`, e.g. `[[research:findings/f-…]]`). When present, the prefix must name the target's actual area, or it's an error. See `link-conventions.md`.
+
+Every relative markdown link to a repo path resolves to an existing file.
 
 Source pages: `provenance.raw_path` must resolve to an existing file in `raw/` (when populated).
 

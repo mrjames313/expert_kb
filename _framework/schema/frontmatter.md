@@ -217,6 +217,10 @@ last_updated: 2026-05-08
 ---
 ```
 
+## Wikilinks in frontmatter
+
+Several fields carry `[[wikilinks]]` — `evidence`, `provenance.ref`, `alternatives_considered`, `superseded_by`. Lint Rule 2 validates these exactly like body links (resolution and area prefix). Authoring them **unquoted** (`evidence:\n  - [[sources/s-…]]`) is fine — the framework quotes them on read so YAML doesn't mis-parse `[[x]]` as a nested sequence. Tools that re-serialize frontmatter (e.g. `promote.py`) emit them **quoted** (`"[[sources/s-…]]"`); both forms resolve.
+
 ## Lint-maintained, not author-written
 
 The fields `links_in` and `links_out` are not written into the frontmatter directly. The linter maintains them in a sidecar `<page>.links.json` so they don't clutter the human-edited file. The sidecar is git-ignored.

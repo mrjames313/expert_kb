@@ -89,6 +89,8 @@ Append events to `_journal/pulse.log` during the session. Substantive decisions,
 
 Event types: `decision`, `finding`, `concept`, `focus-shift`, `question`, `question-closed`.
 
+Keep a `question` event's body to a **single line**. When it's materialized into `pulse.md`'s Open questions, the text is collapsed to one line (whitespace normalized); a multi-line body would still round-trip correctly, but writing one line keeps what you log identical to what a later `→ closes:` must match.
+
 `question-closed` events use a slightly different directive — they retire an open question. Format:
 
 ```

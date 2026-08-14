@@ -774,7 +774,7 @@ The linter (`_framework/tools/lint.py`) is deterministic Python. It runs on dema
 
 ```
 Rule 1.  Frontmatter validity.
-Rule 2.  Forward-link integrity (including provenance.raw_path).
+Rule 2.  Forward-link integrity (body + frontmatter wikilinks, area prefixes, provenance.raw_path).
 Rule 3.  Backlink synchronization.
 Rule 5.  Supersession integrity.
 Rule 6.  Type-specific completeness.

@@ -19,7 +19,7 @@ If a session ends without `/wrap-up`, pulse.log will be non-empty when the next 
 ## Steps
 
 1. **Check spec completion.** For each spec under `areas/<area>/specs/` with work done in this session:
-   - If all tasks in `tasks.md` are complete (`- [x]`) and the work resolved the brief, write `outcome.md`. Use the template at `_framework/schema/spec-template/outcome.md`.
+   - If all tasks in `tasks.md` are complete (`- [x]`) and the work resolved the brief, write `outcome.md`. Use the template at `_framework/schema/spec-template/outcome.md.tmpl`.
    - If some tasks are still open, leave the spec in place; the next session can continue.
 
 2. **Reconcile preserved pulse sections.** `pulse_compact.py` mechanically replays log entries — it can't tell on its own which open questions got resolved or whether the current focus is still accurate. Do this reconciliation explicitly:

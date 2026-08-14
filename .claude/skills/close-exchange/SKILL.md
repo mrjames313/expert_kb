@@ -1,73 +1,90 @@
 ---
 name: close-exchange
-description: Close an answered exchange. The asker reviews the response, decides what becomes part of their area's kb, and marks the exchange closed. Requires the multi_area capability.
+description: Dispose of and close an exchange you received — a query you asked (review the answer) or a brief addressed to your role. Preload / file / cite the information, then close. Requires the multi_area capability.
 ---
 
 # /close-exchange
 
-Finalizes an exchange that the responder has answered. The asker decides what (if anything) from the answer becomes part of their kb and marks the exchange `closed`.
+The disposition step: the party that *received* information decides what to do with it and closes. That's the **asker** for a query (they received the answer) and **each targeted role** for a brief (they received the statement).
+
+Disposition options are the same for both: **preload** the referenced page into your role, **file/cite** it in your kb, or **none**.
 
 ## When to use
 
-- An exchange filed by `/exchange` from your area now has `status: answered` (the responder filled in the Response section).
-- The user explicitly invokes `/close-exchange <id>`.
-- A `/start` surfaced an `answered` exchange from your area's asks.
+- A query you filed now has `status: answered` (`from_area` is your area) — review and close.
+- A brief addressed to your role is open with your role still in `open_for` (`to_area` is your area) — act on it.
+- The user explicitly invokes `/close-exchange <id>`, or a `/start` scan surfaced one.
 
 ## Steps
 
-1. **Find the exchange.** User-named, or scan `exchanges/*/` for files with `status: answered` and `asker_area:` matching the role's area.
+1. **Find the item.** By id, or scan `exchanges/*/`:
+   - Answered queries: `kind: query`, `status: answered`, `from_area` == your area.
+   - Open briefs for you: `kind: brief`, `status: open`, `to_area` == your area, your role ∈ `open_for`.
 
-2. **Read the full thread.** Question + Context + Response. Understand what was asked and what the responder said.
+2. **Read the thread.**
+   - Query: Question + Context + Response.
+   - Brief: Brief + Context + any existing Dispositions.
 
-3. **Decide on follow-up.** Three options:
-   - **Satisfied** — the response answers the question. Proceed to step 4.
-   - **Follow-up needed** — the response is partial or surfaced new questions. Fill in the `# Follow-up` section of the exchange file, change status back to `open`, update the index entry. The responder picks it up again. (Stop here; the exchange is not yet closed.)
-   - **Insufficient and abandoned** — the response can't move the asker's work forward and you've decided to take a different direction. Close without incorporating. Note this in the closure record.
+3. **(Query only) Decide on follow-up.**
+   - **Satisfied** — the response answers it. Continue.
+   - **Follow-up needed** — fill the `# Follow-up` section, set `status: open`, update the index; the responder picks it up again. (Stop here — not yet closed.)
+   - **Insufficient / abandoned** — close without incorporating; note the direction taken.
 
-4. **Decide what becomes part of your kb.** The exchange is *not* part of your kb — it's a transcript. If the response established something durable, file it in your kb:
-   - **A new finding** — write it under `areas/<area>/kb/findings/`. Cite the exchange as provenance:
+   Briefs have no follow-up path — proceed straight to disposition.
+
+4. **Dispose — decide what to do with the information.** Pick one or more:
+   - **preload** — add the referenced page (`[[area:findings/f-…]]`) to *your role's* preload. Edit `areas/<your-area>/roles/<your-role>/role.md` — the `## Preload context (full)` section for a page you'll cite often, or `## Preload context (frontmatter only)` for a directory pattern. **Confirm with the human first** — preloads are human-owned (`H`).
+   - **file / cite** — write a finding/concept/decision in your area kb, citing the exchange as provenance:
      ```yaml
      provenance:
        kind: external
        retrieved: 2026-05-15
        raw_path: exchanges/<a>--<b>/<exchange-id>.md
      ```
-     (Even though the exchange is a markdown file inside the repo, treating it as "external" for provenance purposes — it came from another area's role.)
-   - **A new concept** — if the response surfaced a hypothesis to test. Start at status `developing`.
-   - **A new decision** — if you're committing to a course of action based on the response.
-   - **Nothing kb-worthy** — sometimes the response is just operational ("yes, that's correct") and doesn't need to be filed. Skip this step.
+     (The exchange is a repo file, but treat it as "external" — it came from another area's role.)
+   - **none** — nothing durable. Still recorded, so the item clears.
 
-5. **Close the exchange.** Update the question file's frontmatter:
-   - `status: closed`
-   - Add `closed_on: YYYY-MM-DD` and `closed_by: <role>`.
+5. **Record the disposition and close.**
 
-   Append a brief closure note at the end of the file:
+   **Query** — set frontmatter `status: closed`, add `closed_on: YYYY-MM-DD` and `closed_by: <role>`, and append:
    ```markdown
    # Closure
 
    _Closed by <role>@<area> on YYYY-MM-DD._
 
-   <Brief note: what (if anything) became part of <area>'s kb, citing the new pages.
-   Or, if no kb additions, what direction the asker took based on the response.>
+   <What (if anything) became part of your kb or preload, citing the new pages;
+   or the direction taken if nothing was incorporated.>
    ```
 
-6. **Update the exchange index.** In `exchanges/<a>--<b>/index.md`, change the entry's status from `answered` to `closed`.
+   **Brief** — append your role's entry under `# Dispositions`:
+   ```markdown
+   ## <your-role> — YYYY-MM-DD
+   <preloaded / filed [[...]] / cited / none> — <one line>.
+   ```
+   Then remove your role from `open_for`. If `open_for` is now empty, set `status: closed` and add `closed_on: YYYY-MM-DD`. If not, leave `status: open` — the brief stays surfaced for the remaining roles.
 
-7. **Record in pulse.log.** In your area's `_journal/pulse.log`:
+6. **Update the index.** In `exchanges/<a>--<b>/index.md`:
+   - Query: change `answered` → `closed`.
+   - Brief: reflect the new status — `open` while `open_for` is non-empty, `closed` when empty.
+
+7. **Record in pulse.log** (your area):
    ```
    ## [YYYY-MM-DD HH:MM] decision <role>
-   Closed exchange <id>: <one-line summary of what came of it>.
+   Disposed exchange <id> (<kind>): <what you did with it>.
    ```
-   If new kb pages were created, also add the appropriate `finding`/`concept`/`decision` entries.
+   If you filed kb pages, also add the appropriate `finding`/`concept`/`decision` entries.
 
-8. **Verify.** Run `python _framework/tools/lint.py`. New kb pages must have complete frontmatter; the exchange file remains lint-relevant for forward-link integrity.
+8. **Verify.** Run `python _framework/tools/lint.py`. New kb pages need complete frontmatter; any preload edits should reference existing files.
 
-9. **Brief the user.** Summarize what the exchange concluded and what (if anything) was added to the kb.
+9. **Brief the user.** Summarize what you did with the information, and — for a brief — who (if anyone) still owes a disposition.
 
 ## Notes
 
-- Closure is the asker's call. The responder doesn't close; they only respond.
-- You can close without filing anything new in the kb. Not every exchange produces durable knowledge — sometimes it just unblocks a decision.
-- An exchange that's been `answered` for a long time without being closed is a candidate for review. Lint rule 14 (configurable warning, off by default) can surface these.
-- If the same question comes up repeatedly across different specs or follow-ups, that's a signal the answer should be **promoted to commons** via `/propose-promotion`. Especially if the responder's kb already has a finding that covers it.
-- Don't reopen a closed exchange. If new questions arise, file a fresh `/exchange` referencing the closed one in the Context section.
+- **The receiver disposes and closes** — the asker for a query, each targeted role for a brief. A query's responder never closes; they only respond.
+- **Briefs close incrementally.** You clear only your own role from `open_for`; the brief is fully `closed` only when the last targeted role disposes.
+- **Declining is an explicit disposition** (`none`). Record it and clear your role from `open_for` — otherwise an indifferent role keeps the brief open forever.
+- **Preload edits are human-confirmed.** The disposition proposes; the human approves the `role.md` change. (An automated preload-diff proposer is future work; for now you make the edit by hand.)
+- You can dispose with `none` and still close — not every exchange produces durable knowledge; sometimes it just unblocks a decision.
+- If the same answer keeps coming up, that's a signal to **promote it to commons** via `/propose-promotion`.
+- Don't reopen a closed exchange. If new questions arise, file a fresh `/exchange` referencing the closed one in its Context.
+- Staleness lint surfaces answered queries and briefs with a non-empty `open_for` that have lingered.

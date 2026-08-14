@@ -376,7 +376,7 @@ There is also no tooled path today for adding a role to an *existing* area — r
 
 **Flags.** All `SKILL.md`/schema-doc edits — no code, so no automated tests; verify by reading + dogfood. Natural sequencing: schema → `/exchange` → generalized close → `/start` scan (3–4 commits).
 
-**Remaining follow-ups:** `/add-role` + onboarding review (deferred, above); the automated preload-diff engine; and `/answer-from-kb` step 5 still tells agents to cite cross-area pages with the non-resolving full-path form (`[[areas/research/kb/findings/f-…]]`) — move it to the `area:` prefix (`[[research:findings/f-…]]`).
+**Remaining follow-ups:** `/add-role` + onboarding review (deferred, above); the automated preload-diff engine.
 
 ---
 

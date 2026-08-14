@@ -33,7 +33,7 @@ Don't use `/answer-from-kb` when:
 4. **Selectively read bodies.** If frontmatter isn't enough, read the full body of at most 2–3 pages. More than that and you're doing what `/exchange` is for. If you find yourself wanting to read more, stop and recommend `/exchange` instead.
 
 5. **Synthesize an answer.** Just like `/ask`, but with explicit attribution to the *other area*:
-   - Cite each `[[wikilink]]` with the full path including the area, e.g. `[[areas/research/kb/findings/f-...]]`.
+   - Cite each page with an area-prefixed wikilink, e.g. `[[research:findings/f-...]]`, so the source area is explicit.
    - Distinguish between "their finding" (active, well-established) and "their hypothesis" (concept under test).
    - If the kb doesn't answer the question, say so. Don't speculate on behalf of the other area.
 
@@ -47,7 +47,7 @@ Don't use `/answer-from-kb` when:
 ## Notes
 
 - This skill is *cheap*. Don't agonize. If after reading the index and 1–2 frontmatter blocks you don't have an answer, the question probably needs an exchange. Don't grind through dozens of pages.
-- Quote the other area's pages by `[[id]]` — wikilinks resolve to those pages even from your area's pages. The lint rule for forward-link integrity confirms they exist.
+- Quote the other area's pages with the `area:` prefix (`[[research:findings/f-...]]`). Resolution is global, so a bare `[[id]]` resolves too — but the prefix makes the cross-area source explicit, and if the citation later lands in one of your kb pages, Rule 2 validates the prefix against the target's actual area.
 - Be honest about uncertainty. "Their kb has a finding suggesting X but no decision either way" is more useful than synthesizing a confident answer from partial reads.
 - This skill is **read-only**. It writes nothing. If you find yourself writing files during `/answer-from-kb`, you're probably doing `/exchange` or `/implement` instead.
 - The other area's pages can be at any status. A page marked `superseded` should not be cited as current; check `superseded_by` and cite the replacement instead.

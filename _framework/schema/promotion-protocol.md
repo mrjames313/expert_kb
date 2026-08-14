@@ -63,7 +63,7 @@ The `/promote` skill (auto-invoked on consensus when `formal_review` is on; manu
    - `promoted_from_area: areas/<x>`
    - `promoted_on: <date>`
    - `promotion_path: proposal-and-promote` (distinguishes from `commons-extension` so the two pathways are auditable separately)
-4. Leave the source area page completely unchanged. Per the source area's `/propose-promotion` discipline, the area copy stays in place; the new commons page coexists with it under a distinct id.
+4. Leave the source area page completely unchanged. Per the source area's `/propose-promotion` discipline, the area copy stays in place; the new commons page coexists with it under a distinct id. Do **not** mark the source `superseded` — superseding is for a page that has been *replaced*, and linking to a superseded page is a lint error (see `link-conventions.md`), so it would turn every inbound citation to the area page into an error.
 5. Write a `CHANGELOG.md` entry (citing the new commons id).
 6. File an INBOX entry under "Awaiting your ack": "Promoted [[finding]] — awaiting human review."
 

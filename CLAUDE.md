@@ -123,6 +123,8 @@ Skills may be invoked explicitly by slash command (`/ingest`, `/plan`, etc.) or 
 
 The set of available skills depends on which capabilities are enabled. The `start` skill surfaces the active skill set at session start; the `/framework` skill manages capability state.
 
+**Schema is normative.** A skill (`.claude/skills/<name>/SKILL.md`) is a runbook; the schema document it implements (`_framework/schema/*.md`, plus this file and the templates under `_framework/schema/spec-template/`) is the specification. When a skill and its schema disagree, **the schema wins** — follow the schema, don't take the skill's contradicting step, and flag the skill as a bug (INBOX "Heads up") so it gets reconciled. Watch especially for a skill that tells you to write outside your area, mark a still-cited page `superseded`, or skip a human phase gate.
+
 ## Escalation triggers
 
 When to stop and ask the human in conversation:

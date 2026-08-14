@@ -44,11 +44,12 @@ Don't propose for promotion:
 
      ## Affected areas
 
-     List other areas that would benefit from citing this. If `multi_area` is on,
-     each affected area is expected to file a verdict file.
+     List other areas that would benefit from citing this. If `formal_review`
+     is on, each affected area files a verdict file; otherwise the human reviews
+     the proposal directly.
      ```
 
-4. **If `multi_area` is enabled**: notify other affected areas *without writing into their paths* — file an INBOX "Heads up" entry pointing at `commons/_proposed/<slug>/`, and/or open an `/exchange` if the review needs a real back-and-forth. (Do **not** append to another area's `_journal/pulse.log`; path ownership forbids writing into areas you don't own.) Each area's role can then add a verdict file to `commons/_proposed/<slug>/verdict-<area>.md` with APPROVE / OBJECT / ABSTAIN. (See `_framework/schema/promotion-protocol.md` for the full protocol.)
+4. **If other areas are affected**: notify them *without writing into their paths* — file an INBOX "Heads up" entry pointing at `commons/_proposed/<slug>/` (listing the affected areas), and/or open an `/exchange` if the review needs a real back-and-forth. (Do **not** append to another area's `_journal/pulse.log`; path ownership forbids writing into areas you don't own.) **When `formal_review` is on**, each affected area then files a `verdict-<area>.md` (APPROVE / OBJECT / ABSTAIN) via `/review-promotion`; when it's off, the human reviews the proposal directly. (See `_framework/schema/promotion-protocol.md` for the full protocol.)
 
 5. **Record in pulse.log.**
    ```
@@ -61,11 +62,11 @@ Don't propose for promotion:
 6. **Verify.** Run `python _framework/tools/lint.py`. The proposal directory's `page.md` should be lint-clean (it's just a copy of an already-lint-clean page).
 
 7. **Brief the user.** Tell them the proposal is staged and what happens next:
-   - Other affected areas (if any) will file verdicts.
+   - If `formal_review` is on, affected areas file verdicts; otherwise a human reviews the proposal directly.
    - The coordinator (or a human) runs `/promote <slug>` to accept.
 
 ## Notes
 
-- The original page stays in the area's kb. Promotion *copies* and *updates*; it doesn't move the area copy. After promotion, the area copy can either be marked `superseded` with `superseded_by` pointing at the commons version, or kept as-is if the area still needs an area-specific framing.
+- The original page stays in the area's kb and is left **unchanged**. Promotion *copies* it into commons under a distinct id; the area copy coexists. Don't mark the area copy `superseded` — it hasn't been replaced, and linking to a superseded page is a lint error, so superseding would break every inbound citation.
 - Don't propose for promotion something that's actually two ideas. Split it first in the area kb, then propose the canonical one.
 - A proposal can sit in `commons/_proposed/` indefinitely. Stale proposals are surfaced by lint rule 10 (configurable warning, off by default).

@@ -18,6 +18,14 @@ Author-facing notes for evolving the Expert Coordination framework itself. This 
 
 Rule of thumb: if a change would make the §2 tree or any protocol section wrong, the change isn't done until spec.md is fixed too. Treat spec.md as documentation that must be re-derived from reality — nothing else will catch the drift.
 
+## Skills must match their schema docs
+
+Skills (`.claude/skills/*/SKILL.md`) are runbooks that implement the schema docs (`_framework/schema/*.md`, `CLAUDE.md`, the spec-template). Nothing enforces their agreement, and when they drift the *skill* is what an agent actually follows — so a skill that contradicts its schema causes real damage. CLAUDE.md tells agents "schema wins," but that only helps if they cross-check.
+
+- When you change a protocol, update **every skill that implements it** in the same commit.
+- When you change a skill, confirm it still matches its schema.
+- On a disagreement, fix the side that drifted — usually the skill, occasionally the schema. Corroborate against the tool behavior and sibling skills, not just the schema doc: e.g. "leave the source unchanged" on promotion is confirmed by `promote.py` never touching the area page and by `link-conventions.md` making superseded-links an error.
+
 ## Building / refreshing the template
 
 1. Create the template repo with `_framework/` populated, plus empty `commons/` and `areas/` skeletons. Write `CLAUDE.md` (always-on sections only), `_framework/config.yml` with initial state (all four capabilities off; all warnings shadowed).

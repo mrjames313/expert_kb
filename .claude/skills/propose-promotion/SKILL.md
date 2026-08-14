@@ -48,7 +48,7 @@ Don't propose for promotion:
      each affected area is expected to file a verdict file.
      ```
 
-4. **If `multi_area` is enabled**: notify other affected areas by appending an `exchange` entry to their `_journal/pulse.log` or by using `/exchange`. Each area's role can then add a verdict file to `commons/_proposed/<slug>/verdict-<area>.md` with APPROVE / OBJECT / ABSTAIN. (See `_framework/schema/promotion-protocol.md` for the full protocol.)
+4. **If `multi_area` is enabled**: notify other affected areas *without writing into their paths* — file an INBOX "Heads up" entry pointing at `commons/_proposed/<slug>/`, and/or open an `/exchange` if the review needs a real back-and-forth. (Do **not** append to another area's `_journal/pulse.log`; path ownership forbids writing into areas you don't own.) Each area's role can then add a verdict file to `commons/_proposed/<slug>/verdict-<area>.md` with APPROVE / OBJECT / ABSTAIN. (See `_framework/schema/promotion-protocol.md` for the full protocol.)
 
 5. **Record in pulse.log.**
    ```

@@ -68,15 +68,9 @@ Don't use `/exchange` for:
    - [[<id>]] — open, asked by <asker_role>@<asker_area> on YYYY-MM-DD
    ```
 
-6. **Record in pulse.log.** In your area's `_journal/pulse.log`:
-   ```
-   ## [YYYY-MM-DD HH:MM] question <role>
-   Asked <responder_area> via exchange <id>: <one-line question>.
-   ```
+6. **Verify.** Run `python _framework/tools/lint.py`. Exchange files have minimal lint requirements; the main thing is that wikilinks in the Context section resolve.
 
-7. **Verify.** Run `python _framework/tools/lint.py`. Exchange files have minimal lint requirements; the main thing is that wikilinks in the Context section resolve.
-
-8. **Brief the user.** Note that the question is open and the responder area is on the hook. Suggest moving on to other work — exchanges don't block.
+7. **Brief the user.** Note that the question is open and the responder area is on the hook. Suggest moving on to other work — exchanges don't block.
 
 ## Notes
 
@@ -84,4 +78,5 @@ Don't use `/exchange` for:
 - Keep the question scoped. If you need answers to five things, file five exchanges (or one exchange with a clearly numbered list and a note that partial responses are fine).
 - The responder may push back. Their response could be "this question is malformed — can you clarify?" or "this isn't really our area; try X." That's normal — close this exchange and file a new one if needed.
 - Don't bypass an exchange by editing the other area's kb directly. Even with `multi_area` enabled, write boundaries hold — `/exchange` is the right channel.
+- Filing an exchange does **not** get a pulse `question` event. The exchange is tracked by its own index (`exchanges/<a>--<b>/index.md`) and `status` lifecycle; a `question` event would duplicate it into your area's pulse "Open questions" section, and since closing an exchange emits no `question-closed`, that line would never clear. Reserve `question` events for open questions you're *not* routing through an exchange.
 - The full protocol lives at `_framework/schema/exchange-protocol.md` if anything here is ambiguous.

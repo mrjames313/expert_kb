@@ -245,6 +245,35 @@ class TestUpdateOpenQuestions:
         # Real question still there
         assert any("Real question?" in line for line in result)
 
+    def test_multiline_question_survives_file_roundtrip(self) -> None:
+        """A multi-line question body must not truncate when pulse.md is written
+        and re-read (which splits on newlines). It is stored as one line."""
+        rendered = update_open_questions(
+            ["## Open questions", "", "_None yet._", ""],
+            [LogEntry("2026-05-08 09:00", "question", "r",
+                      "Does drift exceed spec at 85C?\nAnd why does it?", None)],
+        )
+        # Simulate write-to-disk then read-back: join and re-split on newlines.
+        reparsed = "\n".join(rendered).split("\n")
+        result = update_open_questions(reparsed, [])
+        bullets = [line for line in result if line.startswith("- ")]
+        assert bullets == ["- Does drift exceed spec at 85C? And why does it?"]
+
+    def test_multiline_question_closable_by_full_text(self) -> None:
+        """After the round-trip, the stored question closes on its full wording."""
+        rendered = update_open_questions(
+            ["## Open questions", "", "_None yet._", ""],
+            [LogEntry("2026-05-08 09:00", "question", "r",
+                      "Does drift exceed spec?\nAnd why?", None)],
+        )
+        reparsed = "\n".join(rendered).split("\n")
+        result = update_open_questions(
+            reparsed,
+            [LogEntry("2026-05-08 10:00", "question-closed", "r", "resolved", None,
+                      closes_questions=["Does drift exceed spec? And why?"])],
+        )
+        assert not any("drift exceed spec" in line for line in result)
+
 
 class TestParsePulseLogClosesDirective:
     """Tests for parsing the → closes: directive in question-closed entries."""

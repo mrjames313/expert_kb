@@ -343,7 +343,11 @@ def update_open_questions(existing_section: list[str], log_entries: list[LogEntr
     current_norm = {_normalize_question(q) for q in existing_questions}
     for e in log_entries:
         if e.event_type == "question":
-            q = e.description.strip()
+            # Collapse to one line so multi-line question bodies round-trip
+            # through pulse.md — the re-parser only reads "-" lines, so an
+            # embedded newline would drop everything after the first line and
+            # make the question unclosable by its original wording.
+            q = " ".join(e.description.split())
             qn = _normalize_question(q)
             if not q or qn in current_norm or qn in closes_targets:
                 continue

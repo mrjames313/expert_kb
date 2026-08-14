@@ -98,6 +98,57 @@ def load_config(repo_root: Path) -> dict:
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
 
 
+# A frontmatter line whose entire value is a bare [[wikilink]] — optionally a
+# list item (`- `) or a `key:` prefix. `[[x]]` is valid YAML flow syntax for a
+# nested sequence, not a string, so it must be quoted before parsing or it loads
+# (and re-dumps) as `- - x` — silently destroying the wikilink.
+_FM_WIKILINK_LINE = re.compile(
+    r'^(\s*(?:-\s+)?(?:[A-Za-z_][\w-]*:\s+)?)(\[\[[^\]\n]+\]\])\s*$'
+)
+
+
+def _quote_fm_wikilinks(fm_text: str) -> str:
+    """Quote bare [[wikilink]] scalars in a frontmatter block so PyYAML loads
+    them as strings instead of nested flow sequences. Idempotent — already
+    quoted links don't match."""
+    out = []
+    for line in fm_text.splitlines():
+        m = _FM_WIKILINK_LINE.match(line)
+        out.append(f'{m.group(1)}"{m.group(2)}"' if m else line)
+    return "\n".join(out)
+
+
+class _FrontmatterDumper(yaml.SafeDumper):
+    """SafeDumper for frontmatter: no anchors/aliases (so equal-valued dates
+    don't serialize as &id001/*id001), and multi-line strings as block scalars
+    (so `when_to_load: |` blocks survive a round-trip)."""
+
+    def ignore_aliases(self, data):
+        return True
+
+
+def _represent_str_block(dumper, data):
+    if "\n" in data:
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+
+_FrontmatterDumper.add_representer(str, _represent_str_block)
+
+
+def dump_frontmatter_body(fm: dict) -> str:
+    """Serialize a frontmatter dict to YAML (no `---` delimiters), preserving
+    field order and emitting multi-line strings as block scalars. Wikilink
+    values (already strings) round-trip as quoted scalars, not nested lists."""
+    return yaml.dump(
+        fm,
+        Dumper=_FrontmatterDumper,
+        sort_keys=False,
+        allow_unicode=True,
+        default_flow_style=False,
+    ).rstrip()
+
+
 def parse_frontmatter(text: str) -> tuple[dict | None, str]:
     """
     Extract YAML frontmatter from the start of a markdown document.
@@ -119,7 +170,7 @@ def parse_frontmatter(text: str) -> tuple[dict | None, str]:
     # body content.
     _check_no_duplicate_frontmatter(body)
 
-    fm = yaml.safe_load(fm_text)
+    fm = yaml.safe_load(_quote_fm_wikilinks(fm_text))
     if not isinstance(fm, dict):
         raise yaml.YAMLError(f"frontmatter must be a mapping, got {type(fm).__name__}")
     return fm, body

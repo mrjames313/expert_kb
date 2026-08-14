@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from promote import PromoteError, promote
+from common import dump_frontmatter_body, extract_wikilinks, parse_frontmatter
 
 from lint_helpers import make_minimal_repo
 
@@ -169,3 +170,77 @@ class TestPromote:
         with pytest.raises(PromoteError) as exc_info:
             promote("test-slug", tmp_path)
         assert "already exists" in str(exc_info.value)
+
+    def test_preserves_frontmatter_wikilinks(self, tmp_path: Path) -> None:
+        """Regression (Issue 1): promote must not mangle [[wikilinks]] in
+        frontmatter into nested YAML sequences, and must keep `|` block scalars."""
+        make_minimal_repo(tmp_path)
+        proposed = tmp_path / "commons" / "_proposed" / "links-slug"
+        proposed.mkdir(parents=True)
+        (proposed / "page.md").write_text(textwrap.dedent("""
+            ---
+            id: f-2026-05-links
+            title: Test finding
+            type: finding
+            status: active
+            area: research
+            created: 2026-05-08
+            updated: 2026-05-08
+            summary: A finding with wikilink frontmatter.
+            relevant_to:
+              - test
+            when_to_load: |
+              Load when checking the coverage claim.
+              Skip for orientation.
+            provenance:
+              kind: external
+              ref: [[sources/s-2026-05-src]]
+            evidence:
+              - [[sources/s-2026-05-src]]
+              - [[findings/f-2026-05-other]]
+            alternatives_considered:
+              - [[concepts/c-2026-05-alt]]
+            ---
+
+            Body.
+        """).strip() + "\n")
+        (proposed / "proposal.md").write_text(
+            "---\nproposing_area: research\nproposed_on: 2026-05-08\n---\n\nProposal.\n"
+        )
+        promote("links-slug", tmp_path)
+
+        content = (tmp_path / "commons" / "kb" / "findings" / "f-commons-links.md").read_text()
+        # No nested-sequence corruption ("- - - sources/...")
+        assert "- - " not in content
+        # Wikilinks survive as resolvable text
+        fm, _ = parse_frontmatter(content)
+        assert extract_wikilinks(fm["provenance"]["ref"]) == ["sources/s-2026-05-src"]
+        assert extract_wikilinks(fm["evidence"][0]) == ["sources/s-2026-05-src"]
+        assert extract_wikilinks(fm["evidence"][1]) == ["findings/f-2026-05-other"]
+        assert extract_wikilinks(fm["alternatives_considered"][0]) == ["concepts/c-2026-05-alt"]
+        # Block scalar preserved (value intact; not re-emitted as a mangled quoted scalar)
+        assert fm["when_to_load"].splitlines()[:2] == [
+            "Load when checking the coverage claim.",
+            "Skip for orientation.",
+        ]
+
+
+class TestFrontmatterWikilinkRoundtrip:
+    """Direct coverage of the common.py quote-on-read / dump helpers (Issue 1)."""
+
+    def test_unquoted_wikilink_scalar_survives(self) -> None:
+        fm, _ = parse_frontmatter("---\nref: [[sources/s-x]]\n---\nbody\n")
+        assert fm["ref"] == "[[sources/s-x]]"  # string, not [['sources/s-x']]
+        out = dump_frontmatter_body(fm)
+        assert extract_wikilinks(out) == ["sources/s-x"]
+        assert "- - " not in out
+
+    def test_unquoted_wikilink_list_survives(self) -> None:
+        fm, _ = parse_frontmatter("---\nevidence:\n  - [[a/b]]\n  - [[c/d]]\n---\nbody\n")
+        assert fm["evidence"] == ["[[a/b]]", "[[c/d]]"]
+        out = dump_frontmatter_body(fm)
+        assert extract_wikilinks(out) == ["a/b", "c/d"]
+
+    def test_already_quoted_is_idempotent(self) -> None:
+        fm, _ = parse_frontmatter('---\nref: "[[sources/s-x]]"\n---\nbody\n')
+        assert fm["ref"] == "[[sources/s-x]]"

@@ -31,6 +31,7 @@ import yaml
 
 from common import (
     VALID_TYPES,
+    dump_frontmatter_body,
     find_repo_root,
     iter_kb_pages,
     new_commons_id,
@@ -276,21 +277,9 @@ def apply_extension(
     )
 
 
-class _NoAliasDumper(yaml.SafeDumper):
-    """SafeDumper variant that disables anchors/aliases so equal-valued dates
-    don't serialize as &id001/*id001 references — keeps frontmatter readable."""
-    def ignore_aliases(self, data):
-        return True
-
-
 def _serialize_frontmatter(fm: dict) -> str:
     """Emit YAML frontmatter wrapped in --- delimiters."""
-    return "---\n" + yaml.dump(
-        fm,
-        sort_keys=False,
-        default_flow_style=False,
-        Dumper=_NoAliasDumper,
-    ) + "---"
+    return "---\n" + dump_frontmatter_body(fm) + "\n---"
 
 
 def _append_changelog(

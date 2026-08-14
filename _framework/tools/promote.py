@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from common import (  # noqa: E402
     VALID_TYPES,
+    dump_frontmatter_body,
     find_repo_root,
     new_commons_id,
     parse_frontmatter,
@@ -91,23 +92,9 @@ def _read_proposal_metadata(proposed_dir: Path) -> dict:
     return fm or {}
 
 
-class _NoAliasDumper(yaml.SafeDumper):
-    """SafeDumper variant that disables anchors/aliases so equal-valued dates
-    serialize as plain values rather than `&id001 / *id001` references —
-    keeps frontmatter human-readable."""
-    def ignore_aliases(self, data):
-        return True
-
-
 def _emit_frontmatter(fm: dict) -> str:
     """Serialize a frontmatter dict back to YAML with `---` delimiters."""
-    body = yaml.dump(
-        fm,
-        sort_keys=False,
-        allow_unicode=True,
-        Dumper=_NoAliasDumper,
-    ).rstrip()
-    return f"---\n{body}\n---\n"
+    return f"---\n{dump_frontmatter_body(fm)}\n---\n"
 
 
 def _append_changelog_entry(repo_root: Path, page_id: str, page_type: str, from_area: str) -> bool:

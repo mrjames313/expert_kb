@@ -1,6 +1,6 @@
 ---
 name: framework
-description: Manage framework capabilities (multi_area, por, task_subagents, formal_review), control lint warning visibility, and prune stale role preload entries. Wraps framework.py.
+description: Manage framework capabilities (multi_area, por, task_subagents, formal_review), control lint warning visibility, prune stale role preload entries, and pull framework updates. Wraps framework.py (except `update`, which fetches the latest UPGRADING.md).
 ---
 
 # /framework
@@ -13,6 +13,7 @@ A pass-through to `_framework/tools/framework.py` for capability and lint-visibi
 - User wants to surface a configurable lint warning (`/framework enable-lint rule_8_stale_concept`) or stop showing one.
 - User wants to see current state (`/framework status` or just `/framework`).
 - User wants to clean up stale preload entries (`/framework prune`).
+- User wants to pull the latest framework into this project (`/framework update`).
 
 ## Steps
 
@@ -22,6 +23,7 @@ A pass-through to `_framework/tools/framework.py` for capability and lint-visibi
    - `enable-lint <rule>` / `disable-lint <rule>` → toggle a lint warning's visibility.
    - `lint-status` → just the lint visibility portion of status.
    - `prune [<role>]` → list (or apply, with `--apply`) stale preload entries.
+   - `update` → pull the latest framework into this project (not a `framework.py` command — see the update step below).
 
 2. **For status queries** — just run the command and show the user:
    ```
@@ -67,7 +69,15 @@ A pass-through to `_framework/tools/framework.py` for capability and lint-visibi
    ```
    (Or with a role filter to apply just one role's candidates.)
 
-6. **Brief the user.** Summarize what changed. For capability changes, point at the relevant `_framework/schema/capabilities.md` section so they can read about the new behavior.
+6. **For `update`** — this is *not* a `framework.py` call. Pull the latest framework by fetching and following the canonical upgrade runbook, so the procedure stays current even if this skill is itself outdated:
+   ```
+   git remote add framework https://github.com/mrjames313/expert_kb.git 2>/dev/null || true
+   git fetch framework
+   git show framework/main:UPGRADING.md
+   ```
+   Read that file and follow it exactly — it handles the clean-committed-tree safety gate (so the upgrade is reversible), pulling framework files (not project content), reconciling CLAUDE.md, running version-keyed migrations, and lint verification. Don't substitute these local steps for the fetched instructions.
+
+7. **Brief the user.** Summarize what changed. For capability changes, point at the relevant `_framework/schema/capabilities.md` section so they can read about the new behavior.
 
 ## Notes
 

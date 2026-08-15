@@ -345,27 +345,43 @@ There is also no tooled path today for adding a role to an *existing* area — r
 
 ---
 
-## Promotion copies pages and then abandons the relationship
+## Planned: commons drift & link management (5c/5d)
 
-Two faces of one gap (report issues 5c/5d), both consequences of commons pages being *copies* with no ongoing link to their source.
+Decided and scoped (dogfooded); ready to implement. Resolves report issues 5c (silent drift between an area page and its commons copy) and 5d (commons pages' links point back into areas).
 
-**Observed during:** The first promotions in the dogfood project — a paragraph in a promoted page went stale within an hour and had to be fixed by hand in both the area copy and the commons copy.
+**Architecture settled as COPY.** Dogfooding confirmed commons pages are full reference content (lookup tables, protocols, exact numbers) — *not* summaries — and that move/reference both break the load-bearing property that commons is self-contained and cheap to load (they force the cross-area read promotion exists to prevent). Distillation was rejected: it re-solves a cost problem `when_to_load` already handles, and routes readers into the very cross-area reads to avoid. So we keep the copy and *manage* the relationship.
 
-### 5c — no drift detection
+**Model — copy full, then edit for a commons reader** (two operations, neither is summarization):
+- **Strip resolved-deliberation cruft** — resolved-question sections, superseded sections, closed "left open" lists. This content actively misleads a cold reader. Skill guidance + agent judgment, not a hard rule.
+- **Rewrite conceptual links to commons twins** (leave provenance links to area sources). Propose-for-review (not silent), bare `[[twin]]` form (commons→commons is same-area), alias-preserving, best-effort code-fence skip.
 
-Promotion copies the area page into `commons/kb/` under a distinct id and (correctly, per the 2A1 fix) leaves the area original unchanged — so two independent copies coexist with no link between them. The commons page records `promoted_from_page`, but nothing reads it; and Rule 13 (backlinker freshness) can't help, because the copies don't link to each other. Edit either and the other silently drifts. This drift is the direct cost of the 2A1 coexistence decision (superseding the source would break its inbound citations, so coexistence is correct — but coexistence is what enables the drift).
+**Reads softened.** Occasional cross-area *reads* are acceptable; iterative needs use an exchange; *writes* into another area stay forbidden. This drops 5d to a **nudge**: a commons page citing an area page that has a twin should *prefer* the twin (self-containment, cheap loading, correct backlink attribution), but it isn't an error.
 
-### 5d — internal links aren't rewritten
+**Bidirectional twin edge, asymmetric markers.**
+- Commons → area: `promoted_from_page` (list-capable, for future multi-source synthesis).
+- Area → commons: `commons_twin` back-pointer. Writing this one field is a **narrow, framework-maintained exception** to write-boundaries — any role may set it during promotion/amend (metadata link, not content).
+- `aligned_on` lives **only on the commons page**. Lint auto-detects the common direction (source `updated` > commons `aligned_on` → commons behind). The rare reverse (error fixed in commons) is handled by `/amend-commons` filing an **INBOX heads-up** to the area owner — no area-side timestamp.
 
-A promoted page's body still cites the *source area's* pages, so a reader of a commons briefing follows a citation straight into one area's kb — undercutting the premise that commons is a standalone, project-wide layer. The `/add-area` commons-extension step already flags this as a deferred, per-link judgment.
+**`/amend-commons` skill (keystone).** The sanctioned, general way to edit an *existing* commons page — corrections, link-rewrites, and drift reconciliation all flow through it. **Light gate**: direct edit + `CHANGELOG.md` entry + human confirmation in conversation. Any role may invoke.
 
-**Why deferred:** The real question is architectural — **is a commons page a COPY or a REFERENCE?** Copy (today) is standalone-ish but drifts (5c) and leaks links (5d); reference (a pointer to the single source-of-truth area page) removes both but makes commons non-self-contained and turns every commons read into a cross-area read (the very thing exchanges and bounded preloads exist to limit). Neither is free, and the choice interacts with the coexistence model, Rule 18 ids, and the commons-extension pathway.
+**2A1 relaxation.** Promotion still does not supersede or move the source; it may now add the benign `commons_twin` back-pointer.
 
-**What addressing it would look like:**
-- *Stay "copy" + detect* (pragmatic near-term): a drift-detection lint rule that pairs copies via `promoted_from_page` and warns when their `updated` dates or content diverge; plus a warning when a commons page cites area-local pages (5d). Optionally, rewrite internal links to commons versions on promotion when the dependency is also in commons (ties to the deferred "promotion doesn't pull dependencies along" idea).
-- *Switch to "reference"* (deeper): commons holds a pointer to the source page instead of a copy — no drift, no link rewriting, but commons is no longer standalone.
+**Lint (two warning-tier rules, default shadowed):**
+- *5c staleness* — commons page whose source's `updated` is newer than its `aligned_on`. Drift detection is **link-aware**: normalize area links through the twin map before comparing, since a twin's links differ from its source's by design.
+- *5d twin-preference* — commons page citing an area page that has a commons twin → prefer the twin.
 
-**Revisit when:** Promotions become frequent enough that manual drift-reconciliation is a real cost, or when revisiting the commons data model. Related: future-work's Rule 4 (cross-area finding citation patterns) and Rule 9 (unresolved cross-area citations) cover parts of the detect side.
+**Shared helpers.** A `commons_twin_map` + an alias/code-fence-aware `rewrite_links_to_twins`, used by `/promote`, `/amend-commons`, and the 5d lint (one implementation, three consumers).
+
+**Work items (phased):**
+1. **Record-keeping + helpers** — `commons_twin` (area), `aligned_on` (commons), list-capable `promoted_from_page`; the twin-map + link-rewrite helpers; sync frontmatter.md, promotion-protocol.md, spec, and CLAUDE.md (the back-pointer write exception + the softened reads stance).
+2. **`/amend-commons`** — light gate, CHANGELOG entry, INBOX heads-up for reverse drift.
+3. **Promotion process** — `/promote` + `/propose-promotion`: copy full, strip deliberation, rewrite links (propose-for-review), set twin fields.
+4. **Lint** — the 5c staleness and 5d twin-preference rules (link-aware drift).
+5. **Reads-softening docs** — multi_area "Cross-area reads" snippet, link-conventions, Rule 16 wording.
+
+**Explicitly not pulled in:** promotion still doesn't pull a page's dependency graph along (not-yet-promoted deps stay area links until promoted, then the 5d nudge drives the retroactive rewrite); multi-source *synthesis* reconciliation is deferred (the list-capable field leaves room).
+
+**Revisit when:** Ready to implement — next actionable framework-dev item.
 
 ---
 

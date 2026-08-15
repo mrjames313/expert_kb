@@ -13,7 +13,7 @@ import pytest
 from promote import PromoteError, promote
 from common import dump_frontmatter_body, extract_wikilinks, parse_frontmatter
 
-from lint_helpers import make_minimal_repo
+from lint_helpers import make_minimal_repo, write_kb_page
 
 
 def _write_proposal(repo_root: Path, slug: str, page_type: str, page_id: str,
@@ -179,6 +179,25 @@ class TestPromote:
         content = (tmp_path / "commons" / "kb" / "findings" / "f-commons-rt.md").read_text()
         fm, _ = parse_frontmatter(content)
         assert "relevant_to" not in fm
+
+    def test_sets_commons_twin_and_aligned_on(self, tmp_path: Path) -> None:
+        """Promotion sets aligned_on on the commons page and a commons_twin
+        back-pointer on the source area page (Phase 3)."""
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/research", "finding", "twin")  # f-2026-05-twin
+        _write_proposal(tmp_path, "twin-slug", "finding", "f-2026-05-twin")
+        result = promote("twin-slug", tmp_path)
+        assert result.twin_backpointer_set is True
+        src = (tmp_path / "areas/research/kb/findings/f-2026-05-twin.md").read_text()
+        assert 'commons_twin: "[[f-commons-twin]]"' in src
+        commons = (tmp_path / "commons/kb/findings/f-commons-twin.md").read_text()
+        assert "aligned_on:" in commons
+
+    def test_twin_backpointer_absent_when_source_missing(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        _write_proposal(tmp_path, "nosrc", "finding", "f-2026-05-nosrc")  # no area page
+        result = promote("nosrc", tmp_path)
+        assert result.twin_backpointer_set is False
 
     def test_preserves_frontmatter_wikilinks(self, tmp_path: Path) -> None:
         """Regression (Issue 1): promote must not mangle [[wikilinks]] in

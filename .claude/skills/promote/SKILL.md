@@ -27,21 +27,30 @@ Accepts a staged proposal and moves the page into `commons/kb/`. Typically run b
    ```
    The tool:
    - Moves `commons/_proposed/<slug>/page.md` → `commons/kb/<type>/<id>.md`.
-   - Updates frontmatter: `id` (new `<prefix>-commons-<slug>`), `area: commons`, `human_reviewed: false`, `promoted_from_page: <source-id>`, `promoted_from_area: areas/<x>`, `promoted_on: <today>`, `promotion_path: proposal-and-promote`, `updated: <today>`.
+   - Updates frontmatter: `id` (new `<prefix>-commons-<slug>`), `area: commons`, `human_reviewed: false`, `promoted_from_page: <source-id>`, `promoted_from_area: areas/<x>`, `promoted_on: <today>`, `promotion_path: proposal-and-promote`, `aligned_on: <today>`, `updated: <today>` (drops `relevant_to`).
+   - Adds a `commons_twin` back-pointer to the source area page (the one sanctioned cross-area metadata write). If it warns the source wasn't found, note it.
    - Prepends a CHANGELOG entry to `commons/CHANGELOG.md`.
    - Leaves `proposal.md` and verdict files in `commons/_proposed/<slug>/` as audit trail.
 
-3. **Leave the source area page in place.** Do **not** modify it. The commons page is a *coexisting copy* for a project-wide audience, not a replacement — it lands under a distinct id (`<prefix>-commons-<slug>`), and existing `[[...]]` citations to the area page keep resolving. In particular, do **not** mark the area copy `superseded`: superseding is for a page that has been *replaced*, and linking to a superseded page is a lint error — so it would convert every inbound citation to the area page into a lint error in one step.
+3. **Edit the new commons page for a commons reader.** The staged copy is verbatim — clean it, but don't summarize; keep every protocol, number, and caveat.
+   - **Strip resolved-deliberation cruft** — resolved-question sections, superseded sections, closed "left open" lists. This content misleads a cold reader.
+   - **Rewrite conceptual links to their commons twins** (leave provenance links to area sources), reviewing before applying:
+     ```
+     python _framework/tools/commons_links.py rewrite commons/kb/<type>/<new-id>.md           # review proposed changes
+     python _framework/tools/commons_links.py rewrite commons/kb/<type>/<new-id>.md --apply    # then apply
+     ```
 
-4. **Verify.** Run `python _framework/tools/lint.py`. The promoted page should be lint-clean, and the untouched source area page stays clean too.
+4. **Leave the source area page's content in place.** Do **not** modify it beyond the `commons_twin` back-pointer the tool just added. The commons page is a *coexisting copy* for a project-wide audience, not a replacement — it lands under a distinct id, and existing `[[...]]` citations to the area page keep resolving. Do **not** mark the area copy `superseded`: linking to a superseded page is a lint error, so it would convert every inbound citation into an error in one step.
 
-5. **Record in pulse.log.** In whichever pulse log is most appropriate (the coordinator's commons pulse, or the proposing area's pulse):
+5. **Verify.** Run `python _framework/tools/lint.py`. The promoted page should be lint-clean, and the source area page stays clean too.
+
+6. **Record in pulse.log.** In whichever pulse log is most appropriate (the coordinator's commons pulse, or the proposing area's pulse):
    ```
    ## [YYYY-MM-DD HH:MM] decision <role>
    Promoted <page-id> to commons (from <proposing-area>).
    ```
 
-6. **Brief the user.** Confirm what was promoted, what the new commons id is, and what (if any) area-side cleanup is still pending.
+7. **Brief the user.** Confirm what was promoted, the new commons id, and whether the source twin back-pointer was set.
 
 ## Notes
 

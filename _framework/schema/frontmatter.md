@@ -196,13 +196,20 @@ Lifecycle: `active` | `superseded`.
 
 ## Commons-promoted items
 
-Pages promoted into `commons/kb/` carry three additional fields:
+A page promoted into `commons/kb/` carries promotion metadata:
 
 ```yaml
-human_reviewed: false                   # flipped to true when human acks
-promoted_from: areas/research/optics
+human_reviewed: false                    # flipped to true when a human acks
+promoted_from_page: f-2026-05-shot-noise # source page id(s); a list for multi-source synthesis
+promoted_from_area: areas/research
 promoted_on: 2026-05-08
+promotion_path: proposal-and-promote     # or commons-extension
+aligned_on: 2026-05-08                   # last reconciled with the source (drift detection)
 ```
+
+`relevant_to` is omitted on commons pages — commons is relevant to everyone.
+
+**Twin edge.** `promoted_from_page` is the commons → area link; the area source page carries a `commons_twin: "[[<commons-id>]]"` back-pointer the other way. Together they let lint detect drift (compare `aligned_on` against the source's `updated`) and let promotion rewrite a page's conceptual links to their commons twins. Setting `commons_twin` on an area page is the one sanctioned cross-area write (see CLAUDE.md, "When to write where").
 
 ## POR files
 

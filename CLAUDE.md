@@ -40,6 +40,7 @@ INBOX.md is supplementary — items that arose outside a conversation, items the
 - Same content that's project-wide: write to your area's `kb/`, then `/propose-promotion`.
 - Never write directly to `commons/` — proposals only.
 - Never modify files in any `raw/` directory — raw materials are immutable. New raw materials are added through `/ingest`.
+- **One sanctioned cross-area write:** any role may set or update the `commons_twin` back-pointer field on an area page as part of promotion — it's a framework-maintained metadata link between a page and its commons twin, not content.
 
 ## How to interpret types
 

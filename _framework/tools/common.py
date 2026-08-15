@@ -436,3 +436,96 @@ def build_wikilink_index(repo_root: Path) -> dict[str, Path]:
         index[target_with_dir] = page
         index.setdefault(page.stem, page)
     return index
+
+
+def _bare_id(value: str) -> str:
+    """Reduce a `promoted_from_page` value (bare id, within-kb path, or
+    wikilink) to a bare page id."""
+    links = extract_wikilinks(value)
+    raw = links[0] if links else value
+    _prefix, target = split_wikilink(raw)
+    return target.rsplit("/", 1)[-1].strip()
+
+
+def commons_twin_map(repo_root: Path) -> dict[str, str]:
+    """Map each area source page id to its commons twin's id, from commons
+    pages' ``promoted_from_page``. A commons page may name several sources
+    (multi-source synthesis); each maps to that commons id."""
+    twins: dict[str, str] = {}
+    commons_kb = repo_root / "commons" / "kb"
+    if not commons_kb.is_dir():
+        return twins
+    for page in commons_kb.rglob("*.md"):
+        if page.name == "index.md":
+            continue
+        try:
+            fm, _ = parse_frontmatter(page.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            continue
+        if not fm:
+            continue
+        commons_id = fm.get("id")
+        src = fm.get("promoted_from_page")
+        if not commons_id or not src:
+            continue
+        sources = src if isinstance(src, list) else [src]
+        for s in sources:
+            sid = _bare_id(str(s))
+            if sid:
+                twins[sid] = str(commons_id)
+    return twins
+
+
+def build_twin_resolver(repo_root: Path):
+    """Return ``resolve_twin(target) -> twin_id | None`` for this repo, composing
+    :func:`commons_twin_map` with the wikilink index so a raw link target (any
+    form) maps to its commons twin's id."""
+    index = build_wikilink_index(repo_root)
+    twins = commons_twin_map(repo_root)
+
+    def resolve_twin(target: str) -> str | None:
+        _prefix, t = split_wikilink(target)
+        page = index.get(t)
+        if page is None:
+            return None
+        return twins.get(page.stem)
+
+    return resolve_twin
+
+
+# A [[wikilink]] capturing the target (group 1) and any `|alias` (group 2).
+_LINK_SUB_RE = re.compile(r"\[\[([^\]|]+?)(\|[^\]]+)?\]\]")
+_FENCE_RE = re.compile(r"^\s*```")
+
+
+def rewrite_links_to_twins(body: str, resolve_twin) -> tuple[str, list[tuple[str, str]]]:
+    """Rewrite body [[wikilinks]] to their commons twin where one exists.
+
+    ``resolve_twin(target) -> twin_id | None`` maps a raw link target (any form,
+    prefix allowed) to the bare id of its commons twin. Aliases are preserved;
+    fenced code blocks are skipped. The rewritten link uses the bare twin id
+    (commons→commons is same-area, so no prefix). Returns ``(new_body, changes)``
+    where ``changes`` is a list of ``(old_target, new_target)`` for review.
+    """
+    changes: list[tuple[str, str]] = []
+
+    def _sub(m: re.Match) -> str:
+        target = m.group(1).strip()
+        alias = m.group(2) or ""
+        twin = resolve_twin(target)
+        if not twin or twin == target:
+            return m.group(0)
+        changes.append((target, twin))
+        return f"[[{twin}{alias}]]"
+
+    out: list[str] = []
+    in_fence = False
+    for line in body.splitlines(keepends=True):
+        if _FENCE_RE.match(line):
+            in_fence = not in_fence
+            out.append(line)
+        elif in_fence:
+            out.append(line)
+        else:
+            out.append(_LINK_SUB_RE.sub(_sub, line))
+    return "".join(out), changes

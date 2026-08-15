@@ -63,10 +63,8 @@ git checkout framework/main -- \
 `_framework/config.yml`, `commons/`, `areas/`, `exchanges/`, `INBOX.md`, `areas-index.md`,
 any `kb/index.md`, `_journal/`, and role files. Author/template-only files
 (`SETUP.md`, `UPGRADING.md`, `_framework/future-work.md`, `_framework/maintaining.md`) are
-not part of a live project and this pull does not add them. In the normal case none are
-present. Only if a *pre-cleanup* bootstrap left stale copies behind, remove them once you've
-finished following the fetched instructions: `rm -f SETUP.md UPGRADING.md
-_framework/future-work.md _framework/maintaining.md`.
+not part of a live project and this pull does not add them; in the normal case none are
+present. Step 5's cleanup migration removes any stale leftovers from a pre-cleanup bootstrap.
 
 Review before continuing: `git diff --staged`.
 
@@ -99,8 +97,10 @@ whose release is newer than your version.
   corrupted nested-list frontmatter (`evidence:` followed by `- - - path`). Restore each to
   a quoted wikilink (`- "[[path]]"`). Lint Rule 2 flags these, so Step 7 points you at the
   exact pages.
-- **Post-bootstrap cleanup.** Remove template-only files if present (see Step 3). If your
-  top-level `README.md` still describes the *framework* rather than your project, replace it.
+- **Post-bootstrap cleanup.** Remove any template/author-only files a pre-cleanup bootstrap
+  left behind (none in the normal case): `rm -f SETUP.md UPGRADING.md
+  _framework/future-work.md _framework/maintaining.md`. If your top-level `README.md` still
+  describes the *framework* rather than your project, replace it.
 - **Un-supersede promoted sources.** If any area page was marked `superseded` pointing at a
   commons copy (the old, incorrect `/promote` advice), revert it — promotion coexists, it
   does not replace, and a superseded page with live inbound citations is a lint error.
@@ -114,6 +114,13 @@ pulled (the template's `_framework/config.yml` carries the current value).
 
 ```bash
 python _framework/tools/lint.py
+```
+
+Optionally, also run the tool test suite — this is the step that needs the dev extra:
+
+```bash
+pip install -r _framework/tools/requirements-dev.txt
+python -m pytest _framework/tools/tests/ -q
 ```
 
 The updated rules are your migration checker — Rule 2 surfaces remaining frontmatter

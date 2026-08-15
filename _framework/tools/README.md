@@ -14,17 +14,17 @@ source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r _framework/tools/requirements.txt
 ```
 
-For running the test suite, also install pytest:
+For running the test suite, install the dev extras instead (they pull in `requirements.txt` plus pytest):
 
 ```bash
-pip install pytest
+pip install -r _framework/tools/requirements-dev.txt
 ```
 
 If you'd rather not use a venv, install globally with `--break-system-packages` (on systems that require it):
 
 ```bash
 pip install -r _framework/tools/requirements.txt
-pip install pytest    # only if running tests
+# or requirements-dev.txt if you'll run the tests
 ```
 
 In either case, activate the venv before invoking the tools, or run them via `./.venv/bin/python _framework/tools/lint.py`.
@@ -43,9 +43,9 @@ python _framework/tools/lint.py --json     # machine-readable output
 
 Exit codes: `0` no findings, `1` errors, `2` warnings only (when warning rules land), `3` lint runner setup error.
 
-Implemented in commit 2a (errors only):
+Implemented (correctness errors):
 - Rule 1 — Frontmatter validity
-- Rule 2 — Forward-link integrity
+- Rule 2 — Forward-link integrity (body + frontmatter wikilinks, area prefixes, provenance.raw_path)
 - Rule 3 — Backlink synchronization (fixup; writes `.links.json` sidecars)
 - Rule 5 — Supersession integrity
 - Rule 6 — Type-specific completeness
@@ -53,8 +53,9 @@ Implemented in commit 2a (errors only):
 - Rule 12 — Data manifest integrity
 - Rule 15 — Index maintenance (fixup; regenerates `areas-index.md` and `kb/index.md`)
 - Rule 17 — Raw immutability
+- Rule 18 — Page ID uniqueness across the project
 
-Deferred for later commits: configurable warnings (Rule 4, 8, 9, 10, 11, 13, 14, 16) and Rule 18 (maintenance-category violations).
+Deferred: configurable warnings (Rule 4, 8, 9, 10, 11, 13, 14, 16) and a maintenance-category rule (Rule 19 or later).
 
 ### `framework.py` — capability and lint visibility engine
 
@@ -106,7 +107,7 @@ Idempotent: running with an empty log is a no-op. Exits non-zero if any pulse.md
 
 ### `promote.py` — proposal → commons
 
-Moves a page from `commons/_proposed/<slug>/page.md` to `commons/kb/<type>/<id>.md`, updating frontmatter (`area: commons`, `human_reviewed: false`, `promoted_from`, `promoted_on`) and writing a CHANGELOG entry. The proposal directory remains as audit trail (only `page.md` is moved).
+Moves a page from `commons/_proposed/<slug>/page.md` to `commons/kb/<type>/<new-commons-id>.md`, updating frontmatter (`id` → `<prefix>-commons-<slug>`, `area: commons`, `human_reviewed: false`, `promoted_from_page`, `promoted_from_area`, `promoted_on`, `promotion_path`; drops `relevant_to`) and writing a CHANGELOG entry. The source area page is left unchanged; the proposal directory remains as audit trail (only its `page.md` moves).
 
 ```bash
 python _framework/tools/promote.py 2026-05-shot-noise

@@ -1,0 +1,5 @@
+# Development dependencies — only needed to run the framework tool test suite.
+# The runtime tools (lint.py, pulse_compact.py, promote.py, …) need only
+# requirements.txt (PyYAML).
+-r requirements.txt
+pytest>=8,<9

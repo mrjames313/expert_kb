@@ -71,6 +71,7 @@ project-root/
 │   │   ├── telemetry.py
 │   │   ├── framework.py
 │   │   ├── requirements.txt
+│   │   ├── requirements-dev.txt
 │   │   └── tests/
 │   └── hooks/
 │       ├── session-start.sh

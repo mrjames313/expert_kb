@@ -31,6 +31,7 @@ from common import (  # noqa: E402
     find_repo_root,
     new_commons_id,
     parse_frontmatter,
+    set_source_twin,
 )
 
 
@@ -133,34 +134,6 @@ def _append_changelog_entry(repo_root: Path, page_id: str, page_type: str, from_
         return False
 
 
-_TWIN_LINE_RE = re.compile(r"^commons_twin:.*$", re.MULTILINE)
-_FRONTMATTER_BLOCK_RE = re.compile(r"^(---\n.*?\n)(---\n)", re.DOTALL)
-
-
-def _set_source_twin(src_path: Path, commons_id: str) -> bool:
-    """Add (or update) a `commons_twin` back-pointer in the source area page's
-    frontmatter via a targeted line insert, leaving the rest of the page
-    untouched. Returns True on success, False if the page/frontmatter is absent."""
-    try:
-        text = src_path.read_text(encoding="utf-8")
-    except OSError:
-        return False
-    m = _FRONTMATTER_BLOCK_RE.match(text)
-    if not m:
-        return False
-    fm_block, closing = m.group(1), m.group(2)
-    line = f'commons_twin: "[[{commons_id}]]"'
-    if _TWIN_LINE_RE.search(fm_block):
-        new_fm = _TWIN_LINE_RE.sub(line, fm_block)
-    else:
-        new_fm = fm_block + line + "\n"
-    try:
-        src_path.write_text(new_fm + closing + text[m.end():], encoding="utf-8")
-    except OSError:
-        return False
-    return True
-
-
 def promote(slug: str, repo_root: Path) -> PromoteResult:
     """
     Move a proposal from commons/_proposed/<slug>/ to commons/kb/<type>/<id>.md.
@@ -234,7 +207,7 @@ def promote(slug: str, repo_root: Path) -> PromoteResult:
     # cross-area metadata write). Non-fatal if the source can't be located.
     area_path = source_area if source_area.startswith("areas/") else f"areas/{source_area}"
     src_page = repo_root / area_path / "kb" / type_dir / f"{page_id}.md"
-    twin_set = _set_source_twin(src_page, new_id)
+    twin_set = set_source_twin(src_page, new_id)
 
     # Remove the original page.md from _proposed (other files in the dir stay)
     page_md = proposed_dir / "page.md"

@@ -151,7 +151,13 @@ Don't add an area for:
           --new-area <new-area-name> \
           --refined-body-file /tmp/refined-body.md
       ```
-      The tool creates the new commons page with id of the form `<type-prefix>-commons-<slug>` (the source's date is dropped), updates `commons/CHANGELOG.md`, and leaves the source area page completely unchanged.
+      The tool creates the new commons page with id `<type-prefix>-commons-<slug>` (source date dropped), sets `aligned_on` on it, updates `commons/CHANGELOG.md`, and adds a `commons_twin` back-pointer to the source page (its only change to the source).
+
+      Then edit the new commons page for a commons reader, as `/promote` does — strip resolved-deliberation cruft and rewrite conceptual links to their commons twins (leave provenance links), reviewing before applying:
+      ```
+      python _framework/tools/commons_links.py rewrite commons/kb/<type>/<new-id>.md           # review
+      python _framework/tools/commons_links.py rewrite commons/kb/<type>/<new-id>.md --apply    # then apply
+      ```
 
    f. **After all confirmed extensions, run lint.** Verify references still resolve (wikilinks pointing at the source ids continue to work because the source pages are still in place; the new commons pages have new ids).
 
@@ -161,7 +167,7 @@ Don't add an area for:
       Extended commons during /add-area <new-area-name>: <N> pages from <source-areas>.
       ```
 
-   The source area pages are intentionally left untouched. Wikilinks from elsewhere can either continue pointing at the area-local versions (for context-specific framing) or be updated to point at the commons versions (for canonical references) — that's a per-link judgment made later, not here.
+   Source area pages keep their content; the only change is the `commons_twin` back-pointer the tool adds. Existing wikilinks elsewhere still resolve to the area versions; the commons pages' own conceptual links are rewritten to twins in step e. Repointing *other* pages' links to the commons versions remains a per-link judgment made later.
 
 10. **Brief the user.** Tell them the area is ready and what to do next: `/start <role-name>` to adopt the new role, then `/plan` to scope the first piece of work. If commons extension created any new commons pages, mention them briefly.
 

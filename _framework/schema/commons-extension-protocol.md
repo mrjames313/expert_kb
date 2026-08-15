@@ -22,12 +22,12 @@ The intuition: when a new area is added, the addition itself reveals which knowl
 | Trigger reason | New area reveals cross-cutting knowledge | Single page proves broadly useful |
 | Proposal step | None (interactive at add-area time) | `commons/_proposed/<slug>/` directory |
 | Review step | Inline (user confirms each candidate) | Verdict files (if `formal_review` on) |
-| Source page treatment | Left unchanged | Left unchanged (per protocol) |
+| Source page treatment | Unchanged except a `commons_twin` back-pointer | Unchanged except a `commons_twin` back-pointer |
 | Bulk vs individual | Bulk (many pages in one flow) | Individual (one page per cycle) |
 | Refinement | Agent decides per candidate | Agent decides during proposal |
-| Frontmatter marker | `promotion_path: commons-extension`, `promoted_during_add_area: <name>` | `promoted_from`, `promoted_on` |
+| Frontmatter marker | `promotion_path: commons-extension` + `promoted_during_add_area: <name>` | `promotion_path: proposal-and-promote` |
 
-Both paths leave the source area page intact and create a new commons page. Both append to `commons/CHANGELOG.md`. The commons-extension flow's CHANGELOG entries are distinguishable (`commons-extension` tag) so a maintainer can audit either pathway independently.
+Both paths leave the source area page's content intact (adding only a `commons_twin` back-pointer) and create a new commons page. Both append to `commons/CHANGELOG.md`. The commons-extension flow's CHANGELOG entries are distinguishable (`commons-extension` tag) so a maintainer can audit either pathway independently.
 
 ## ID convention
 
@@ -61,17 +61,13 @@ If during a later area's addition the candidate count is still high, that may si
 
 The skill's context-display step shows the user this framing so judgment calls are informed. A future `commons_coverage` configuration parameter could enforce growth-control policy explicitly; v1 leaves this to the user.
 
-## When the source page should be updated
+## Keeping the source and commons versions aligned
 
-The protocol deliberately leaves source area pages untouched during commons-extension. This is the right default — the area stays self-consistent, existing wikilinks keep working.
+Commons-extension changes the source area page only by adding a `commons_twin` back-pointer; its content and status are left intact, so existing wikilinks keep working. The area page and its commons copy then coexist as twins.
 
-A user who decides the source page should now be superseded by the commons version (because the commons version is canonical and the area-specific framing is no longer needed) can manually:
+Do **not** mark the source `superseded` — the commons page is a coexisting copy for a project-wide audience, not a replacement, and linking to a superseded page is a lint error (see `link-conventions.md`), so superseding would break every inbound citation.
 
-1. Set the source page's `status: superseded`.
-2. Set `superseded_by: <commons-id>`.
-3. Update the source page's body to point readers at the commons version, if desired.
-
-This is a separate step from commons-extension and is the user's call. The framework doesn't auto-supersede because the decision is content-specific.
+The two versions are kept aligned by record-keeping, not supersession: the commons page carries `aligned_on`, and both pages name each other (`promoted_from_page` / `commons_twin`). When the source later changes, lint flags the commons twin as behind; reconcile it with `/amend-commons`. A correction made in commons propagates back to the source via an INBOX heads-up (see `/amend-commons`).
 
 ## Auditing extensions later
 

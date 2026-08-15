@@ -36,6 +36,7 @@ from common import (
     iter_kb_pages,
     new_commons_id,
     parse_frontmatter,
+    set_source_twin,
 )
 
 
@@ -90,6 +91,7 @@ class ExtensionResult:
     new_commons_id: str
     new_commons_path: str  # relative to repo root
     refined: bool  # True if body was changed from source; False if copied as-is
+    twin_backpointer_set: bool = False  # commons_twin written onto the source page
 
 
 def _new_commons_id(source_page_id: str) -> str:
@@ -253,6 +255,7 @@ def apply_extension(
     new_fm["promotion_path"] = "commons-extension"
     new_fm["promoted_during_add_area"] = new_area_name
     new_fm["human_reviewed"] = True  # user confirmed during interactive review
+    new_fm["aligned_on"] = today  # last reconciled with the source (drift detection)
 
     # Use refined body if provided, otherwise copy source verbatim
     body_text = refined_body if refined_body is not None else source_body
@@ -263,6 +266,10 @@ def apply_extension(
     serialized = _serialize_frontmatter(new_fm) + "\n" + body_text.lstrip("\n")
     target_path.write_text(serialized, encoding="utf-8")
 
+    # Add the commons_twin back-pointer to the source area page (the source page
+    # is already located above). Sanctioned cross-area metadata write.
+    twin_set = set_source_twin(source_path, new_id)
+
     # Append to commons/CHANGELOG.md
     _append_changelog(repo_root, new_id, page_type, source_page_id,
                       source_fm.get("area", ""), new_area_name)
@@ -272,6 +279,7 @@ def apply_extension(
         new_commons_id=new_id,
         new_commons_path=str(target_path.relative_to(repo_root)),
         refined=refined,
+        twin_backpointer_set=twin_set,
     )
 
 

@@ -529,3 +529,35 @@ def rewrite_links_to_twins(body: str, resolve_twin) -> tuple[str, list[tuple[str
         else:
             out.append(_LINK_SUB_RE.sub(_sub, line))
     return "".join(out), changes
+
+
+_TWIN_LINE_RE = re.compile(r"^commons_twin:.*$", re.MULTILINE)
+_FRONTMATTER_BLOCK_RE = re.compile(r"^(---\n.*?\n)(---\n)", re.DOTALL)
+
+
+def set_source_twin(src_path: Path, commons_id: str) -> bool:
+    """Add (or update) a `commons_twin` back-pointer in an area source page's
+    frontmatter via a targeted line insert, leaving the rest of the page
+    untouched. Returns True on success, False if the page/frontmatter is absent.
+
+    Writing this field is the one sanctioned cross-area metadata write — both
+    promotion pathways use it to make the area↔commons twin edge bidirectional.
+    """
+    try:
+        text = src_path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    m = _FRONTMATTER_BLOCK_RE.match(text)
+    if not m:
+        return False
+    fm_block, closing = m.group(1), m.group(2)
+    line = f'commons_twin: "[[{commons_id}]]"'
+    if _TWIN_LINE_RE.search(fm_block):
+        new_fm = _TWIN_LINE_RE.sub(line, fm_block)
+    else:
+        new_fm = fm_block + line + "\n"
+    try:
+        src_path.write_text(new_fm + closing + text[m.end():], encoding="utf-8")
+    except OSError:
+        return False
+    return True

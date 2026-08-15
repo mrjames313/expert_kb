@@ -247,6 +247,18 @@ class TestApplyExtension:
         new_text = (tmp_path / result.new_commons_path).read_text(encoding="utf-8")
         assert "relevant_to" not in new_text
 
+    def test_sets_commons_twin_and_aligned_on(self, tmp_path: Path) -> None:
+        """Commons-extension sets aligned_on and the commons_twin back-pointer
+        (Phase 3b — parity with /promote)."""
+        make_minimal_repo(tmp_path)
+        add_area_with_finding(tmp_path, "research", "f-2026-05-26-tw")
+        result = ce.apply_extension(tmp_path, "f-2026-05-26-tw", "newarea")
+        assert result.twin_backpointer_set is True
+        src = (tmp_path / "areas/research/kb/findings/f-2026-05-26-tw.md").read_text()
+        assert 'commons_twin: "[[f-commons-tw]]"' in src
+        commons = (tmp_path / result.new_commons_path).read_text()
+        assert "aligned_on:" in commons
+
     def test_with_refined_body(self, tmp_path: Path) -> None:
         make_minimal_repo(tmp_path)
         add_area_with_finding(tmp_path, "research", "f-2026-05-26-test-finding")
@@ -285,12 +297,16 @@ class TestApplyExtension:
         with pytest.raises(RuntimeError, match="already exists"):
             ce.apply_extension(tmp_path, "f-2026-05-26-test-finding", "newarea")
 
-    def test_source_page_unchanged_after_extension(self, tmp_path: Path) -> None:
-        """The whole point of commons extension: source area page is intact."""
+    def test_source_page_only_gains_commons_twin(self, tmp_path: Path) -> None:
+        """Commons extension leaves the source area page's content intact,
+        adding only the commons_twin back-pointer (the sanctioned exception)."""
         make_minimal_repo(tmp_path)
         source_path = add_area_with_finding(
             tmp_path, "research", "f-2026-05-26-test-finding"
         )
-        original_content = source_path.read_text(encoding="utf-8")
+        original = source_path.read_text(encoding="utf-8")
         ce.apply_extension(tmp_path, "f-2026-05-26-test-finding", "newarea")
-        assert source_path.read_text(encoding="utf-8") == original_content
+        after = source_path.read_text(encoding="utf-8")
+        twin_line = 'commons_twin: "[[f-commons-test-finding]]"\n'
+        assert twin_line in after
+        assert after.replace(twin_line, "") == original

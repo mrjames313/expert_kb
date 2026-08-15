@@ -21,6 +21,8 @@ from lint_rules import (
     rule_12_manifest,
     rule_15_index,
     rule_18_id_uniqueness,
+    rule_20_commons_drift,
+    rule_21_commons_twin_links,
 )
 
 from lint_helpers import make_minimal_repo, write_kb_page
@@ -729,3 +731,91 @@ class TestRule18IdUniqueness:
             path.write_text("---\ntitle: x\ntype: finding\n---\n\nBody.\n")
         findings = rule_18_id_uniqueness.check(tmp_path, DEFAULT_CONFIG)
         assert findings == []
+
+
+# --- Rule 20: Commons drift (warning; self-gating) ---
+
+_ON_20 = {"lint": {"warnings_visible": {"rule_20_commons_drift": True}}}
+
+
+class TestRule20CommonsDrift:
+    def _setup(self, tmp_path: Path, aligned_on: str, src_updated: str) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(
+            tmp_path, "areas/research", "finding", "src",
+            frontmatter_overrides={"updated": src_updated},
+        )  # id f-2026-05-src
+        cdir = tmp_path / "commons/kb/findings"
+        cdir.mkdir(parents=True, exist_ok=True)
+        (cdir / "f-commons-src.md").write_text(
+            "---\nid: f-commons-src\ntitle: Src\ntype: finding\nstatus: active\n"
+            "area: commons\ncreated: 2026-05-01\nupdated: 2026-05-01\nsummary: S.\n"
+            f"promoted_from_page: f-2026-05-src\naligned_on: {aligned_on}\n---\n\nBody.\n"
+        )
+
+    def test_disabled_by_default(self, tmp_path: Path) -> None:
+        self._setup(tmp_path, "2026-05-01", "2026-05-08")
+        assert rule_20_commons_drift.check(tmp_path, DEFAULT_CONFIG) == []
+
+    def test_flags_drift_when_source_newer(self, tmp_path: Path) -> None:
+        self._setup(tmp_path, "2026-05-01", "2026-05-08")
+        findings = rule_20_commons_drift.check(tmp_path, _ON_20)
+        assert any("changed on 2026-05-08" in f.message for f in findings)
+
+    def test_no_drift_when_aligned_after_source(self, tmp_path: Path) -> None:
+        self._setup(tmp_path, "2026-05-10", "2026-05-08")
+        assert rule_20_commons_drift.check(tmp_path, _ON_20) == []
+
+
+# --- Rule 21: Commons twin-link preference (warning; self-gating) ---
+
+_ON_21 = {"lint": {"warnings_visible": {"rule_21_commons_twin_links": True}}}
+
+
+class TestRule21CommonsTwinLinks:
+    def _twin(self, tmp_path: Path) -> None:
+        write_kb_page(tmp_path, "areas/research", "concept", "foo")  # c-2026-05-foo
+        cc = tmp_path / "commons/kb/concepts"
+        cc.mkdir(parents=True, exist_ok=True)
+        (cc / "c-commons-foo.md").write_text(
+            "---\nid: c-commons-foo\ntitle: Foo\ntype: concept\nstatus: supported\n"
+            "area: commons\ncreated: 2026-05-01\nupdated: 2026-05-01\nsummary: F.\n"
+            "promoted_from_page: c-2026-05-foo\n---\n\nBody.\n"
+        )
+
+    def _commons_citing(self, tmp_path: Path, target: str) -> None:
+        cf = tmp_path / "commons/kb/findings"
+        cf.mkdir(parents=True, exist_ok=True)
+        (cf / "f-commons-bar.md").write_text(
+            "---\nid: f-commons-bar\ntitle: Bar\ntype: finding\nstatus: active\n"
+            "area: commons\ncreated: 2026-05-01\nupdated: 2026-05-01\nsummary: B.\n"
+            f"promoted_from_page: f-2026-05-bar\n---\n\nBuilds on [[{target}]].\n"
+        )
+
+    def test_disabled_by_default(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        self._twin(tmp_path)
+        self._commons_citing(tmp_path, "c-2026-05-foo")
+        assert rule_21_commons_twin_links.check(tmp_path, DEFAULT_CONFIG) == []
+
+    def test_flags_citation_to_area_page_with_twin(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        self._twin(tmp_path)
+        self._commons_citing(tmp_path, "c-2026-05-foo")
+        findings = rule_21_commons_twin_links.check(tmp_path, _ON_21)
+        assert any(
+            "prefer the twin" in f.message and "c-commons-foo" in f.message
+            for f in findings
+        )
+
+    def test_no_flag_when_already_citing_twin(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        self._twin(tmp_path)
+        self._commons_citing(tmp_path, "c-commons-foo")
+        assert rule_21_commons_twin_links.check(tmp_path, _ON_21) == []
+
+    def test_no_flag_for_area_page_without_twin(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/research", "concept", "notwin")
+        self._commons_citing(tmp_path, "c-2026-05-notwin")
+        assert rule_21_commons_twin_links.check(tmp_path, _ON_21) == []

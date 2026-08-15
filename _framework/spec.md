@@ -778,7 +778,7 @@ Within `kb/` directories, agents use Obsidian-style `[[wikilinks]]`. For files o
 
 The linter (`_framework/tools/lint.py`) is deterministic Python. It runs on demand via `/check` and at the end of every `/wrap-up`.
 
-**All rules always run.** What changes per configuration is whether findings are *visible* (displayed and acted on) or *shadowed* (counted internally; surfaced as suggestions when frequent).
+**Always-visible rules always run.** Configurable-visibility (warning) rules are off by default and currently **self-gate** — a disabled rule returns no findings; enable it with `/framework enable-lint <rule>`.
 
 **Always-visible rules** (errors and structural correctness):
 
@@ -792,7 +792,7 @@ Rule 7.  Pulse size (pulse.md exceeding line cap is an error).
 Rule 12. Data manifest integrity.
 Rule 15. Index maintenance (regenerate areas-index.md, kb/index.md).
 Rule 17. Raw immutability (modifications to existing files in raw/ — additions are allowed).
-Rule 18. Maintenance category violations.
+Rule 18. Page ID uniqueness across the project.
 ```
 
 **Configurable-visibility rules** (warnings):
@@ -806,19 +806,11 @@ Rule 11. Spec hygiene (tasks non-terminal > 60 active days).
 Rule 13. Backlinker freshness.
 Rule 14. Exchange staleness (status: open > 7 active days, if multi_area on).
 Rule 16. Cross-area read pattern.
+Rule 20. Commons drift (source updated after the commons page's aligned_on).
+Rule 21. Commons twin-link preference (commons page cites an area page that has a twin).
 ```
 
-**Shadow run behavior.** When a rule is shadowed, the linter still evaluates it but doesn't display findings in the standard report. Instead, the linter accumulates trigger counts and adds a suggestion section at the bottom of the report:
-
-```
-Disabled lint rules with significant findings:
-  Rule 4 (orphans) — 12 findings
-  Rule 11 (spec abandonment) — 3 findings
-
-Consider enabling: /framework enable-lint rule_4
-```
-
-A rule's findings surface as a suggestion when the trigger count meets `shadow_suggest_threshold` (default 5).
+**Shadow behavior (not implemented; under reconsideration).** The original design had disabled rules run silently, accumulate trigger counts, and surface a "consider enabling" suggestion past `shadow_suggest_threshold`. That isn't built — warning rules self-gate instead — and it may be dropped as noise-without-value. Only Rules 20–21 are implemented among the configurable set. See `future-work.md`.
 
 **Activity-based thresholds.** All time thresholds use git-log-derived active days, computed via `_framework/tools/activity_days.py`.
 

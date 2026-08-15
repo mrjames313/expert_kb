@@ -438,7 +438,7 @@ def build_wikilink_index(repo_root: Path) -> dict[str, Path]:
     return index
 
 
-def _bare_id(value: str) -> str:
+def bare_id(value: str) -> str:
     """Reduce a `promoted_from_page` value (bare id, within-kb path, or
     wikilink) to a bare page id."""
     links = extract_wikilinks(value)
@@ -470,7 +470,7 @@ def commons_twin_map(repo_root: Path) -> dict[str, str]:
             continue
         sources = src if isinstance(src, list) else [src]
         for s in sources:
-            sid = _bare_id(str(s))
+            sid = bare_id(str(s))
             if sid:
                 twins[sid] = str(commons_id)
     return twins

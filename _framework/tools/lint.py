@@ -47,6 +47,8 @@ INSPECTION_RULES = [
     "rule_12_manifest",
     "rule_17_raw_immutability",
     "rule_18_id_uniqueness",
+    "rule_20_commons_drift",         # warning; self-gates on warnings_visible
+    "rule_21_commons_twin_links",    # warning; self-gates on warnings_visible
 ]
 
 ALL_RULES = FIXUP_RULES + INSPECTION_RULES

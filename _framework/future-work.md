@@ -197,9 +197,15 @@ Detect findings cited from multiple areas — candidates for `/propose-promotion
 
 The originally-planned Rule 18 (now displaced by id uniqueness) — agent-vs-human write boundaries on maintenance pages. Needs distinguishing agent and human writes, which probably requires git author signals or a similar mechanism. Renumber to next free slot (Rule 19 or later).
 
-**Why all deferred:** None of these has caused observable pain yet in the dogfood project. Each requires picking a threshold that benefits from real usage data. The infrastructure to enable them is in place; the work is mostly writing the rule code + tests.
+**Why all deferred:** None of these has caused observable pain yet in the dogfood project. Each requires picking a threshold that benefits from real usage data. (Note: the shadow *infrastructure* is not actually in place — see below.)
 
 **Revisit when:** A specific pain point surfaces that one of these rules would address. Better to wait for the trigger than to ship pre-configured warnings that produce noise.
+
+### The shadow mechanism itself — reconsider or remove
+
+The config and docs long described a "shadow" model: disabled warning rules still *run*, accumulate trigger counts, and surface a "consider enabling" suggestion past `shadow_suggest_threshold`. **It was never built** — the lint runner has no shadow logic and `shadow_suggest_threshold` is inert. The first implemented warning rules (20, 21, from the commons drift/link work) instead **self-gate** — they return nothing when disabled, which is simpler and quieter.
+
+Open question: is shadow-with-suggestions worth building at all? It risks nagging users about rules they deliberately left off. Options: (a) drop it entirely and standardize on self-gating; (b) build it only if a real "you might want this rule on" need surfaces. **Leaning (a).** Until decided, keep new warning rules self-gating and treat `shadow_suggest_threshold` as vestigial.
 
 ---
 

@@ -22,6 +22,8 @@ lint:
     rule_13_backlinker_freshness: false
     rule_14_exchange_staleness: false
     rule_16_cross_area_reads: false
+    rule_20_commons_drift: false
+    rule_21_commons_twin_links: false
 prune:
   full_tier_stale_sessions: 10
   frontmatter_tier_stale_sessions: 30

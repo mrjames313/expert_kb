@@ -56,13 +56,13 @@ Detect modifications to files in `raw/` after their initial commit. Raw material
 
 New raw materials may be added at any time (typically via `/ingest`, which creates both the raw file and its source-summary page in `kb/sources/`). Lint distinguishes additions (allowed) from modifications (errors) by checking git status — files whose initial commit was the current commit are fine; files with subsequent edits trigger the rule.
 
-### Rule 18 — Maintenance category violations
+### Rule 18 — Page ID uniqueness
 
-Detect writes by agents to human-authored files outside designated workflows (e.g., an agent rewriting `CLAUDE.md`, a role file, or a schema doc outside `/framework enable`/`disable`).
+Every kb page's `id` must be unique across the project (commons + all areas). Duplicate ids make wikilinks ambiguous and break backlink/forward-link integrity. (The originally-planned maintenance-category rule is deferred to Rule 19+.)
 
 ## Configurable-visibility rules (warnings)
 
-These rules can be made visible per project via `/framework enable-lint <rule>`. When disabled, they run in shadow mode — findings are counted and surface as suggestions if they exceed `shadow_suggest_threshold` (default 5).
+These rules are **off by default** and enabled per project via `/framework enable-lint <rule>`. A disabled rule **self-gates** — it returns no findings (see "Warning visibility" below).
 
 ### Rule 4 — Orphan detection
 
@@ -96,6 +96,14 @@ Exchanges with `status: open` older than `exchange_stale_active_days` (default 7
 
 When a task's Implementation Notes show many full-page reads of another area's kb, suggest an exchange would have been a better path. Off by default; enable when the pattern becomes a real concern.
 
+### Rule 20 — Commons drift
+
+A commons page whose area source's `updated` is newer than the commons page's `aligned_on` — the two have diverged since they were last reconciled. Reconcile via `/amend-commons`. Detection is timestamp-based; the source change may not actually affect the commons copy, hence a warning.
+
+### Rule 21 — Commons twin-link preference
+
+A commons page that cites an area page which has a commons twin — prefer the twin so commons stays self-contained and project-wide backlinks land on the twin. Occasional cross-area reads are acceptable, so this is a nudge, not an error.
+
 ## Activity-based thresholds
 
 All time thresholds use git-log-derived active days, computed via `_framework/tools/activity_days.py`:
@@ -108,16 +116,8 @@ A cold project doesn't generate spurious warnings — when you return after a br
 
 For in-flight events not yet committed (e.g., `_journal/pulse.log` entries), the entry's timestamp is used.
 
-## Shadow run behavior
+## Warning visibility (current behavior)
 
-When a rule is shadowed, the linter still evaluates it but doesn't display findings in the standard report. Instead, the linter accumulates trigger counts and adds a suggestion section at the bottom:
+A configurable-visibility rule is **off by default** and **self-gates**: when its `lint.warnings_visible.<rule>` flag is false it returns no findings. Enable it with `/framework enable-lint <rule>`.
 
-```
-Disabled lint rules with significant findings:
-  Rule 4 (orphans) — 12 findings
-  Rule 11 (spec abandonment) — 3 findings
-
-Consider enabling: /framework enable-lint rule_4
-```
-
-A rule's findings surface as a suggestion when the trigger count meets `shadow_suggest_threshold` (default 5).
+The originally-designed *shadow* behavior — run every rule silently, accumulate trigger counts, and suggest enabling one past `shadow_suggest_threshold` — is **not implemented and under reconsideration** (it may add noise without clear value; see `future-work.md`). Until that's decided, `shadow_suggest_threshold` in `config.yml` is inert, and only Rules 20–21 are implemented among the configurable set.

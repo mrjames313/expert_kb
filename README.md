@@ -18,6 +18,7 @@ Claude will read [SETUP.md](SETUP.md), ask you a handful of questions (project n
 ## What's here
 
 - **[SETUP.md](SETUP.md)** — the bootstrap runbook Claude follows to create a new project.
+- **[UPGRADING.md](UPGRADING.md)** — the runbook for upgrading an existing project to the latest framework.
 - **[_framework/spec.md](_framework/spec.md)** — the full framework specification.
 - **[_framework/adoption-guide.md](_framework/adoption-guide.md)** — how to start minimal and extend as your project grows.
 - **[_framework/maintaining.md](_framework/maintaining.md)** — how to evolve the framework and keep the spec in sync (author-facing; removed from bootstrapped projects).

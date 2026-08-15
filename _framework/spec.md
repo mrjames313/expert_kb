@@ -237,6 +237,10 @@ A single skill provides all capability and lint-visibility management.
 /framework prune [role]             analyze role file(s) for stale preload
                                     entries; surface candidates for removal
                                     in batched-approval flow
+
+/framework update                   pull the latest framework: fetch and follow
+                                    the canonical UPGRADING.md (not a framework.py
+                                    command)
 ```
 
 The skill's behavior on `enable`:
@@ -272,12 +276,16 @@ The skill's behavior on `prune`:
 
 Pruning never deletes the underlying kb pages — only their entries in role preload lists.
 
+The skill's behavior on `update`: it does not touch `framework.py`. It adds the framework repo as a git remote, fetches, reads the latest `UPGRADING.md` from it, and follows those instructions — which gate on a clean, committed tree (so the upgrade is reversible), pull framework files (never project content or `config.yml`), reconcile CLAUDE.md by hand, run migrations keyed to the project's `framework_version`, and verify with lint. The canonical procedure lives upstream, so an outdated local skill still upgrades correctly.
+
 Capability-specific change lists are described declaratively in `_framework/schema/capabilities.md`. The `framework` skill reads this file and applies the described edits. Adding a new capability later means a new section in `capabilities.md` plus a handler in `framework.py`.
 
 ### `config.yml` shape
 
 ```yaml
 # _framework/config.yml
+
+framework_version: 2026-08-14   # bumped by upgrades (see UPGRADING.md)
 
 capabilities:
   multi_area: false

@@ -115,6 +115,18 @@ python _framework/tools/promote.py 2026-05-shot-noise
 
 Errors cleanly when the target already exists, the proposal is missing, or the frontmatter is invalid.
 
+### `commons_links.py` — commons twin links
+
+Inspects the area↔commons twin map and rewrites a commons page's body wikilinks to their commons twins. Used by `/amend-commons` and `/promote`.
+
+```bash
+python _framework/tools/commons_links.py twins                                            # area-id -> commons-id map
+python _framework/tools/commons_links.py rewrite commons/kb/findings/f-commons-x.md           # dry run
+python _framework/tools/commons_links.py rewrite commons/kb/findings/f-commons-x.md --apply   # write
+```
+
+Rewrites preserve aliases and skip fenced code blocks; dry run by default (propose-for-review).
+
 ### `manifest_validate.py` — single-manifest validator
 
 Focused inspector for a single data manifest. Same checks as lint Rule 12 (provenance, storage_uri, context_pages) but scoped to one file with prose output.

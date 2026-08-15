@@ -113,3 +113,34 @@ class TestRewriteLinksToTwins:
         new, changes = rewrite_links_to_twins("Builds on [[c-2026-05-foo]].\n", resolve)
         assert "[[c-commons-foo]]" in new
         assert changes == [("c-2026-05-foo", "c-commons-foo")]
+
+
+class TestCommonsLinksCLI:
+    def test_rewrite_apply_modifies_file(self, tmp_path: Path) -> None:
+        import argparse
+        import commons_links
+
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/research", "concept", "foo")  # c-2026-05-foo
+        cc = tmp_path / "commons" / "kb" / "concepts"
+        cc.mkdir(parents=True, exist_ok=True)
+        (cc / "c-commons-foo.md").write_text(
+            "---\nid: c-commons-foo\ntitle: Foo\ntype: concept\nstatus: supported\n"
+            "area: commons\ncreated: 2026-05-08\nupdated: 2026-05-08\nsummary: Foo.\n"
+            "promoted_from_page: c-2026-05-foo\n---\n\nBody.\n"
+        )
+        cf = tmp_path / "commons" / "kb" / "findings"
+        cf.mkdir(parents=True, exist_ok=True)
+        page = cf / "f-commons-bar.md"
+        page.write_text(
+            "---\nid: f-commons-bar\ntitle: Bar\ntype: finding\nstatus: active\n"
+            "area: commons\ncreated: 2026-05-08\nupdated: 2026-05-08\nsummary: Bar.\n"
+            "promoted_from_page: f-2026-05-bar\n---\n\nBuilds on [[c-2026-05-foo]].\n"
+        )
+        rc = commons_links._cmd_rewrite(tmp_path, argparse.Namespace(page=str(page), apply=True))
+        assert rc == 0
+        text = page.read_text()
+        assert "[[c-commons-foo]]" in text
+        assert "[[c-2026-05-foo]]" not in text
+        # frontmatter preserved
+        assert "id: f-commons-bar" in text

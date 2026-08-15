@@ -65,6 +65,7 @@ project-root/
 │   │   ├── pulse_compact.py
 │   │   ├── promote.py
 │   │   ├── commons_extension.py
+│   │   ├── commons_links.py
 │   │   ├── manifest_validate.py
 │   │   ├── activity_days.py
 │   │   ├── token_estimate.py
@@ -844,6 +845,7 @@ Each skill is a Claude Code Agent Skill with a `SKILL.md`. Skills can be invoked
 | `replan` | Append revision entry; update plan and tasks; require human approval. |
 | `propose-promotion` | Copy area page to `commons/_proposed/`; generate proposal; register in INBOX. |
 | `promote` | Apply promotion after consensus or human override; write CHANGELOG entry. Behavior depends on `formal_review`. |
+| `amend-commons` | Edit an existing commons page in place (correction, link rewrite, drift reconciliation); light-gated + CHANGELOG entry. |
 | `wrap-up` | Compact `_journal/pulse.log` → `pulse.md`; file pending pages; prompt POR updates (if `por` on); run lint. |
 | `check` | Run lint; display findings; surface shadow-rule suggestions. |
 | `budget` | Report estimated context cost of role preloads and recent session telemetry; identify heavy paths and pruning candidates. |

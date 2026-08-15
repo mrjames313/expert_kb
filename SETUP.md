@@ -137,7 +137,7 @@ Read `_framework/schema/role-template.md` and fill in:
 - `summary: [user's one-sentence description]`
 - **Preload list**: `/CLAUDE.md`, `/_framework/schema/frontmatter.md`, `/_framework/schema/link-conventions.md`, `/commons/brief.md`, `/commons/pulse.md`, `/areas/$AREA_NAME/brief.md`, `/areas/$AREA_NAME/pulse.md`, `/areas/$AREA_NAME/kb/index.md`.
 - **Operating boundaries**: writes allowed in `/areas/$AREA_NAME/**` except `/areas/$AREA_NAME/raw/**`; raw materials read-only; writes to `/commons/` forbidden (use `/propose-promotion`); reads allowed anywhere.
-- **Allowed skills**: `start, ingest, ask, plan, implement, replan, wrap-up, check, propose-promotion, promote, framework` (the always-available set). Exchange-related skills aren't included since `multi_area` is off by default; the user can enable them later via `/framework enable multi_area` when they have a second area.
+- **Allowed skills**: `start, ingest, ask, plan, implement, replan, wrap-up, check, propose-promotion, promote, amend-commons, framework` (the always-available set). Exchange-related skills aren't included since `multi_area` is off by default; the user can enable them later via `/framework enable multi_area` when they have a second area.
 - **Default behaviors**: cite via wikilinks; when citing a concept, surface its status; run `/wrap-up` before clearing context; ask in conversation when uncertain.
 
 Write the filled-in file to `areas/$AREA_NAME/roles/$ROLE_NAME/role.md`. Show it back for confirmation.

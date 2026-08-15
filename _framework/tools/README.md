@@ -115,6 +115,19 @@ python _framework/tools/promote.py 2026-05-shot-noise
 
 Errors cleanly when the target already exists, the proposal is missing, or the frontmatter is invalid.
 
+### `commons_extension.py` — commons extension during `/add-area`
+
+When a new area is added, surfaces existing area kb pages that may now be worth extending into `commons/kb/`, and applies chosen extensions (copy in with a `<prefix>-commons-<slug>` id and `promotion_path: commons-extension`). Used by `/add-area`; leaves the source area page unchanged.
+
+```bash
+python _framework/tools/commons_extension.py list --new-area <name>                          # JSON: context + candidates
+python _framework/tools/commons_extension.py apply --source-id <page-id> --new-area <name>    # copy as-is
+python _framework/tools/commons_extension.py apply --source-id <page-id> --new-area <name> \
+    --refined-body-file /tmp/refined-body.md                                                   # copy with a rewritten body
+```
+
+`list` excludes source pages and anything superseded/falsified/dropped/archived.
+
 ### `commons_links.py` — commons twin links
 
 Inspects the area↔commons twin map and rewrites a commons page's body wikilinks to their commons twins. Used by `/amend-commons` and `/promote`.

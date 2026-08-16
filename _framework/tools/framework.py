@@ -47,17 +47,35 @@ from token_estimate import parse_role_preload  # noqa: E402
 # All capabilities the framework recognizes
 KNOWN_CAPABILITIES = {"multi_area", "por", "task_subagents", "formal_review"}
 
-# Configurable lint warning rules (kept in sync with config.yml)
-CONFIGURABLE_LINT_RULES = {
-    "rule_4_orphans",
-    "rule_8_stale_concept",
-    "rule_9_cross_area_links",
-    "rule_10_promotion_freshness",
-    "rule_11_spec_abandonment",
-    "rule_13_backlinker_freshness",
-    "rule_14_exchange_staleness",
-    "rule_16_cross_area_reads",
-}
+def _discover_configurable_lint_rules() -> set[str]:
+    """Derive the set of configurable (self-gating warning) lint rules from the
+    shipped modules under `lint_rules/`, so this enabler can never drift from the
+    rules that actually ship.
+
+    A rule is configurable iff its module declares `SEVERITY == "warning"` and
+    exposes a `CONFIG_KEY` — the `lint.warnings_visible` key it self-gates on.
+    (Hardcoding this set is what let rules 20/21 ship while `enable-lint` still
+    rejected them; see `_framework/schema/lint-rules.md`.)
+    """
+    import importlib
+
+    rules_dir = Path(__file__).parent / "lint_rules"
+    keys: set[str] = set()
+    if not rules_dir.is_dir():
+        return keys
+    for path in sorted(rules_dir.glob("rule_*.py")):
+        try:
+            module = importlib.import_module(f"lint_rules.{path.stem}")
+        except Exception:  # noqa: BLE001 — a broken rule must not break the enabler
+            continue
+        if getattr(module, "SEVERITY", None) == "warning" and getattr(module, "CONFIG_KEY", None):
+            keys.add(module.CONFIG_KEY)
+    return keys
+
+
+# Configurable lint warning rules — derived from the shipped rule modules, not
+# hardcoded (a hardcoded list drifted from what shipped and broke enable-lint).
+CONFIGURABLE_LINT_RULES = _discover_configurable_lint_rules()
 
 # Dependencies between capabilities
 CAPABILITY_DEPENDENCIES = {

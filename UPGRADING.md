@@ -122,6 +122,13 @@ whose release is newer than your version.
   stays on disk. Search `commons/kb/` for ids containing `-commons-commons-`; if found, merge
   its content back into the real commons page and delete the fork. Rule 18 won't catch these
   (the forked id is itself unique). Skip if none exist.
+- **`enable-lint` now recognizes the shipped warning rules.** `/framework enable-lint` /
+  `disable-lint` derive their accepted set from the shipped rule modules, so
+  `rule_20_commons_drift` and `rule_21_commons_twin_links` now work (previously they errored
+  as "unknown" while the rules themselves were live). Code-only — arrives on pull. Optional
+  tidy-up: your project's `_framework/config.yml` may still list the eight planned-but-
+  unimplemented `warnings_visible` keys (`rule_4_orphans`, `rule_8_…`, etc.); they are inert
+  and may be removed, leaving only the rules you actually run.
 - **No action needed:** the commons-id idempotence fix, the `/promote` commons-id rejection,
   and the `→ to be filed:` path normalization are code-only — they take effect the moment you
   pull the framework in Step 4.

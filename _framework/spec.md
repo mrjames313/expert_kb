@@ -308,17 +308,13 @@ lint:
   # threshold for suggesting that a shadow rule be enabled
   shadow_suggest_threshold: 5
 
-  # which warning rules are visible
-  # disabled = run in shadow; trigger counts surface as suggestions
+  # which warning rules are visible (false = self-gated / shadowed).
+  # One key per *shipped* warning rule; /framework enable-lint derives its
+  # accepted set from the rule modules, so planned-but-unimplemented rules
+  # (4/8/9/10/11/13/14/16) are not listed until they ship.
   warnings_visible:
-    rule_4_orphans: false
-    rule_8_stale_concept: false
-    rule_9_cross_area_links: false
-    rule_10_promotion_freshness: false
-    rule_11_spec_abandonment: false
-    rule_13_backlinker_freshness: false
-    rule_14_exchange_staleness: false
-    rule_16_cross_area_reads: false
+    rule_20_commons_drift: false
+    rule_21_commons_twin_links: false
 
 prune:
   # thresholds for /framework prune analysis (in active sessions)

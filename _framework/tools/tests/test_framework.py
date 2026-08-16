@@ -467,35 +467,57 @@ class TestLintVisibility:
     def test_enable_lint_rule(self, tmp_path: Path) -> None:
         _write_basic_repo(tmp_path)
         config = _load_config(tmp_path)
-        plan = plan_enable_lint("rule_4_orphans", tmp_path, config)
-        assert plan.config_updates == {"lint.warnings_visible.rule_4_orphans": True}
+        plan = plan_enable_lint("rule_20_commons_drift", tmp_path, config)
+        assert plan.config_updates == {"lint.warnings_visible.rule_20_commons_drift": True}
         apply_plan(plan, tmp_path)
 
         new_config = _load_config(tmp_path)
-        assert new_config["lint"]["warnings_visible"]["rule_4_orphans"] is True
+        assert new_config["lint"]["warnings_visible"]["rule_20_commons_drift"] is True
 
     def test_enable_lint_accepts_short_form(self, tmp_path: Path) -> None:
         _write_basic_repo(tmp_path)
         config = _load_config(tmp_path)
-        plan = plan_enable_lint("4", tmp_path, config)
-        assert plan.config_updates == {"lint.warnings_visible.rule_4_orphans": True}
+        plan = plan_enable_lint("20", tmp_path, config)
+        assert plan.config_updates == {"lint.warnings_visible.rule_20_commons_drift": True}
 
     def test_disable_lint_rule(self, tmp_path: Path) -> None:
         _write_basic_repo(tmp_path)
         config = _load_config(tmp_path)
         # First enable
-        apply_plan(plan_enable_lint("rule_4_orphans", tmp_path, config), tmp_path)
+        apply_plan(plan_enable_lint("rule_20_commons_drift", tmp_path, config), tmp_path)
         config = _load_config(tmp_path)
         # Then disable
-        plan = plan_disable_lint("rule_4_orphans", tmp_path, config)
+        plan = plan_disable_lint("rule_20_commons_drift", tmp_path, config)
         apply_plan(plan, tmp_path)
         new_config = _load_config(tmp_path)
-        assert new_config["lint"]["warnings_visible"]["rule_4_orphans"] is False
+        assert new_config["lint"]["warnings_visible"]["rule_20_commons_drift"] is False
 
     def test_unknown_lint_rule(self, tmp_path: Path) -> None:
         _write_basic_repo(tmp_path)
         config = _load_config(tmp_path)
         plan = plan_enable_lint("rule_99_imaginary", tmp_path, config)
+        assert plan.error is not None
+        assert "unknown" in plan.error
+
+    def test_configurable_set_derived_from_shipped_rules(self) -> None:
+        """Regression: the configurable set is derived from the shipped warning
+        modules, not hardcoded — so a rule that ships is en-/disable-able and a
+        phantom (unimplemented) rule is not. This is the bug that let rules 20/21
+        ship while enable-lint still rejected them."""
+        from framework import CONFIGURABLE_LINT_RULES
+        # Shipped self-gating warning rules are present.
+        assert "rule_20_commons_drift" in CONFIGURABLE_LINT_RULES
+        assert "rule_21_commons_twin_links" in CONFIGURABLE_LINT_RULES
+        # Error rules (no CONFIG_KEY) are never configurable.
+        assert "rule_18_id_uniqueness" not in CONFIGURABLE_LINT_RULES
+        # Unimplemented "planned" rules are not silently accepted.
+        assert "rule_4_orphans" not in CONFIGURABLE_LINT_RULES
+
+    def test_enable_lint_rejects_phantom_rule(self, tmp_path: Path) -> None:
+        """A planned-but-unimplemented rule is rejected, not silently written."""
+        _write_basic_repo(tmp_path)
+        config = _load_config(tmp_path)
+        plan = plan_enable_lint("rule_4_orphans", tmp_path, config)
         assert plan.error is not None
         assert "unknown" in plan.error
 
@@ -509,7 +531,7 @@ class TestStatus:
         state = status(tmp_path, config)
         assert "multi_area" in state["capabilities"]
         assert state["capabilities"]["multi_area"] is False
-        assert "rule_4_orphans" in state["lint_warnings_visible"]
+        assert "rule_20_commons_drift" in state["lint_warnings_visible"]
 
     def test_format_status_renders(self, tmp_path: Path) -> None:
         _write_basic_repo(tmp_path)

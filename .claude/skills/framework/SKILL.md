@@ -10,7 +10,7 @@ A pass-through to `_framework/tools/framework.py` for capability and lint-visibi
 ## When to use
 
 - User wants to enable or disable a capability (`/framework enable por`, `/framework disable multi_area`).
-- User wants to surface a configurable lint warning (`/framework enable-lint rule_8_stale_concept`) or stop showing one.
+- User wants to surface a configurable lint warning (`/framework enable-lint rule_20_commons_drift`) or stop showing one. Only shipped warning rules are accepted (currently 20, 21); run `/framework lint-status` to see them.
 - User wants to see current state (`/framework status` or just `/framework`).
 - User wants to clean up stale preload entries (`/framework prune`).
 - User wants to pull the latest framework into this project (`/framework update`).

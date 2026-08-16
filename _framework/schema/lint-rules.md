@@ -64,35 +64,37 @@ Every kb page's `id` must be unique across the project (commons + all areas). Du
 
 These rules are **off by default** and enabled per project via `/framework enable-lint <rule>`. A disabled rule **self-gates** — it returns no findings (see "Warning visibility" below).
 
-### Rule 4 — Orphan detection
+**Implemented vs. planned.** Only rules with a shipped module under `_framework/tools/lint_rules/` (a `SEVERITY = "warning"` module exposing a `CONFIG_KEY`) are real; today that is **Rules 20 and 21**. Rules 4, 8, 9, 10, 11, 13, 14, and 16 below are **design sketches, not yet implemented** — `/framework enable-lint` derives its accepted set from the shipped modules, so it rejects them until they ship (this derivation is what keeps the enabler from drifting out of sync with the rules, as it once did). When you implement one, its module's `CONFIG_KEY` makes it enable-able automatically; add the key to the template `config.yml` and drop the "(planned)" marker here.
+
+### Rule 4 — Orphan detection (planned)
 
 Pages with zero `links_in`. May indicate isolated content or just index-page leaves; meaningful or not depends on project.
 
-### Rule 8 — Stale concept warning
+### Rule 8 — Stale concept warning (planned)
 
 `concept` with `status: under_test` older than `stale_concept_threshold_active_days` (default 30) — may indicate the test is stuck or forgotten.
 
-### Rule 9 — Cross-area link threshold
+### Rule 9 — Cross-area link threshold (planned)
 
 Pages linking to 3 or more distinct areas earn a warning suggesting the topic belongs in commons (via promotion) or in an exchange (with `multi_area` enabled). Pages with `area: commons` are exempt.
 
-### Rule 10 — Promotion freshness
+### Rule 10 — Promotion freshness (planned)
 
 Commons pages with `human_reviewed: false` older than `promotion_freshness_active_days` (default 14) surface to INBOX as overdue ack.
 
-### Rule 11 — Spec hygiene
+### Rule 11 — Spec hygiene (planned)
 
 Specs with tasks in non-terminal status older than `spec_abandonment_active_days` (default 60) surface as potentially abandoned.
 
-### Rule 13 — Backlinker freshness
+### Rule 13 — Backlinker freshness (planned)
 
 For each page, identify `links_out` targets updated more recently than the page itself. Flag as candidates for content-consistency review.
 
-### Rule 14 — Exchange staleness
+### Rule 14 — Exchange staleness (planned)
 
 Exchanges with `status: open` older than `exchange_stale_active_days` (default 7) surface to INBOX. Only runs when `multi_area` is enabled.
 
-### Rule 16 — Cross-area read pattern
+### Rule 16 — Cross-area read pattern (planned)
 
 When a task's Implementation Notes show many full-page reads of another area's kb, suggest an exchange would have been a better path. Off by default; enable when the pattern becomes a real concern.
 

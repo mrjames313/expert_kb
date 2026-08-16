@@ -440,3 +440,4 @@ For reference, items that started as "future work" and have since been completed
 - `/promote` id-collision bug + Rule 18 (id uniqueness) — done (commit ~id-collision-fix).
 - `new_commons_id` non-idempotence (silent `…-commons-commons-…` fork) + `/promote` rejects commons-id proposals — done (commit ~commons-id-idempotence).
 - `→ to be filed:` path form ambiguity (spurious "not found on disk" warnings) — `pulse_compact.py` now tolerates the repo-root form; CLAUDE.md documents the field as kb-relative — done (commit ~filed-path-normalize).
+- `enable-lint` rejected shipped warning rules 20/21 (hardcoded `CONFIGURABLE_LINT_RULES` drifted from the modules) — `framework.py` now derives the set from the shipped rule modules; template `config.yml` trimmed to shipped keys; lint-rules.md marks planned rules — done (commit ~enable-lint-derive). NB: the 8 planned configurable rules (4/8/9/10/11/13/14/16) in the section above remain unimplemented.

@@ -51,6 +51,19 @@ _LOG_HEADING_RE = re.compile(
 _FILED_RE = re.compile(r"^→\s+to be filed:\s+(?P<path>\S+)\s*$")
 _CLOSES_RE = re.compile(r"^→\s+closes:\s+(?P<text>.+?)\s*$")
 
+# A `→ to be filed:` path is documented as kb-relative (e.g. `findings/f-…`),
+# but agents naturally write the repo-root form (`areas/<area>/kb/findings/f-…`
+# or `commons/kb/findings/f-…`). Strip a leading area/commons kb prefix so both
+# forms resolve against kb_dir and neither produces a spurious "not found"
+# warning. kb-relative paths (findings/, decisions/, concepts/, sources/) never
+# contain `kb/`, so this cannot mangle a correctly-formed path.
+_KB_PREFIX_RE = re.compile(r"^(?:areas/[^/]+/kb/|commons/kb/)")
+
+
+def normalize_filed_path(filed_path: str) -> str:
+    """Reduce a `→ to be filed:` path to its kb-relative form."""
+    return _KB_PREFIX_RE.sub("", filed_path)
+
 
 @dataclass
 class LogEntry:
@@ -447,8 +460,10 @@ def compact_area(area_dir: Path, repo_root: Path, config: dict) -> CompactResult
     # Verify filed paths
     for entry in log_entries:
         if entry.filed_path:
-            # filed_path is relative to the area's kb/ (e.g., "decisions/d-...")
-            candidate = kb_dir / f"{entry.filed_path}.md" if not entry.filed_path.endswith(".md") else kb_dir / entry.filed_path
+            # filed_path is documented as kb-relative (e.g., "decisions/d-..."),
+            # but tolerate the repo-root form (areas/<area>/kb/... or commons/kb/...).
+            rel = normalize_filed_path(entry.filed_path)
+            candidate = kb_dir / f"{rel}.md" if not rel.endswith(".md") else kb_dir / rel
             if not candidate.is_file():
                 result.missing_filed_paths.append(entry.filed_path)
 

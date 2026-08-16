@@ -423,6 +423,33 @@ class TestCompactArea:
         result = compact_area(area_dir, tmp_path, DEFAULT_CONFIG)
         assert "decisions/d-2026-05-not-actually-filed" in result.missing_filed_paths
 
+    def test_repo_root_filed_path_resolves(self, tmp_path: Path) -> None:
+        """A repo-root `→ to be filed:` path (areas/<area>/kb/...) still resolves
+        against the area kb — no spurious 'not found on disk' warning."""
+        make_minimal_repo(tmp_path)
+        area_dir = self._setup_area(tmp_path)
+        write_kb_page(tmp_path, "areas/research", "finding", "filed")  # f-2026-05-filed
+        (area_dir / "_journal" / "pulse.log").write_text(textwrap.dedent("""
+            ## [2026-05-08 09:00] finding r
+            A finding, filed with a repo-root path.
+            → to be filed: areas/research/kb/findings/f-2026-05-filed
+        """).strip() + "\n")
+        result = compact_area(area_dir, tmp_path, DEFAULT_CONFIG)
+        assert result.missing_filed_paths == []
+
+    def test_commons_repo_root_filed_path_resolves(self, tmp_path: Path) -> None:
+        """The commons/kb/ prefix is stripped too."""
+        make_minimal_repo(tmp_path)
+        area_dir = self._setup_area(tmp_path)
+        write_kb_page(tmp_path, "areas/research", "finding", "cfiled")  # f-2026-05-cfiled
+        (area_dir / "_journal" / "pulse.log").write_text(textwrap.dedent("""
+            ## [2026-05-08 09:00] finding r
+            A finding.
+            → to be filed: commons/kb/findings/f-2026-05-cfiled
+        """).strip() + "\n")
+        result = compact_area(area_dir, tmp_path, DEFAULT_CONFIG)
+        assert result.missing_filed_paths == []
+
     def test_over_cap_detected(self, tmp_path: Path) -> None:
         make_minimal_repo(tmp_path)
         area_dir = self._setup_area(tmp_path)

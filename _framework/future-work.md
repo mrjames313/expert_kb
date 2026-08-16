@@ -438,3 +438,5 @@ For reference, items that started as "future work" and have since been completed
 - Under_test concept body-pattern guidance — done (commit ~concept-body-guidance).
 - Commons-extension during `/add-area` — done (commit ~commons-extension).
 - `/promote` id-collision bug + Rule 18 (id uniqueness) — done (commit ~id-collision-fix).
+- `new_commons_id` non-idempotence (silent `…-commons-commons-…` fork) + `/promote` rejects commons-id proposals — done (commit ~commons-id-idempotence).
+- `→ to be filed:` path form ambiguity (spurious "not found on disk" warnings) — `pulse_compact.py` now tolerates the repo-root form; CLAUDE.md documents the field as kb-relative — done (commit ~filed-path-normalize).

@@ -85,8 +85,10 @@ Append events to `_journal/pulse.log` during the session. Substantive decisions,
 ```
 ## [YYYY-MM-DD HH:MM] <event-type> <role>
 <1–3 lines describing the event>
-→ to be filed: <kb-path> (when the event will become a kb page)
+→ to be filed: <kb-relative-path> (when the event will become a kb page)
 ```
+
+The `→ to be filed:` path is **kb-relative** — `<type-dir>/<id>`, e.g. `findings/f-2026-05-shot-noise` or `decisions/d-2026-05-04-bias-current`. Do not prefix it with `areas/<area>/kb/` or `commons/kb/`; `/wrap-up` resolves it against your area's `kb/` (it tolerates the repo-root form but that's a fallback, not the convention).
 
 Event types: `decision`, `finding`, `concept`, `focus-shift`, `question`, `question-closed`.
 

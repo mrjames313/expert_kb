@@ -102,6 +102,8 @@ When a task's Implementation Notes show many full-page reads of another area's k
 
 A commons page whose area source's `updated` is newer than the commons page's `aligned_on` — the two have diverged since they were last reconciled. Reconcile via `/amend-commons`. Detection is timestamp-based; the source change may not actually affect the commons copy, hence a warning.
 
+A commons page the rule **cannot** drift-check — missing `promoted_from_page`, missing `aligned_on`, or a `promoted_from_page` that resolves to no kb page — is itself surfaced as a warning ("cannot check for drift: …"), never silently skipped. A silent skip would be a false negative: an enabled rule reporting `lint: clean` while covering zero pages reads as "commons is reconciled" when it was never checked. These findings double as the backfill worklist after an upgrade (see `UPGRADING.md`).
+
 ### Rule 21 — Commons twin-link preference
 
 A commons page that cites an area page which has a commons twin — prefer the twin so commons stays self-contained and project-wide backlinks land on the twin. Occasional cross-area reads are acceptable, so this is a nudge, not an error.

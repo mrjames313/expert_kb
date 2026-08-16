@@ -766,6 +766,44 @@ class TestRule20CommonsDrift:
         self._setup(tmp_path, "2026-05-10", "2026-05-08")
         assert rule_20_commons_drift.check(tmp_path, _ON_20) == []
 
+    def _write_commons(self, tmp_path: Path, extra_fm: str) -> None:
+        """Write a commons page with the given extra frontmatter lines (no
+        source page). Used for the un-checkable cases."""
+        make_minimal_repo(tmp_path)
+        cdir = tmp_path / "commons/kb/findings"
+        cdir.mkdir(parents=True, exist_ok=True)
+        (cdir / "f-commons-x.md").write_text(
+            "---\nid: f-commons-x\ntitle: X\ntype: finding\nstatus: active\n"
+            "area: commons\ncreated: 2026-05-01\nupdated: 2026-05-01\nsummary: X.\n"
+            f"{extra_fm}---\n\nBody.\n"
+        )
+
+    def test_flags_page_missing_promoted_from_page(self, tmp_path: Path) -> None:
+        """A commons page with no source link is surfaced, not silently skipped
+        (dogfood item 1: silent skip is a false negative)."""
+        self._write_commons(tmp_path, "aligned_on: 2026-05-01\n")
+        findings = rule_20_commons_drift.check(tmp_path, _ON_20)
+        assert len(findings) == 1
+        assert "no `promoted_from_page`" in findings[0].message
+
+    def test_flags_page_missing_aligned_on(self, tmp_path: Path) -> None:
+        """The reported case: pre-migration pages lack aligned_on and must be
+        surfaced rather than covered by a misleading `lint: clean`."""
+        self._write_commons(tmp_path, "promoted_from_page: f-2026-05-src\n")
+        findings = rule_20_commons_drift.check(tmp_path, _ON_20)
+        assert len(findings) == 1
+        assert "missing `aligned_on`" in findings[0].message
+
+    def test_flags_page_with_dangling_source(self, tmp_path: Path) -> None:
+        """promoted_from_page points at a source that isn't in the kb → still
+        un-checkable, still surfaced."""
+        self._write_commons(
+            tmp_path, "promoted_from_page: f-2026-05-missing\naligned_on: 2026-05-01\n"
+        )
+        findings = rule_20_commons_drift.check(tmp_path, _ON_20)
+        assert len(findings) == 1
+        assert "not found in the kb" in findings[0].message
+
 
 # --- Rule 21: Commons twin-link preference (warning; self-gating) ---
 

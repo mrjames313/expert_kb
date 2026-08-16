@@ -57,16 +57,53 @@ def check(repo_root: Path, config: dict) -> list[Finding]:
             continue
         if not fm:
             continue
+        rel = str(page.relative_to(repo_root))
         aligned = _as_date(fm.get("aligned_on"))
         src = fm.get("promoted_from_page")
-        if aligned is None or not src:
+
+        # A commons page we can't drift-check must say so loudly. Silently
+        # skipping it reads as "no drift" (a false negative): a user who enables
+        # this rule and sees `lint: clean` would wrongly conclude commons is
+        # reconciled when it was never checked. These findings also tell an
+        # upgrading project exactly which pages need the twin-edge backfill
+        # (see UPGRADING.md "Release 2026-08-15").
+        if not src:
+            findings.append(
+                Finding(
+                    RULE_ID,
+                    SEVERITY,
+                    rel,
+                    "cannot check for drift: no `promoted_from_page` link to a source "
+                    "page — backfill it (via /amend-commons) so drift detection can run",
+                )
+            )
             continue
+        if aligned is None:
+            findings.append(
+                Finding(
+                    RULE_ID,
+                    SEVERITY,
+                    rel,
+                    "cannot check for drift: missing `aligned_on` — backfill it (via "
+                    "/amend-commons, or the upgrade migration) so drift detection can run",
+                )
+            )
+            continue
+
         sources = src if isinstance(src, list) else [src]
-        rel = str(page.relative_to(repo_root))
         for s in sources:
             sid = bare_id(str(s))
             src_page = index.get(sid)
             if src_page is None:
+                findings.append(
+                    Finding(
+                        RULE_ID,
+                        SEVERITY,
+                        rel,
+                        f"cannot check for drift: source {sid!r} "
+                        "(`promoted_from_page`) not found in the kb",
+                    )
+                )
                 continue
             try:
                 sfm, _ = parse_frontmatter(src_page.read_text(encoding="utf-8"))

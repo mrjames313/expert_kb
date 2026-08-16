@@ -802,7 +802,7 @@ Rule 11. Spec hygiene (tasks non-terminal > 60 active days).
 Rule 13. Backlinker freshness.
 Rule 14. Exchange staleness (status: open > 7 active days, if multi_area on).
 Rule 16. Cross-area read pattern.
-Rule 20. Commons drift (source updated after the commons page's aligned_on).
+Rule 20. Commons drift (source updated after the commons page's aligned_on; also flags any commons page it cannot drift-check — missing aligned_on/promoted_from_page — rather than skipping it silently).
 Rule 21. Commons twin-link preference (commons page cites an area page that has a twin).
 ```
 

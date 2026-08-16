@@ -87,7 +87,8 @@ changes upstream, your spliced copies go stale — this is easy to miss, because
 still present, just outdated. Refresh them from the current snippets:
 
 ```bash
-python _framework/tools/framework.py resync            # preview with --dry-run first
+python _framework/tools/framework.py --dry-run resync   # preview (--dry-run is a global flag: it goes before the subcommand)
+python _framework/tools/framework.py resync             # apply
 ```
 
 `resync` re-splices the marker-delimited blocks in place for every *enabled* capability. It

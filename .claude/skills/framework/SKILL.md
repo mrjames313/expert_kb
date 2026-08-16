@@ -24,7 +24,7 @@ A pass-through to `_framework/tools/framework.py` for capability and lint-visibi
    - `enable-lint <rule>` / `disable-lint <rule>` → toggle a lint warning's visibility.
    - `lint-status` → just the lint visibility portion of status.
    - `prune [<role>]` → list (or apply, with `--apply`) stale preload entries.
-   - `resync` → re-splice enabled capabilities' content (CLAUDE.md sections + role-file `# capability:` blocks) from the current snippets. Content-only, non-destructive; safe to run after any upgrade. Preview with `--dry-run`.
+   - `resync` → re-splice enabled capabilities' content (CLAUDE.md sections + role-file `# capability:` blocks) from the current snippets. Content-only, non-destructive; safe to run after any upgrade. Preview with `framework.py --dry-run resync` (`--dry-run` is a global flag — it goes before the subcommand, not after).
    - `update` → pull the latest framework into this project (not a `framework.py` command — see the update step below).
 
 2. **For status queries** — just run the command and show the user:

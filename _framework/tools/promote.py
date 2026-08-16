@@ -29,6 +29,7 @@ from common import (  # noqa: E402
     VALID_TYPES,
     dump_frontmatter_body,
     find_repo_root,
+    is_commons_id,
     new_commons_id,
     parse_frontmatter,
     set_source_twin,
@@ -163,6 +164,15 @@ def promote(slug: str, repo_root: Path) -> PromoteResult:
     page_id = fm.get("id")
     if not page_id:
         raise PromoteError("proposal page is missing `id`")
+
+    # A proposal must carry a *source area* id, not a commons id. If it already
+    # names a commons page, this is a correction to an existing commons page, not
+    # a promotion — /promote does not do that (it would fork the commons page).
+    if is_commons_id(page_id):
+        raise PromoteError(
+            f"proposal page has a commons id ({page_id}); /promote only promotes "
+            "area pages. To correct an existing commons page, use /amend-commons."
+        )
 
     # Generate the new commons id (distinct from the source area's id, so the
     # source area page can stay in place without an id collision).

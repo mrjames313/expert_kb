@@ -79,6 +79,23 @@ class TestNewCommonsId:
         assert result.startswith("weird-")
         assert "commons" in result
 
+    def test_idempotent_on_commons_id(self) -> None:
+        # Regression (bug report #2): re-running the generator on an id that is
+        # already in commons form must return it unchanged, not fork a second
+        # `…-commons-commons-…` page.
+        for cid in (
+            "f-commons-accredited-investor",
+            "d-commons-dd-playbook-v1",
+            "c-commons-shot-noise",
+            "f-commons",
+        ):
+            assert ce._new_commons_id(cid) == cid
+
+    def test_slug_word_containing_commons_is_not_treated_as_commons_id(self) -> None:
+        # "commons" appearing later in the slug (not position 1) is a normal id.
+        assert ce._new_commons_id("f-2026-05-commons-governance") == \
+            "f-commons-commons-governance"
+
     def test_generated_id_passes_lint_validation(self) -> None:
         """The id form commons_extension generates must pass is_valid_id."""
         from common import is_valid_id

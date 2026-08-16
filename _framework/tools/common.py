@@ -323,6 +323,18 @@ _ID_RE = re.compile(r"^[scfd]-\d{4}-\d{2}(?:-\d{2})?-[a-z0-9-]+$")
 _ID_COMMONS_RE = re.compile(r"^[scfd]-commons-[a-z0-9-]+$")
 
 
+def is_commons_id(page_id: str) -> bool:
+    """
+    True if `page_id` is already in commons-pathway form: `<prefix>-commons` or
+    `<prefix>-commons-<slug>`. The `commons` token must sit in the second
+    position (a slug word that merely contains "commons" does not count).
+    """
+    if not page_id:
+        return False
+    parts = page_id.split("-")
+    return len(parts) >= 2 and parts[1] == "commons"
+
+
 def new_commons_id(source_page_id: str) -> str:
     """
     Generate a commons-pathway id from a source area page id.
@@ -336,7 +348,13 @@ def new_commons_id(source_page_id: str) -> str:
 
     The point of the convention: the new commons page gets a distinct id from
     the source area page (which stays in place), preventing id collisions.
+
+    Idempotent: an id already in `<prefix>-commons-<slug>` form is returned
+    unchanged, so re-running the generator on a commons id cannot silently fork
+    a second `…-commons-commons-…` page.
     """
+    if is_commons_id(source_page_id):
+        return source_page_id
     parts = source_page_id.split("-")
     if len(parts) < 4:
         # Falls outside the expected convention; prefix safely with commons-

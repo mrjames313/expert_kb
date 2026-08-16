@@ -171,6 +171,22 @@ class TestPromote:
             promote("test-slug", tmp_path)
         assert "already exists" in str(exc_info.value)
 
+    def test_commons_id_proposal_rejected(self, tmp_path: Path) -> None:
+        """Regression (bug report #2): a proposal whose page.md already carries a
+        commons id is rejected — /promote would otherwise fork the commons page.
+        The error points the user at /amend-commons."""
+        make_minimal_repo(tmp_path)
+        _write_proposal(tmp_path, "already-commons", "finding", "f-commons-lens-fit-recipe")
+        with pytest.raises(PromoteError) as exc_info:
+            promote("already-commons", tmp_path)
+        msg = str(exc_info.value)
+        assert "commons id" in msg
+        assert "/amend-commons" in msg
+        # No forked `f-commons-commons-…` page was written.
+        assert not (
+            tmp_path / "commons" / "kb" / "findings" / "f-commons-commons-lens-fit-recipe.md"
+        ).exists()
+
     def test_drops_relevant_to_on_commons(self, tmp_path: Path) -> None:
         """relevant_to is omitted on commons pages (Issue 5e)."""
         make_minimal_repo(tmp_path)

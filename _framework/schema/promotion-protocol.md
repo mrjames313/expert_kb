@@ -54,7 +54,8 @@ Once all other areas have weighed in:
 
 The `/promote` skill (auto-invoked on consensus when `formal_review` is on; manually invoked otherwise after human approval) does:
 
-1. Generate a new commons id using the `<prefix>-commons-<slug>` convention (source date dropped). E.g., `f-2026-05-shot-noise` → `f-commons-shot-noise`. This is the same convention used by the commons-extension pathway (see `commons-extension-protocol.md`), so both pathways produce consistent ids in commons.
+0. **Precondition:** the proposal's `page.md` must carry a *source area* id, not a commons id. If it already carries a commons id (`<prefix>-commons-…`), `/promote` refuses and points at `/amend-commons` — promoting a commons id would fork the commons page rather than promote an area page. (`/promote` only promotes area pages; in-place corrections to an existing commons page go through `/amend-commons`.)
+1. Generate a new commons id using the `<prefix>-commons-<slug>` convention (source date dropped). E.g., `f-2026-05-shot-noise` → `f-commons-shot-noise`. This is the same convention used by the commons-extension pathway (see `commons-extension-protocol.md`), so both pathways produce consistent ids in commons. The generator is idempotent — applied to an id already in commons form it returns it unchanged, so a mis-routed commons id can never silently produce a `…-commons-commons-…` page (it hits the precondition above or the existing-target guard instead).
 2. Move `_proposed/<slug>/page.md` to `commons/kb/<type>/<new-commons-id>.md`.
 3. Set frontmatter:
    - `id: <new-commons-id>` (the page's new id, not the source's)

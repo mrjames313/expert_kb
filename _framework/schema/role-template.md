@@ -75,7 +75,7 @@ Optional individual additions (for parent-area context if sub-area):
 
 ## Allowed skills
 
-start, ingest, ask, plan, implement, replan, wrap-up, check, propose-promotion, promote, amend-commons, framework, budget, add-area
+All always-available skills — see `_framework/schema/capabilities.md` → "Always-available skills" (the single source of truth; don't re-enumerate them here, or the list goes stale). The capability-gated skills below are added/removed by `/framework` and refreshed by `/framework resync`:
 # capability: multi_area
 exchange, respond-exchange, close-exchange, answer-from-kb
 # end capability: multi_area

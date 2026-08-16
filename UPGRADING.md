@@ -167,6 +167,19 @@ whose release is newer than your version.
   re-splice them from the current snippets — run it once as part of this upgrade to pick up
   any capability guidance that changed since your last one (e.g. the cross-area read stance in
   `multi_area`). Non-destructive; content-only.
+- **Role files: reference the baseline skill set instead of enumerating it.** Implementer role
+  files used to hardcode the always-available skill list in their `## Allowed skills` section,
+  so a newly-shipped baseline skill (e.g. `amend-commons`) never reached existing roles — the
+  role forbade a skill the framework ships and `/promote`'s own error points you to. The
+  baseline now lives once in `_framework/schema/capabilities.md` → "Always-available skills",
+  and roles reference it. Migrate each **implementer** role file (`areas/*/roles/*/role.md`,
+  not `*-reviewer` or the coordinator): in its `## Allowed skills` section, replace the
+  enumerated baseline line (the `start, ingest, ask, …` line *outside* any `# capability:`
+  block) with: *"All always-available skills — see `_framework/schema/capabilities.md` →
+  'Always-available skills'."* Leave the `# capability:` blocks alone (resync owns those).
+  Leave coordinator and `*-reviewer` roles' skill lists as-is — those are deliberate
+  restrictions, not the baseline. After this, a new baseline skill reaches every role for
+  free.
 
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).

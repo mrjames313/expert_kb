@@ -10,7 +10,7 @@ Author-facing notes for evolving the Expert Coordination framework itself. This 
 |---|---|---|
 | a file/dir under `_framework/` (tool, schema doc, hook, lint-rule module) | §2 directory-layout tree + §2 file-maintenance table | — |
 | a capability (add / rename / behavior) | §3 Capabilities | `_framework/schema/capabilities.md`, `_framework/schema/claude-snippets/<cap>.md`. **Snippet/`# capability:` content changes reach live projects only when they run `/framework resync` — the upgrade runbook (Step 4) does this, but call out a behavioral change in the `UPGRADING.md` release note so it isn't missed.** |
-| a skill (add / remove / trigger) | §15 Skills | ship `.claude/skills/<name>/SKILL.md` |
+| a skill (add / remove / trigger) | §15 Skills | ship `.claude/skills/<name>/SKILL.md`. If it's **always-available**, add it to `capabilities.md` → "Always-available skills" (the single source of truth — role files reference it, so do **not** edit role files). If it's **capability-gated**, add it to that capability's "Role file edits" list and snippet. |
 | a lint rule | §14 Lint rules | `_framework/schema/lint-rules.md`, `_framework/tools/lint_rules/rule_*.py` |
 | frontmatter / types / lifecycle | §5 Frontmatter | `_framework/schema/frontmatter.md` |
 | link / promotion / exchange / commons-extension rules | §13 / §16 / §12 (+ the protocol) | matching `_framework/schema/*-protocol.md` |

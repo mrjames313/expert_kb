@@ -16,7 +16,7 @@ Each capability section below describes:
 
 ## Skill activation
 
-All sixteen skills ship with the template in `.claude/skills/`. Capability gating controls **activation state**, not file presence:
+All skills ship with the template in `.claude/skills/` (don't hardcode a count here — it drifts as skills are added). Capability gating controls **activation state**, not file presence:
 
 - The `framework` skill maintains a registry of currently-active skills.
 - Capability-gated skills are present on disk but not active until their capability is enabled.
@@ -24,6 +24,22 @@ All sixteen skills ship with the template in `.claude/skills/`. Capability gatin
 - Activation mechanism is implementation-defined (could be a registration manifest, file rename, or symlink scheme); the skill's SKILL.md content is preserved either way.
 
 Re-enabling a capability picks up the existing skill files where they are — no regeneration.
+
+## Always-available skills
+
+This is the **single source of truth** for the baseline skill set — the skills every role may use regardless of which capabilities are enabled. Role files **reference** this list rather than enumerating it, so shipping a new always-available skill reaches every existing role on the next `/framework resync` (or upgrade) without editing any role file. (The old design copied the enumeration into each role file, which silently withheld newly-shipped skills like `amend-commons` from existing roles.)
+
+```
+start, ingest, ask, plan, implement, replan, wrap-up, check,
+propose-promotion, promote, amend-commons, framework, budget, add-area
+```
+
+When you ship a new always-available skill, add it here and nowhere else. Capability-gated skills are **not** in this list — they activate with their capability (see each capability's "Role file edits" below and spec.md §15):
+
+- `multi_area` → `exchange, respond-exchange, close-exchange, answer-from-kb` (added to role Allowed skills).
+- `formal_review` → `review` (added to implementer roles' Allowed skills) and `review-promotion` (activated with the capability; invoked in the promotion flow rather than listed per implementer role).
+
+Two role kinds hold a **deliberate restriction** of the baseline rather than referencing it in full, and so keep an explicit list: the **coordinator** (a curated read-broad/write-narrow subset) and **reviewer** variants (limited to `review`). Those explicit lists are intentional curations, not the drift this section prevents.
 
 ## CLAUDE.md snippets
 

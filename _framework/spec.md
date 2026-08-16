@@ -240,6 +240,12 @@ A single skill provides all capability and lint-visibility management.
                                     entries; surface candidates for removal
                                     in batched-approval flow
 
+/framework resync                   re-splice enabled capabilities' content
+                                    (CLAUDE.md sections + role-file # capability:
+                                    blocks) from the current snippets; content
+                                    only, no file create/delete or config change;
+                                    run after an upgrade pulls new snippets
+
 /framework update                   pull the latest framework: fetch and follow
                                     the canonical UPGRADING.md (not a framework.py
                                     command)

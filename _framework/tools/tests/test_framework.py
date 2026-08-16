@@ -18,6 +18,7 @@ from framework import (
     plan_disable_lint,
     plan_enable,
     plan_enable_lint,
+    plan_resync,
     remove_capability_section,
     status,
     _extract_preload_sections,
@@ -520,6 +521,78 @@ class TestLintVisibility:
         plan = plan_enable_lint("rule_4_orphans", tmp_path, config)
         assert plan.error is not None
         assert "unknown" in plan.error
+
+
+# --- Resync ---
+
+class TestResync:
+    def test_no_capabilities_is_noop(self, tmp_path: Path) -> None:
+        _write_basic_repo(tmp_path)
+        config = _load_config(tmp_path)
+        plan = plan_resync(tmp_path, config)
+        assert plan.changes == []
+        assert any("nothing to resync" in w for w in plan.warnings)
+
+    def test_refreshes_claude_md_after_snippet_change(self, tmp_path: Path) -> None:
+        """The core gap: capability content in CLAUDE.md goes stale when the
+        snippet changes upstream; resync re-splices it."""
+        _write_basic_repo(tmp_path)
+        apply_plan(plan_enable("multi_area", tmp_path, _load_config(tmp_path)), tmp_path)
+        assert "prefer /exchange" in (tmp_path / "CLAUDE.md").read_text()
+
+        # Simulate an upgrade that changed the snippet content.
+        (tmp_path / "_framework/schema/claude-snippets/multi_area.md").write_text(
+            "## Cross-area reads\n\nUPDATED GUIDANCE: exchanges are strongly preferred.\n"
+        )
+        plan = plan_resync(tmp_path, _load_config(tmp_path))
+        apply_plan(plan, tmp_path)
+
+        claude = (tmp_path / "CLAUDE.md").read_text()
+        assert "UPDATED GUIDANCE" in claude
+        assert "prefer /exchange" not in claude
+        # Still exactly one marked section.
+        assert claude.count("<!-- begin capability: multi_area -->") == 1
+
+    def test_refreshes_stale_role_block(self, tmp_path: Path) -> None:
+        """A role-file capability block that has gone stale is restored to the
+        current planner content in place."""
+        _write_basic_repo(tmp_path)
+        apply_plan(plan_enable("multi_area", tmp_path, _load_config(tmp_path)), tmp_path)
+        role_path = tmp_path / "areas/research/roles/researcher/role.md"
+        text = role_path.read_text()
+        assert "exchange, respond-exchange, close-exchange, answer-from-kb" in text
+
+        # Stale the block's inner content (simulate an old framework version).
+        staled = text.replace(
+            "exchange, respond-exchange, close-exchange, answer-from-kb",
+            "exchange",
+        )
+        role_path.write_text(staled)
+
+        plan = plan_resync(tmp_path, _load_config(tmp_path))
+        apply_plan(plan, tmp_path)
+
+        restored = role_path.read_text()
+        assert "exchange, respond-exchange, close-exchange, answer-from-kb" in restored
+        # multi_area legitimately has two blocks (Operating boundaries + Allowed
+        # skills); resync must refresh them in place, not add duplicates.
+        assert restored.count("# capability: multi_area\n") == 2
+        assert restored.count("# end capability: multi_area") == 2
+
+    def test_never_creates_files(self, tmp_path: Path) -> None:
+        """resync refreshes content only — it must not re-create the scaffolding
+        (POR.md, coordinator role) that `enable por` produced."""
+        _write_basic_repo(tmp_path)
+        apply_plan(plan_enable("por", tmp_path, _load_config(tmp_path)), tmp_path)
+        plan = plan_resync(tmp_path, _load_config(tmp_path))
+        assert all(c.kind == "edit" for c in plan.changes)
+
+    def test_idempotent_when_current(self, tmp_path: Path) -> None:
+        """With content already current, resync is a no-op."""
+        _write_basic_repo(tmp_path)
+        apply_plan(plan_enable("multi_area", tmp_path, _load_config(tmp_path)), tmp_path)
+        plan = plan_resync(tmp_path, _load_config(tmp_path))
+        assert plan.changes == []
 
 
 # --- Status ---

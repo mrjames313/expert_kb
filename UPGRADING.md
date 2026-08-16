@@ -68,18 +68,35 @@ present. Step 5's cleanup migration removes any stale leftovers from a pre-clean
 
 Review before continuing: `git diff --staged`.
 
-### Step 4: Reconcile CLAUDE.md (and settings.json) by hand
+### Step 4: Reconcile CLAUDE.md, capability content, and settings.json
 
 `CLAUDE.md` is per-project — it carries `# capability: X` sections matching *your* config,
-which the template's does not. Do **not** overwrite it. Compare and hand-apply only the
-always-on additions:
+which the template's does not. Do **not** overwrite it. Two kinds of content need attention:
+
+**Always-on prose — hand-apply.** Compare and apply new always-on principles into your
+`CLAUDE.md`; leave your `# capability:` sections for the next command to handle.
 
 ```bash
 git show framework/main:CLAUDE.md
 ```
 
-Apply new always-on principles into your `CLAUDE.md`; leave your capability sections intact.
-If the template's `.claude/settings.json` (hook wiring) changed, reconcile it the same way
+**Capability content — run `resync` (do not hand-edit).** The capability sections in
+CLAUDE.md and the `# capability:` blocks in your role files are spliced from the framework
+snippets you just pulled (`claude-snippets/`, `capabilities.md`). When that source content
+changes upstream, your spliced copies go stale — this is easy to miss, because the blocks are
+still present, just outdated. Refresh them from the current snippets:
+
+```bash
+python _framework/tools/framework.py resync            # preview with --dry-run first
+```
+
+`resync` re-splices the marker-delimited blocks in place for every *enabled* capability. It
+touches nothing else — no file creation, no config changes, no effect on always-on prose — so
+it is safe to run on every upgrade. (Before this command existed, stale capability guidance
+survived upgrades silently; if your project predates it, one disable/enable round-trip per
+capability is the manual equivalent.)
+
+If the template's `.claude/settings.json` (hook wiring) changed, reconcile it by hand too,
 rather than overwriting, in case you customized it.
 
 ### Step 5: Run migrations newer than your framework_version
@@ -143,6 +160,13 @@ whose release is newer than your version.
   could report `lint: clean` while covering zero pages (a false negative). It now reports each
   such page by name. Code-only — arrives on pull. This is the discovery tool for the
   2026-08-15 twin-edge backfill above: enable the rule, run lint, and fix the pages it names.
+- **New `/framework resync` — refreshes stale capability content.** Capability sections in
+  `CLAUDE.md` and `# capability:` blocks in role files are spliced from framework snippets;
+  when the snippet content changed upstream, older upgrades left the spliced copies stale
+  (Step 4 used to say "leave capability sections intact"). Step 4 now runs `resync` to
+  re-splice them from the current snippets — run it once as part of this upgrade to pick up
+  any capability guidance that changed since your last one (e.g. the cross-area read stance in
+  `multi_area`). Non-destructive; content-only.
 
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).

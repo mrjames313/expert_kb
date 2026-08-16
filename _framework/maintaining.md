@@ -9,7 +9,7 @@ Author-facing notes for evolving the Expert Coordination framework itself. This 
 | If you change… | Update in spec.md | And also |
 |---|---|---|
 | a file/dir under `_framework/` (tool, schema doc, hook, lint-rule module) | §2 directory-layout tree + §2 file-maintenance table | — |
-| a capability (add / rename / behavior) | §3 Capabilities | `_framework/schema/capabilities.md`, `_framework/schema/claude-snippets/<cap>.md` |
+| a capability (add / rename / behavior) | §3 Capabilities | `_framework/schema/capabilities.md`, `_framework/schema/claude-snippets/<cap>.md`. **Snippet/`# capability:` content changes reach live projects only when they run `/framework resync` — the upgrade runbook (Step 4) does this, but call out a behavioral change in the `UPGRADING.md` release note so it isn't missed.** |
 | a skill (add / remove / trigger) | §15 Skills | ship `.claude/skills/<name>/SKILL.md` |
 | a lint rule | §14 Lint rules | `_framework/schema/lint-rules.md`, `_framework/tools/lint_rules/rule_*.py` |
 | frontmatter / types / lifecycle | §5 Frontmatter | `_framework/schema/frontmatter.md` |

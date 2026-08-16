@@ -14,6 +14,7 @@ then applied. This separation supports `--dry-run` and makes the tool testable.
 Public API:
     plan_enable(capability, repo_root, config) -> Plan
     plan_disable(capability, repo_root, config) -> Plan
+    plan_resync(repo_root, config) -> Plan
     apply_plan(plan, repo_root) -> None
     enable_lint(rule, repo_root, config) -> Plan
     disable_lint(rule, repo_root, config) -> Plan
@@ -229,10 +230,23 @@ def _insert_role_block(
             section_end = i
             break
 
-    # If the marker block already exists in this section, skip
+    # If the marker block already exists in this section, replace it in place
+    # (idempotent refresh). This is what lets `resync` pick up changed snippet
+    # content after an upgrade; on a normal enable the content is identical, so
+    # the caller's `new_text != text` guard makes it a no-op.
     section_text = "\n".join(lines[section_start:section_end])
     if begin_marker in section_text:
-        return role_text
+        begin_idx = end_idx = None
+        for i in range(section_start, section_end):
+            if lines[i].strip() == begin_marker:
+                begin_idx = i
+            elif lines[i].strip() == end_marker and begin_idx is not None:
+                end_idx = i
+                break
+        if begin_idx is None or end_idx is None:
+            return role_text  # malformed markers; leave untouched
+        refreshed = lines[:begin_idx] + [begin_marker, *block_lines, end_marker] + lines[end_idx + 1:]
+        return "\n".join(refreshed)
 
     # Determine insertion index
     insert_at = section_end
@@ -779,6 +793,43 @@ def plan_disable(capability: str, repo_root: Path, config: dict) -> Plan:
     return plan
 
 
+def plan_resync(repo_root: Path, config: dict) -> Plan:
+    """Re-splice every *enabled* capability's content from the current schema.
+
+    Capability text lives in two per-project files the upgrade deliberately does
+    not overwrite — CLAUDE.md capability sections (from `claude-snippets/`) and
+    role-file `# capability:` blocks (from `capabilities.md`). When that source
+    content changes upstream, an already-configured project keeps the stale copy.
+    `resync` refreshes the marker-delimited blocks in place from the current
+    snippets, so `/framework update` can pull framework files and then reconcile
+    the spliced content.
+
+    Content-only: it keeps the marker-delimited *edits* and drops any scaffolding
+    (file creation) the enable planners would emit — resync never creates or
+    deletes files. It changes no `config.yml` state.
+    """
+    plan = Plan(operation="resync")
+    enabled = sorted(
+        c for c in KNOWN_CAPABILITIES if config.get("capabilities", {}).get(c, False)
+    )
+    if not enabled:
+        plan.warnings.append("no capabilities enabled; nothing to resync.")
+        return plan
+
+    for capability in enabled:
+        sub = Plan(operation=f"resync {capability}")
+        PLANNERS[capability](sub, repo_root, "enable")
+        # Keep only the in-place content refreshes; enable-only scaffolding
+        # (POR.md, reviewer/coordinator roles) already exists and must not be
+        # recreated (apply_plan refuses to create over an existing path).
+        plan.changes.extend(c for c in sub.changes if c.kind == "edit")
+        plan.warnings.extend(sub.warnings)
+
+    if not plan.changes:
+        plan.warnings.append("capability content already up to date; nothing to resync.")
+    return plan
+
+
 # --- Plan application ---
 
 def apply_plan(plan: Plan, repo_root: Path) -> None:
@@ -1308,6 +1359,7 @@ def main() -> int:
     p_prune.add_argument("role", nargs="?", help="restrict to this role name")
     p_prune.add_argument("--apply", action="store_true", help="apply the suggested removals")
 
+    sub.add_parser("resync", help="re-splice enabled capabilities' content from current snippets")
     sub.add_parser("lint-status", help="show lint visibility status")
     sub.add_parser("status", help="show current capability + lint state")
 
@@ -1356,6 +1408,8 @@ def main() -> int:
         plan = plan_enable_lint(args.rule, repo_root, config)
     elif args.cmd == "disable-lint":
         plan = plan_disable_lint(args.rule, repo_root, config)
+    elif args.cmd == "resync":
+        plan = plan_resync(repo_root, config)
     elif args.cmd == "prune":
         candidates = find_prune_candidates(repo_root, config, role_filter=args.role)
         if not args.apply:

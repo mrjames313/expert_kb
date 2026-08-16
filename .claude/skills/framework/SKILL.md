@@ -13,6 +13,7 @@ A pass-through to `_framework/tools/framework.py` for capability and lint-visibi
 - User wants to surface a configurable lint warning (`/framework enable-lint rule_20_commons_drift`) or stop showing one. Only shipped warning rules are accepted (currently 20, 21); run `/framework lint-status` to see them.
 - User wants to see current state (`/framework status` or just `/framework`).
 - User wants to clean up stale preload entries (`/framework prune`).
+- User wants to refresh capability content after an upgrade (`/framework resync`).
 - User wants to pull the latest framework into this project (`/framework update`).
 
 ## Steps
@@ -23,6 +24,7 @@ A pass-through to `_framework/tools/framework.py` for capability and lint-visibi
    - `enable-lint <rule>` / `disable-lint <rule>` → toggle a lint warning's visibility.
    - `lint-status` → just the lint visibility portion of status.
    - `prune [<role>]` → list (or apply, with `--apply`) stale preload entries.
+   - `resync` → re-splice enabled capabilities' content (CLAUDE.md sections + role-file `# capability:` blocks) from the current snippets. Content-only, non-destructive; safe to run after any upgrade. Preview with `--dry-run`.
    - `update` → pull the latest framework into this project (not a `framework.py` command — see the update step below).
 
 2. **For status queries** — just run the command and show the user:

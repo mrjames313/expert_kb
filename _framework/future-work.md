@@ -211,6 +211,16 @@ Open question: is shadow-with-suggestions worth building at all? It risks naggin
 
 ## Tooling
 
+### CI check: version stamp must move when framework machinery changes
+
+**Observed during:** the missing-migration bug — commits landed after a version stamp without bumping it, so `/framework update` saw nothing new and skipped the migration. Commit 95a3fea fixed the root cause with *discipline* (bump `framework_version` + write an `UPGRADING.md` release entry; codified in `maintaining.md` → "Releasing a framework change"), but nothing *enforces* it. Machinery always arrives on pull; migrations only fire if the stamp moved. The same failure recurs the next time someone ships a fix without bumping.
+
+This is now the standing backstop we said we'd add if the discipline slipped again (it's the fourth drift-of-a-hardcoded-fact issue in the series — see the enable-lint and role-baseline fixes).
+
+**What addressing it would look like:** a CI check (or a pre-push hook, or a lint/`framework.py` self-check) roughly: "if any *pulled* path changed since the commit that last touched `framework_version` (`_framework/schema`, `_framework/tools`, `_framework/hooks`, `_framework/spec.md`, `_framework/adoption-guide.md`, `.claude/skills`, `CLAUDE.md`, `.claude/settings.json`), then `_framework/config.yml`'s `framework_version` must also have changed, and `UPGRADING.md` must contain a `**Release <that version>**` block." Fail the check otherwise. Git-history-based, runs in the framework repo only.
+
+**Revisit when:** a release ships without a bump despite the discipline (then build it), or opportunistically if a CI pipeline is set up for the repo anyway.
+
 ### Real tokenizer for `token_estimate.py`
 
 **Observed during:** Token-budget infrastructure work.
@@ -351,6 +361,48 @@ There is also no tooled path today for adding a role to an *existing* area — r
 
 ---
 
+## Commons twin edge: remaining gaps (post-5c/5d)
+
+Surfaced by dogfooding the shipped twin-edge (below). These are the conspicuous holes given how much machinery the edge already has.
+
+### Reverse-drift (commons → area) is enforced by nothing
+
+**Observed during:** dogfooding `/amend-commons` — two twin heads-ups are sitting live in the project's INBOX for corrections that exist in commons but not in the research sources, and no rule will ever notice if they're ignored.
+
+The twin edge is bidirectional in *markers* but not in *enforcement*. `aligned_on` lives only on the commons page, so Rule 20 catches one direction (source newer than commons). The reverse — a fix made in commons that the area source hasn't picked up — is "handled by" an `/amend-commons` INBOX heads-up, i.e. a note a human must read and act on. Nothing re-surfaces it if ignored. Given the investment in the edge, the missing half is conspicuous.
+
+**What addressing it would look like** (needs a design decision — do not implement unilaterally):
+- Option A: a second timestamp (e.g. `source_aligned_on` on the area page, or reuse `commons_twin` + a date) so a symmetric lint rule can catch commons→area lag. Cost: another field on the area page, more write-boundary surface.
+- Option B: promote the heads-up from a one-time INBOX note to a standing lint finding (e.g. an open `question`/marker the area owner must close), so ignoring it stays visible.
+- Option C: accept asymmetry by design and stop implying symmetry — make the docs say plainly that commons→area is a human-loop, not a detected one.
+
+**Revisit when:** reverse-drift heads-ups start getting dropped (already happening in the dogfood project), or before promoting Rule 20 out of shadow for real use.
+
+### `aligned_on` semantics are underspecified — and it drives a lint rule
+
+**Observed during:** the same dogfood session — setting `aligned_on` for a *correction* (not a reconciliation) had no clear answer, and three sources point three ways:
+- `/amend-commons` says set it only for drift reconciliation.
+- The 2026-08-15 upgrade migration says set it to "today".
+- The field's own comment says "last reconciled with the source."
+
+For a correction, none of these answers it. The dogfooder set the **promotion date** (reasoning: that's when the two were genuinely last aligned; setting "today" would suppress exactly the drift signal Rule 20 was just enabled to show). Both "today" and "promotion date" are defensible from the docs — which means different projects populate it differently and **the rule's meaning isn't portable**. Note the migration's "today" is likely actively wrong for a *backfill* of an already-drifted page: it asserts alignment that may not hold and silences pre-existing drift.
+
+**What addressing it would look like:** pick one definition — "the date the commons content was last known to match the source's content" is the strongest candidate (promotion date for an untouched page; the reconciliation date after `/amend-commons` reconciles; explicitly *not* "today" on a blind backfill). Then make all three sources say exactly that, and fix the migration guidance.
+
+**Revisit when:** next touching `/amend-commons`, Rule 20, or the twin-edge docs — this is a cheap spec fix but changes populated data, so decide before more pages get an `aligned_on`.
+
+### `human_reviewed` has no defined behavior for amendments
+
+**Observed during:** dogfood `/amend-commons` — the dogfooder kept `human_reviewed: true` through an amendment, treating the light gate (human confirmation in conversation) as the ack. Defensible, but undefined: an amendment could equally be argued to reset it to `false` pending re-review. Undefined → non-portable, and Rule 10 (planned) keys on this field.
+
+**What addressing it would look like:** state in `/amend-commons` + frontmatter.md whether an amendment preserves or resets `human_reviewed` (leaning: preserve — the light gate *is* the ack, matching the dogfood choice).
+
+**Revisit when:** resolving the `aligned_on` semantics above (same doc-sweep), or when Rule 10 is implemented.
+
+### Acknowledged, likely acceptable: Rule 20 is timestamp-based
+
+Any source edit bumps `updated` and can fire Rule 20, including frontmatter-only edits that don't affect the commons copy. The docs already call this out as the price of a *warning* (not an error), and `set_source_twin` deliberately not bumping `updated` shows it was considered. Left here only so a future content-hash-based drift check has a home if the timestamp noise proves annoying.
+
 ## Shipped: commons drift & link management (5c/5d)
 
 **Shipped across phases 1–5** (the commons-drift-mgmt work). Resolves report issues 5c (silent drift between an area page and its commons copy) and 5d (commons pages' links point back into areas). Design retained below for rationale.
@@ -425,6 +477,13 @@ There is also no tooled path today for adding a role to an *existing* area — r
 **Remaining follow-ups:** `/add-role` + onboarding review (deferred, above); the automated preload-diff engine.
 
 ---
+
+## Validated by dogfooding — preserve, don't regress
+
+Not work items — design choices dogfooding confirmed are load-bearing. Recorded so a future "simplify the framework" pass doesn't quietly cut them.
+
+- **"Schema is normative; skills are runbooks; when they disagree the schema wins — flag the skill as a bug."** This governance rule (in `CLAUDE.md` + `maintaining.md`) is what let a dogfood agent act *confidently* when `/promote` was wrong for its situation — instead of following the skill into a commons fork or stalling. Unusual and load-bearing; keep it explicit.
+- **Preload token telemetry.** Surfacing "this role costs ~9,100 tokens/session, split full/frontmatter" is a concrete budget number most agent setups don't expose at all. Confirmed genuinely useful in practice — keep `/budget` and the per-role split.
 
 ## Done since this list started
 

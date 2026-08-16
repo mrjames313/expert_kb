@@ -69,7 +69,7 @@ Optional individual additions (for parent-area context if sub-area):
 - Writes to /commons/: forbidden; use /propose-promotion.
 - Writes to other areas: forbidden.
 # capability: multi_area
-- Cross-area knowledge: prefer /exchange over deep reads into other areas' kb bodies.
+- Cross-area knowledge: occasional reads are fine; prefer /exchange over repeated deep reads into other areas' kb.
 # end capability: multi_area
 - Reads allowed: full repo.
 

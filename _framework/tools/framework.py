@@ -325,8 +325,8 @@ def _plan_multi_area(plan: Plan, repo_root: Path, action: str) -> None:
     _plan_claude_md(plan, repo_root, "multi_area", action)
 
     boundary_line = (
-        "- Cross-area knowledge: prefer /exchange over deep reads into other "
-        "areas' kb bodies."
+        "- Cross-area knowledge: occasional reads are fine; prefer /exchange over "
+        "repeated deep reads into other areas' kb."
     )
     skills_line = "exchange, respond-exchange, close-exchange, answer-from-kb"
 

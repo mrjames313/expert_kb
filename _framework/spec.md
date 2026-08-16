@@ -474,7 +474,7 @@ Optional individual additions:
 - Raw materials anywhere are read-only; existing files immutable. New raw materials added through /ingest.
 - Writes to /commons/: forbidden; use /propose-promotion.
 - Writes to other areas: forbidden.
-- Reads allowed: full repo, but prefer /exchange (when available) over deep reads into other areas' kb bodies.
+- Reads allowed: full repo; occasional cross-area reads are fine, but prefer /exchange (when available) over repeated deep reads into other areas' kb.
 
 ## Allowed skills
 

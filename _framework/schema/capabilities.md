@@ -50,7 +50,7 @@ On disable, the framework skill identifies the snippet's boundaries in CLAUDE.md
 - Remove on disable: same.
 
 **Role file edits**:
-- Insert in **Operating boundaries** (on enable): "Cross-area knowledge: prefer `/exchange` over deep reads into other areas' kb bodies."
+- Insert in **Operating boundaries** (on enable): "Cross-area knowledge: occasional reads are fine; prefer `/exchange` over repeated deep reads into other areas' kb."
 - Insert in **Allowed skills** (on enable): `exchange, respond-exchange, close-exchange, answer-from-kb`.
 - Remove on disable: same.
 

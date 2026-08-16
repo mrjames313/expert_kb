@@ -1,12 +1,12 @@
 ## Cross-area reads
 
-When `multi_area` is enabled, prefer `/exchange` over deep-reading another area's kb pages.
+When `multi_area` is enabled, cross-area *reads* are acceptable — occasional use is fine — but *writes* into another area are not, and iterative needs belong in an exchange.
 
-- Reading another area's `kb/index.md` or page frontmatter is fine for orientation.
-- Deep reads (full bodies) of another area's pages should be exceptional and justified in your task notes.
-- When you have a real question for another area's expertise, file a query: `/exchange <other-area> <question>` (kind `query`, the default). The other area's agents will answer from their kb authoritatively.
-- When you've concluded something another area's role needs but wouldn't know to ask for, push it: `/exchange <other-area> <statement> --kind brief`. A brief has no responder obligation; its targeted roles dispose of it (preload / file / cite).
-- Read-only queries about another area's state ("what's in engineering's pulse?") do not require a role switch — stay in your role and read what's needed to answer.
+- Reading another area's `kb/index.md`, page frontmatter, or an occasional full page is fine. Stay in your role; no role switch needed.
+- If you find yourself reading into another area *repeatedly*, that's the signal to file an exchange instead of continuing to read.
+- **Never write** into another area's kb or role files. The one exception is the `commons_twin` back-pointer set during promotion (framework-maintained metadata).
+- File a **query** when you need another area's expertise: `/exchange <other-area> <question>` (kind `query`, the default). Their role answers authoritatively.
+- File a **brief** when you've concluded something a role in another area needs but wouldn't know to ask for: `/exchange <other-area> <statement> --kind brief` (no responder obligation; targeted roles dispose via preload / file / cite).
 - Cite cross-area pages with an area prefix: `[[engineering:findings/f-…]]`.
 
 Exchanges are kept indefinitely after closing — they're often the best institutional record of "why does X area think Y about Z."

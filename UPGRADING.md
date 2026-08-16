@@ -105,6 +105,27 @@ whose release is newer than your version.
   commons copy (the old, incorrect `/promote` advice), revert it — promotion coexists, it
   does not replace, and a superseded page with live inbound citations is a lint error.
 
+**Release 2026-08-15**
+
+- **Commons drift & link management (5c/5d) — optional twin-edge backfill.** This release
+  adds the twin edge between a commons page and its source: `promoted_from_page` +
+  `aligned_on` on the commons page, and a `commons_twin: "[[…]]"` back-pointer on the source
+  area page. Pages promoted *before* this release lack all three, so drift detection (Rule
+  20) and twin-link preference (Rule 21) don't see them. New promotions get the edge
+  automatically; no action is required for correctness. To light up drift/link management on
+  already-promoted pages, backfill by hand: on each commons page add `promoted_from_page`
+  (its source id) and `aligned_on` (today), and add `commons_twin` to the matching source
+  page. Skip if you have no `commons/kb/` pages.
+- **Remove forked `…-commons-commons-…` pages.** A pre-fix `/promote` run on an id that was
+  already a commons id silently forked a second page with a doubled prefix (e.g.
+  `f-commons-commons-lens-fit-recipe`). The fixed tool refuses this, but any existing fork
+  stays on disk. Search `commons/kb/` for ids containing `-commons-commons-`; if found, merge
+  its content back into the real commons page and delete the fork. Rule 18 won't catch these
+  (the forked id is itself unique). Skip if none exist.
+- **No action needed:** the commons-id idempotence fix, the `/promote` commons-id rejection,
+  and the `→ to be filed:` path normalization are code-only — they take effect the moment you
+  pull the framework in Step 4.
+
 ### Step 6: Bump framework_version
 
 Set `framework_version` in `_framework/config.yml` to the version of the template you just

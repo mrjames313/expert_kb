@@ -26,6 +26,46 @@ Skills (`.claude/skills/*/SKILL.md`) are runbooks that implement the schema docs
 - When you change a skill, confirm it still matches its schema.
 - On a disagreement, fix the side that drifted — usually the skill, occasionally the schema. Corroborate against the tool behavior and sibling skills, not just the schema doc: e.g. "leave the source unchanged" on promotion is confirmed by `promote.py` never touching the area page and by `link-conventions.md` making superseded-links an error.
 
+## Releasing a framework change (bump the version, write the migration)
+
+`framework_version` in `_framework/config.yml` is the date downstream projects gate *migrations*
+on. Two distinct things can go wrong, so a release needs two artifacts:
+
+- **Missing `UPGRADING.md` release block** → the migration doesn't exist, so downstream never
+  learns of a required data change. (Code files themselves still arrive — Step 3 pulls them
+  unconditionally — so *code-only* fixes reach projects regardless. This gap bites only
+  changes that need a data migration, like 5c/5d's optional twin backfill.)
+- **Missing version bump** → projects can't record that they reached this release, so
+  idempotent migrations re-run on every future update and the version marker drifts, mis-gating
+  later migrations.
+
+Both were missed for the 5c/5d and commons-id changes; the checklist below is the guard.
+
+**Trigger — did you change *pulled* machinery?** A release is required whenever a push to
+`main` touches anything `/framework update` pulls (see UPGRADING.md Step 3–4):
+`_framework/schema/`, `_framework/tools/`, `_framework/hooks/`, `_framework/spec.md`,
+`_framework/adoption-guide.md`, `.claude/skills/`, `CLAUDE.md`, or `.claude/settings.json`.
+Changes to **non-pulled** files alone — `_framework/config.yml` capabilities,
+`future-work.md`, `maintaining.md`, `commons/`, `areas/`, `exchanges/` — do **not** require a
+release.
+
+**Definition of done for a releasing change (same commit / branch as the change):**
+
+1. **Bump** `framework_version` in `_framework/config.yml` to **today's date** (`YYYY-MM-DD`).
+   Versioning is date-based and per-release: several pushes on one day share that date and
+   append to the same release section — do not invent sub-versions.
+2. **Write the migration** in `UPGRADING.md` Step 5: add (or append to) a `**Release <today>**`
+   block. State the downstream action for each change, or say it explicitly needs none —
+   *"code-only, takes effect on pull in Step 4."* Every releasing change gets a line, even a
+   no-action one, so the list is a complete ledger.
+3. **Sync the docs** per the two sections above (spec.md; schema docs; skills). Already
+   required, restated here so "done" means all of it.
+
+Rule of thumb: **pulled machinery changed → the change isn't done until `config.yml` and
+`UPGRADING.md` are updated in the same branch.** If you catch an unreleased change after the
+fact (framework machinery changed since the last version bump, but no matching `**Release**`
+block exists), treat it as a bug and backfill both — as we did on 2026-08-15.
+
 ## Building / refreshing the template
 
 1. Create the template repo with `_framework/` populated, plus empty `commons/` and `areas/` skeletons. Write `CLAUDE.md` (always-on sections only), `_framework/config.yml` with initial state (all four capabilities off; all warnings shadowed).

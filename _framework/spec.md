@@ -287,7 +287,7 @@ Capability-specific change lists are described declaratively in `_framework/sche
 ```yaml
 # _framework/config.yml
 
-framework_version: 2026-08-14   # bumped by upgrades (see UPGRADING.md)
+framework_version: 2026-08-15   # illustrative; the live value in _framework/config.yml is authoritative and is bumped per release (see maintaining.md → "Releasing a framework change")
 
 capabilities:
   multi_area: false

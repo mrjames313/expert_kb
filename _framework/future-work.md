@@ -351,9 +351,9 @@ There is also no tooled path today for adding a role to an *existing* area — r
 
 ---
 
-## Planned: commons drift & link management (5c/5d)
+## Shipped: commons drift & link management (5c/5d)
 
-Decided and scoped (dogfooded); ready to implement. Resolves report issues 5c (silent drift between an area page and its commons copy) and 5d (commons pages' links point back into areas).
+**Shipped across phases 1–5** (the commons-drift-mgmt work). Resolves report issues 5c (silent drift between an area page and its commons copy) and 5d (commons pages' links point back into areas). Design retained below for rationale.
 
 **Architecture settled as COPY.** Dogfooding confirmed commons pages are full reference content (lookup tables, protocols, exact numbers) — *not* summaries — and that move/reference both break the load-bearing property that commons is self-contained and cheap to load (they force the cross-area read promotion exists to prevent). Distillation was rejected: it re-solves a cost problem `when_to_load` already handles, and routes readers into the very cross-area reads to avoid. So we keep the copy and *manage* the relationship.
 
@@ -387,7 +387,7 @@ Decided and scoped (dogfooded); ready to implement. Resolves report issues 5c (s
 
 **Explicitly not pulled in:** promotion still doesn't pull a page's dependency graph along (not-yet-promoted deps stay area links until promoted, then the 5d nudge drives the retroactive rewrite); multi-source *synthesis* reconciliation is deferred (the list-capable field leaves room).
 
-**Revisit when:** Ready to implement — next actionable framework-dev item.
+**Status:** Shipped (phases 1–5). Remaining follow-ups: decide the shadow-lint mechanism (above); if promotions get frequent, pull a page's dependency graph along on promotion; multi-source *synthesis* reconciliation (the field is already list-capable).
 
 ---
 

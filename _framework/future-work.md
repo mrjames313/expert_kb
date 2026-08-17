@@ -8,6 +8,16 @@ Format per item: what was observed, why it was deferred, what addressing it woul
 
 ## Schema gaps
 
+### Promotion's "Awaiting your ack" INBOX entry is documented but unimplemented
+
+**Observed during:** dogfooding `/promote` — `promotion-protocol.md` step 7 specifies that promotion files an INBOX entry under "Awaiting your ack" ("Promoted [[…]] — awaiting human review."). Neither `promote.py` (no INBOX reference at all) nor the `/promote` skill does it — the skill's step 7 is "Brief the user" and stops. Schema is normative, so the dogfooder filed the entry by hand and flagged the gap.
+
+Same shape as the recurring series (the version stamp, `CONFIGURABLE_LINT_RULES`, the role skill baseline): **a documented behaviour with no implementation behind it.** It matters here because that ack entry is the *primary* "review this promotion" signal — without it a promoted page can sit at `human_reviewed: false` unnoticed, and the only backstop (Rule 10, promotion freshness) is itself unimplemented and time-delayed.
+
+**What addressing it would look like** (small, clear — schema wins, so implement the schema): have `promote.py` append the "Awaiting your ack" entry to `INBOX.md` (it already knows the new commons id and page type), and update the `/promote` skill's step 7 to reflect that the tool does it. Mirror the wording promotion-protocol.md step 7 already specifies. Add a test asserting the INBOX line appears after promotion.
+
+**Revisit when:** next touching `/promote`/`promote.py`, or sooner — it's a cheap fix and the missing signal is user-facing. (Candidate to just fix rather than defer.)
+
 ### Synthesis-finding provenance shape
 
 **Observed during:** Review of `f-2026-05-26-private-placement-dd-best-practices`.

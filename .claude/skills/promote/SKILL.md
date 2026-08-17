@@ -50,7 +50,7 @@ Accepts a staged proposal and moves the page into `commons/kb/`. Typically run b
    Promoted <page-id> to commons (from <proposing-area>).
    ```
 
-7. **Brief the user.** Confirm what was promoted, the new commons id, and whether the source twin back-pointer was set.
+7. **Brief the user.** Confirm what was promoted, the new commons id, whether the source twin back-pointer was set, and that the "Awaiting your ack" INBOX entry was filed. `promote.py` files that INBOX entry itself (promotion-protocol.md step 7) — you don't write it by hand; if its output warns the entry wasn't filed (no `## Awaiting your ack` section in INBOX.md), surface that.
 
 ## Notes
 

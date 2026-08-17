@@ -56,6 +56,7 @@ class PromoteResult:
     promoted_from_area: str
     changelog_updated: bool
     twin_backpointer_set: bool
+    inbox_ack_filed: bool
 
 
 class PromoteError(RuntimeError):
@@ -130,6 +131,59 @@ def _append_changelog_entry(repo_root: Path, page_id: str, page_type: str, from_
 
     try:
         changelog.write_text(new_text, encoding="utf-8")
+        return True
+    except OSError:
+        return False
+
+
+def _append_inbox_ack(repo_root: Path, page_id: str, page_type: str) -> bool:
+    """Add an "Awaiting your ack" entry to INBOX.md (promotion-protocol.md step 7).
+
+    Inserts under the `## Awaiting your ack` section, replacing a `_None._`
+    placeholder if present. Non-fatal: returns False if INBOX.md or the section
+    is absent (the promotion itself still succeeded).
+    """
+    inbox = repo_root / "INBOX.md"
+    if not inbox.is_file():
+        return False
+    try:
+        text = inbox.read_text(encoding="utf-8")
+    except OSError:
+        return False
+
+    entry = f"- Promoted {page_type} [[{page_id}]] — awaiting human review."
+    lines = text.splitlines()
+
+    start = None
+    for i, line in enumerate(lines):
+        if line.strip().lower() == "## awaiting your ack":
+            start = i
+            break
+    if start is None:
+        return False
+
+    end = len(lines)
+    for i in range(start + 1, len(lines)):
+        if lines[i].startswith("## "):
+            end = i
+            break
+
+    placeholder = next(
+        (i for i in range(start + 1, end) if lines[i].strip() == "_None._"), None
+    )
+    if placeholder is not None:
+        lines[placeholder] = entry
+    else:
+        insert_at = end
+        while insert_at > start + 1 and lines[insert_at - 1].strip() == "":
+            insert_at -= 1
+        lines.insert(insert_at, entry)
+
+    new_text = "\n".join(lines)
+    if text.endswith("\n") and not new_text.endswith("\n"):
+        new_text += "\n"
+    try:
+        inbox.write_text(new_text, encoding="utf-8")
         return True
     except OSError:
         return False
@@ -231,6 +285,9 @@ def promote(slug: str, repo_root: Path) -> PromoteResult:
     # Append to CHANGELOG (uses the new commons id, not the source id)
     changelog_ok = _append_changelog_entry(repo_root, new_id, page_type, source_area)
 
+    # File the "Awaiting your ack" INBOX entry (promotion-protocol.md step 7).
+    inbox_ok = _append_inbox_ack(repo_root, new_id, page_type)
+
     return PromoteResult(
         slug=slug,
         moved_from=str(page_md.relative_to(repo_root)),
@@ -241,6 +298,7 @@ def promote(slug: str, repo_root: Path) -> PromoteResult:
         promoted_from_area=source_area,
         changelog_updated=changelog_ok,
         twin_backpointer_set=twin_set,
+        inbox_ack_filed=inbox_ok,
     )
 
 
@@ -278,6 +336,10 @@ def main() -> int:
         print(f"  source twin: back-pointer set on [[{result.source_page_id}]]")
     else:
         print(f"  source twin: WARNING — source page not found; commons_twin not set")
+    if result.inbox_ack_filed:
+        print(f"  inbox: 'Awaiting your ack' entry filed")
+    else:
+        print(f"  inbox: WARNING — INBOX.md 'Awaiting your ack' section not found; ack not filed")
     return 0
 
 

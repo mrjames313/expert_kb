@@ -171,6 +171,52 @@ class TestPromote:
             promote("test-slug", tmp_path)
         assert "already exists" in str(exc_info.value)
 
+    def _write_inbox(self, repo_root: Path, ack_body: str = "_None._") -> Path:
+        inbox = repo_root / "INBOX.md"
+        inbox.write_text(
+            "# Inbox\n\n"
+            "## Needs decision\n\n_None._\n\n"
+            f"## Awaiting your ack\n\n{ack_body}\n\n"
+            "## Heads up\n\n_None._\n"
+        )
+        return inbox
+
+    def test_files_inbox_ack_entry(self, tmp_path: Path) -> None:
+        """Promotion files the 'Awaiting your ack' INBOX entry
+        (promotion-protocol.md step 7)."""
+        make_minimal_repo(tmp_path)
+        inbox = self._write_inbox(tmp_path)
+        _write_proposal(tmp_path, "test-slug", "finding", "f-2026-05-test")
+        result = promote("test-slug", tmp_path)
+
+        assert result.inbox_ack_filed is True
+        content = inbox.read_text()
+        assert "- Promoted finding [[f-commons-test]] — awaiting human review." in content
+        # Entry lands under the right section, replacing the placeholder there.
+        ack_section = content.split("## Awaiting your ack")[1].split("##")[0]
+        assert "f-commons-test" in ack_section
+        assert "_None._" not in ack_section
+
+    def test_inbox_ack_appends_without_clobbering(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        inbox = self._write_inbox(
+            tmp_path, ack_body="- Promoted decision [[d-commons-prior]] — awaiting human review."
+        )
+        _write_proposal(tmp_path, "test-slug", "finding", "f-2026-05-test")
+        promote("test-slug", tmp_path)
+        content = inbox.read_text()
+        # Both the prior and the new entry survive.
+        assert "d-commons-prior" in content
+        assert "f-commons-test" in content
+
+    def test_inbox_ack_absent_is_nonfatal(self, tmp_path: Path) -> None:
+        """No INBOX.md → promotion still succeeds; the flag reports it wasn't filed."""
+        make_minimal_repo(tmp_path)  # make_minimal_repo does not create INBOX.md
+        _write_proposal(tmp_path, "test-slug", "finding", "f-2026-05-test")
+        result = promote("test-slug", tmp_path)
+        assert result.inbox_ack_filed is False
+        assert (tmp_path / "commons" / "kb" / "findings" / "f-commons-test.md").is_file()
+
     def test_commons_id_proposal_rejected(self, tmp_path: Path) -> None:
         """Regression (bug report #2): a proposal whose page.md already carries a
         commons id is rejected — /promote would otherwise fork the commons page.

@@ -8,16 +8,6 @@ Format per item: what was observed, why it was deferred, what addressing it woul
 
 ## Schema gaps
 
-### Promotion's "Awaiting your ack" INBOX entry is documented but unimplemented
-
-**Observed during:** dogfooding `/promote` — `promotion-protocol.md` step 7 specifies that promotion files an INBOX entry under "Awaiting your ack" ("Promoted [[…]] — awaiting human review."). Neither `promote.py` (no INBOX reference at all) nor the `/promote` skill does it — the skill's step 7 is "Brief the user" and stops. Schema is normative, so the dogfooder filed the entry by hand and flagged the gap.
-
-Same shape as the recurring series (the version stamp, `CONFIGURABLE_LINT_RULES`, the role skill baseline): **a documented behaviour with no implementation behind it.** It matters here because that ack entry is the *primary* "review this promotion" signal — without it a promoted page can sit at `human_reviewed: false` unnoticed, and the only backstop (Rule 10, promotion freshness) is itself unimplemented and time-delayed.
-
-**What addressing it would look like** (small, clear — schema wins, so implement the schema): have `promote.py` append the "Awaiting your ack" entry to `INBOX.md` (it already knows the new commons id and page type), and update the `/promote` skill's step 7 to reflect that the tool does it. Mirror the wording promotion-protocol.md step 7 already specifies. Add a test asserting the INBOX line appears after promotion.
-
-**Revisit when:** next touching `/promote`/`promote.py`, or sooner — it's a cheap fix and the missing signal is user-facing. (Candidate to just fix rather than defer.)
-
 ### Synthesis-finding provenance shape
 
 **Observed during:** Review of `f-2026-05-26-private-placement-dd-best-practices`.
@@ -513,3 +503,4 @@ For reference, items that started as "future work" and have since been completed
 - Rule 20 silently skipped commons pages missing `aligned_on`/`promoted_from_page` (false negative — enabled rule reported `lint: clean` while checking nothing) — it now surfaces each un-checkable page by name, doubling as the twin-edge backfill worklist; 2026-08-15 migration reworded accordingly — done (commit ~rule20-loud-skip).
 - No capability re-splice on upgrade (stale CLAUDE.md capability sections + role `# capability:` blocks survived upgrades silently; Step 4 said "leave intact") — added `/framework resync` which re-splices enabled capabilities' marker-delimited content from current snippets (content-only, non-destructive); upgrade Step 4 now runs it — done (commit ~framework-resync).
 - Role files enumerated the always-available skill baseline, so new baseline skills (`amend-commons`) never reached existing roles — moved the baseline to `capabilities.md` → "Always-available skills" (single source of truth); implementer role-template now references it; also fixed the drift-prone "sixteen skills" count. Coordinator/reviewer keep deliberate restricted lists. Migration in Release 2026-08-16 — done (commit ~role-skills-baseline).
+- Promotion's "Awaiting your ack" INBOX entry was documented (promotion-protocol.md step 7) but implemented by neither `promote.py` nor the `/promote` skill — the fifth "documented behaviour, no implementation" item. `promote.py` now files the entry under `## Awaiting your ack` (non-fatal if the section is absent); `/promote` skill step 7 updated; 3 tests — done (commit ~promote-inbox-ack).

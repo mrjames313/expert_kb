@@ -182,6 +182,15 @@ whose release is newer than your version.
   restrictions, not the baseline. After this, a new baseline skill reaches every role for
   free.
 
+**Release 2026-08-17**
+
+- **`/promote` now files its "Awaiting your ack" INBOX entry.** `promotion-protocol.md` step 7
+  always specified it, but `promote.py` never wrote it and the skill stopped at "brief the
+  user" — so a promoted page could sit unreviewed with no INBOX signal. `promote.py` now
+  appends the entry under `## Awaiting your ack` in `INBOX.md`. Code-only — arrives on pull; no
+  action needed. (If your `INBOX.md` lacks that section header, the tool warns and skips it
+  rather than failing — add the header to receive the entries.)
+
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).
 

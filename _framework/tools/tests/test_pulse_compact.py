@@ -423,6 +423,35 @@ class TestCompactArea:
         result = compact_area(area_dir, tmp_path, DEFAULT_CONFIG)
         assert "decisions/d-2026-05-not-actually-filed" in result.missing_filed_paths
 
+    def test_out_of_order_entries_warned(self, tmp_path: Path) -> None:
+        """A later-in-file entry with an earlier timestamp (the symptom of an
+        agent prepending) is surfaced as a warning."""
+        make_minimal_repo(tmp_path)
+        area_dir = self._setup_area(tmp_path)
+        (area_dir / "_journal" / "pulse.log").write_text(textwrap.dedent("""
+            ## [2026-05-08 11:00] decision r
+            Later event, written first.
+            ## [2026-05-08 09:00] finding r
+            Earlier event, prepended below it.
+        """).strip() + "\n")
+        result = compact_area(area_dir, tmp_path, DEFAULT_CONFIG)
+        assert result.out_of_order
+        assert "2026-05-08 09:00" in result.out_of_order[0]
+
+    def test_in_order_entries_no_warning(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        area_dir = self._setup_area(tmp_path)
+        (area_dir / "_journal" / "pulse.log").write_text(textwrap.dedent("""
+            ## [2026-05-08 09:00] finding r
+            First.
+            ## [2026-05-08 09:00] decision r
+            Same minute is fine (equal, not decreasing).
+            ## [2026-05-08 11:00] decision r
+            Later.
+        """).strip() + "\n")
+        result = compact_area(area_dir, tmp_path, DEFAULT_CONFIG)
+        assert result.out_of_order == []
+
     def test_repo_root_filed_path_resolves(self, tmp_path: Path) -> None:
         """A repo-root `→ to be filed:` path (areas/<area>/kb/...) still resolves
         against the area kb — no spurious 'not found on disk' warning."""

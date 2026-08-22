@@ -191,6 +191,13 @@ whose release is newer than your version.
   action needed. (If your `INBOX.md` lacks that section header, the tool warns and skips it
   rather than failing — add the header to receive the entries.)
 
+**Release 2026-08-22**
+
+- **`/wrap-up` warns on out-of-order `pulse.log` entries.** `pulse_compact.py` now checks that
+  entry timestamps are non-decreasing top-to-bottom and warns if one is earlier than the entry
+  above it — the usual sign an agent prepended instead of appending. Code-only — arrives on
+  pull; no action needed.
+
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).
 

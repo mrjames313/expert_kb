@@ -408,6 +408,7 @@ class CompactResult:
     area_path: str
     entries_compacted: int
     missing_filed_paths: list[str] = field(default_factory=list)
+    out_of_order: list[str] = field(default_factory=list)
     pulse_line_count: int = 0
     over_cap: bool = False
     cap: int = 0
@@ -456,6 +457,18 @@ def compact_area(area_dir: Path, repo_root: Path, config: dict) -> CompactResult
         log_text = pulse_log.read_text(encoding="utf-8")
         log_entries = parse_pulse_log(log_text)
         result.entries_compacted = len(log_entries)
+
+    # Verify chronological order. pulse.log is append-only, so timestamps should
+    # be non-decreasing top-to-bottom. A strict decrease means an entry landed
+    # out of order — usually an agent prepending instead of appending. Timestamps
+    # are zero-padded "YYYY-MM-DD HH:MM", so a string compare is chronological.
+    prev = None
+    for entry in log_entries:
+        if prev is not None and entry.timestamp < prev:
+            result.out_of_order.append(
+                f"{entry.timestamp} appears after {prev} (entries should be appended, not prepended)"
+            )
+        prev = entry.timestamp
 
     # Verify filed paths
     for entry in log_entries:
@@ -591,6 +604,11 @@ def _print_result(result: CompactResult) -> None:
         print("  Warning: filed paths from log not found on disk:")
         for p in result.missing_filed_paths:
             print(f"    - {p}")
+    if result.out_of_order:
+        print("  Warning: pulse.log entries out of chronological order "
+              "(append new entries at the bottom, don't prepend):")
+        for msg in result.out_of_order:
+            print(f"    - {msg}")
 
 
 if __name__ == "__main__":

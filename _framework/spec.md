@@ -678,7 +678,7 @@ _Last compaction: 2026-05-08 14:30_
 - ...
 ```
 
-**_journal/pulse.log** — append-only event log. Entries during the session:
+**_journal/pulse.log** — append-only event log; new entries go at the **bottom**, so timestamps are non-decreasing top-to-bottom. `/wrap-up` (via `pulse_compact.py`) warns if an entry's timestamp is earlier than the one above it — the usual sign an agent prepended instead of appending. Entries during the session:
 
 ```markdown
 ## [2026-05-08 09:14] decision optics-researcher

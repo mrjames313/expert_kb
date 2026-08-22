@@ -161,13 +161,9 @@ The framework currently shows the user a context message during the review ("thi
 
 A set of warning-tier lint rules with off-by-default infrastructure already in place (`_framework/config.yml`, `framework.py enable-lint`). Each just needs the actual rule code. Rules in roughly priority order of how often they'd matter:
 
-### Rule 10 — Stale exchanges
+### Rule 14 — Stale exchanges
 
-Surface exchanges in `exchanges/<a>--<b>/` with `status: answered` for more than N active days without being closed. Counterpart to the open-question pulse work.
-
-### Rule 14 — Stale promotions awaiting human review
-
-Surface commons pages with `human_reviewed: false` aged past `promotion_freshness_active_days` (default 14, currently set in config). Referenced in `promotion-protocol.md` but the rule itself isn't yet implemented.
+Surface exchanges in `exchanges/<a>--<b>/` with `status: answered` for more than N active days without being closed. Counterpart to the open-question pulse work. (Was mis-numbered "Rule 10" here; the canonical catalog in `lint-rules.md` numbers exchange staleness as Rule 14. Rule 10 is promotion freshness — now implemented, see the Done list.)
 
 ### Rule 9 — Preload staleness
 
@@ -393,11 +389,11 @@ For a correction, none of these answers it. The dogfooder set the **promotion da
 
 ### `human_reviewed` has no defined behavior for amendments
 
-**Observed during:** dogfood `/amend-commons` — the dogfooder kept `human_reviewed: true` through an amendment, treating the light gate (human confirmation in conversation) as the ack. Defensible, but undefined: an amendment could equally be argued to reset it to `false` pending re-review. Undefined → non-portable, and Rule 10 (planned) keys on this field.
+**Observed during:** dogfood `/amend-commons` — the dogfooder kept `human_reviewed: true` through an amendment, treating the light gate (human confirmation in conversation) as the ack. Defensible, but undefined: an amendment could equally be argued to reset it to `false` pending re-review. Undefined → non-portable — and now more pressing, since **Rule 10 (implemented) keys on this field**: if an amendment resets `human_reviewed` to false, Rule 10 will (correctly or not) start aging it as an overdue ack.
 
-**What addressing it would look like:** state in `/amend-commons` + frontmatter.md whether an amendment preserves or resets `human_reviewed` (leaning: preserve — the light gate *is* the ack, matching the dogfood choice).
+**What addressing it would look like:** state in `/amend-commons` + frontmatter.md whether an amendment preserves or resets `human_reviewed` (leaning: preserve — the light gate *is* the ack, matching the dogfood choice), and note the Rule 10 interaction either way.
 
-**Revisit when:** resolving the `aligned_on` semantics above (same doc-sweep), or when Rule 10 is implemented.
+**Revisit when:** resolving the `aligned_on` semantics above (same doc-sweep) — bumped up now that Rule 10 is live.
 
 ### Acknowledged, likely acceptable: Rule 20 is timestamp-based
 
@@ -504,3 +500,4 @@ For reference, items that started as "future work" and have since been completed
 - No capability re-splice on upgrade (stale CLAUDE.md capability sections + role `# capability:` blocks survived upgrades silently; Step 4 said "leave intact") — added `/framework resync` which re-splices enabled capabilities' marker-delimited content from current snippets (content-only, non-destructive); upgrade Step 4 now runs it — done (commit ~framework-resync).
 - Role files enumerated the always-available skill baseline, so new baseline skills (`amend-commons`) never reached existing roles — moved the baseline to `capabilities.md` → "Always-available skills" (single source of truth); implementer role-template now references it; also fixed the drift-prone "sixteen skills" count. Coordinator/reviewer keep deliberate restricted lists. Migration in Release 2026-08-16 — done (commit ~role-skills-baseline).
 - Promotion's "Awaiting your ack" INBOX entry was documented (promotion-protocol.md step 7) but implemented by neither `promote.py` nor the `/promote` skill — the fifth "documented behaviour, no implementation" item. `promote.py` now files the entry under `## Awaiting your ack` (non-fatal if the section is absent); `/promote` skill step 7 updated; 3 tests — done (commit ~promote-inbox-ack).
+- Rule 10 (promotion freshness) was documented in promotion-protocol.md + lint-rules.md but had no module, and `promotion_freshness_active_days` was an orphaned config key — the sixth "documented behaviour, no implementation" item, and the *backstop* half of the unreviewed-promotions bug (the step-7 entry being the push half). Implemented `rule_10_promotion_freshness` (self-gating warning; flags commons pages `human_reviewed: false` past the threshold; commons-extension pages exempt as pre-acked); auto-discovered by `enable-lint`; reconciled the Rule 10/14 numbering swap between lint-rules.md and this file; added the "every requirement clause needs an enforcer or backfill" discipline to maintaining.md; 4 tests — done (commit ~rule-10-promotion-freshness).

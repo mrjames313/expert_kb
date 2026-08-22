@@ -44,6 +44,7 @@ INSPECTION_RULES = [
     "rule_05_supersession",
     "rule_06_completeness",
     "rule_07_pulse_size",
+    "rule_10_promotion_freshness",   # warning; self-gates on warnings_visible
     "rule_12_manifest",
     "rule_17_raw_immutability",
     "rule_18_id_uniqueness",

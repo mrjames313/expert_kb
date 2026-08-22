@@ -66,6 +66,14 @@ Rule of thumb: **pulled machinery changed → the change isn't done until `confi
 fact (framework machinery changed since the last version bump, but no matching `**Release**`
 block exists), treat it as a bug and backfill both — as we did on 2026-08-15.
 
+## Every requirement clause needs an enforcer or a backfill
+
+A schema clause that *adds a requirement* ("promotion files an INBOX ack", "commons pages are curated for a commons reader", "roles reference the baseline skill set") is inert unless something detects its violation. The recurring bug this session — six instances — was a documented behaviour with no implementation: the clause reads as done, but nothing catches a page that doesn't satisfy it, so `lint: clean` asserts nothing about it and the gap accumulates silently.
+
+Rule: **when you add or change a requirement clause, name — in the same change — either (a) the tool/lint rule that enforces it, or (b) the manual backfill item** (an `UPGRADING.md` release entry telling existing projects what to fix). If it can be neither enforced nor backfilled (e.g. a judgment-based content requirement like "strip resolved-deliberation cruft"), say so explicitly in the clause, so a reader knows it's advisory rather than assuming a checker exists. A documented backstop that doesn't exist is worse than none — it's the stated reason the primary mechanism "isn't critical."
+
+This generalizes the release discipline above: the version bump makes machinery *arrive*; this makes a new requirement *observable*.
+
 ## Building / refreshing the template
 
 1. Create the template repo with `_framework/` populated, plus empty `commons/` and `areas/` skeletons. Write `CLAUDE.md` (always-on sections only), `_framework/config.yml` with initial state (all four capabilities off; all warnings shadowed).

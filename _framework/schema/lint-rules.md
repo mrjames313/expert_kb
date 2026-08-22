@@ -78,9 +78,9 @@ Pages with zero `links_in`. May indicate isolated content or just index-page lea
 
 Pages linking to 3 or more distinct areas earn a warning suggesting the topic belongs in commons (via promotion) or in an exchange (with `multi_area` enabled). Pages with `area: commons` are exempt.
 
-### Rule 10 — Promotion freshness (planned)
+### Rule 10 — Promotion freshness
 
-Commons pages with `human_reviewed: false` older than `promotion_freshness_active_days` (default 14) surface to INBOX as overdue ack.
+Commons pages still `human_reviewed: false` more than `promotion_freshness_active_days` (default 14) after `promoted_on` are flagged as an overdue ack. The aging backstop to promotion's step-7 "Awaiting your ack" INBOX entry: that entry is the push at promotion time, this catches ones that were never flipped. Commons-extension pages land `human_reviewed: true` (acked inline at `/add-area`), so they don't trip it. Enable with `/framework enable-lint rule_10_promotion_freshness`.
 
 ### Rule 11 — Spec hygiene (planned)
 
@@ -124,4 +124,4 @@ For in-flight events not yet committed (e.g., `_journal/pulse.log` entries), the
 
 A configurable-visibility rule is **off by default** and **self-gates**: when its `lint.warnings_visible.<rule>` flag is false it returns no findings. Enable it with `/framework enable-lint <rule>`.
 
-The originally-designed *shadow* behavior — run every rule silently, accumulate trigger counts, and suggest enabling one past `shadow_suggest_threshold` — is **not implemented and under reconsideration** (it may add noise without clear value; see `future-work.md`). Until that's decided, `shadow_suggest_threshold` in `config.yml` is inert, and only Rules 20–21 are implemented among the configurable set.
+The originally-designed *shadow* behavior — run every rule silently, accumulate trigger counts, and suggest enabling one past `shadow_suggest_threshold` — is **not implemented and under reconsideration** (it may add noise without clear value; see `future-work.md`). Until that's decided, `shadow_suggest_threshold` in `config.yml` is inert, and Rules 10, 20, and 21 are the implemented members of the configurable set.

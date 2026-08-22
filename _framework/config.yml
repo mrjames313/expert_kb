@@ -18,6 +18,7 @@ lint:
   # (shadowed). Rules 4/8/9/10/11/13/14/16 are planned but unimplemented — see
   # future-work.md — so they are intentionally not listed.
   warnings_visible:
+    rule_10_promotion_freshness: false
     rule_20_commons_drift: false
     rule_21_commons_twin_links: false
 prune:

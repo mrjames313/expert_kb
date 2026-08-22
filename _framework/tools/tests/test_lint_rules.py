@@ -7,6 +7,7 @@ per kind of violation.
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -734,6 +735,46 @@ class TestRule18IdUniqueness:
 
 
 # --- Rule 20: Commons drift (warning; self-gating) ---
+
+_ON_10 = {"lint": {"warnings_visible": {"rule_10_promotion_freshness": True},
+                   "promotion_freshness_active_days": 14}}
+
+
+class TestRule10PromotionFreshness:
+    def _commons_page(self, tmp_path: Path, *, human_reviewed, promoted_on) -> None:
+        make_minimal_repo(tmp_path)
+        cdir = tmp_path / "commons/kb/findings"
+        cdir.mkdir(parents=True, exist_ok=True)
+        (cdir / "f-commons-x.md").write_text(
+            "---\nid: f-commons-x\ntitle: X\ntype: finding\nstatus: active\n"
+            "area: commons\ncreated: 2026-05-01\nupdated: 2026-05-01\nsummary: X.\n"
+            f"human_reviewed: {human_reviewed}\npromoted_on: {promoted_on}\n---\n\nBody.\n"
+        )
+
+    def test_disabled_by_default(self, tmp_path: Path) -> None:
+        self._commons_page(tmp_path, human_reviewed="false", promoted_on="2020-01-01")
+        from lint_rules import rule_10_promotion_freshness
+        assert rule_10_promotion_freshness.check(tmp_path, DEFAULT_CONFIG) == []
+
+    def test_flags_overdue_unreviewed(self, tmp_path: Path) -> None:
+        # promoted long ago (non-git tmp repo → calendar-day fallback), still unreviewed
+        self._commons_page(tmp_path, human_reviewed="false", promoted_on="2020-01-01")
+        from lint_rules import rule_10_promotion_freshness
+        findings = rule_10_promotion_freshness.check(tmp_path, _ON_10)
+        assert len(findings) == 1
+        assert "human_reviewed: false" in findings[0].message
+
+    def test_reviewed_page_not_flagged(self, tmp_path: Path) -> None:
+        self._commons_page(tmp_path, human_reviewed="true", promoted_on="2020-01-01")
+        from lint_rules import rule_10_promotion_freshness
+        assert rule_10_promotion_freshness.check(tmp_path, _ON_10) == []
+
+    def test_fresh_promotion_not_flagged(self, tmp_path: Path) -> None:
+        today = date.today().isoformat()
+        self._commons_page(tmp_path, human_reviewed="false", promoted_on=today)
+        from lint_rules import rule_10_promotion_freshness
+        assert rule_10_promotion_freshness.check(tmp_path, _ON_10) == []
+
 
 _ON_20 = {"lint": {"warnings_visible": {"rule_20_commons_drift": True}}}
 

@@ -77,7 +77,9 @@ Lint Rule 18 enforces project-wide id uniqueness, so a faulty implementation tha
 
 The human reviews promoted commons pages (often in batch via INBOX) and flips `human_reviewed: true`.
 
-Lint Rule 10 surfaces unreviewed promotions aged past `promotion_freshness_active_days` (default 14) under "Needs decision" in INBOX.
+Two mechanisms surface a pending ack, so it can't be lost: (1) `promote.py` files the "Awaiting your ack" INBOX entry at promotion time (step 7 above); (2) **Lint Rule 10** — a configurable warning (enable with `/framework enable-lint rule_10_promotion_freshness`) — flags any commons page still `human_reviewed: false` past `promotion_freshness_active_days` (default 14), catching acks that were never flipped.
+
+This ack loop applies to the **proposal-and-promote** pathway only. The **commons-extension** pathway (`/add-area`) lands pages with `human_reviewed: true` — they were confirmed inline during interactive review — so they need no INBOX ack entry and don't trip Rule 10.
 
 ## Audit trail
 

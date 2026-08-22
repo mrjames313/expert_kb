@@ -197,6 +197,14 @@ whose release is newer than your version.
   entry timestamps are non-decreasing top-to-bottom and warns if one is earlier than the entry
   above it — the usual sign an agent prepended instead of appending. Code-only — arrives on
   pull; no action needed.
+- **Rule 10 (promotion freshness) is now implemented.** `promotion-protocol.md` documented it
+  as the backstop for unreviewed promotions, but no rule module existed and
+  `promotion_freshness_active_days` was an orphaned config key. It's now a self-gating warning
+  that flags commons pages still `human_reviewed: false` past the threshold. Code arrives on
+  pull; it's **off by default** — enable with `python _framework/tools/framework.py enable-lint
+  rule_10_promotion_freshness` (or `/framework enable-lint …`) if you want the backstop. If
+  your project has old promotions never acked, enabling it will surface them; review and set
+  `human_reviewed: true` (or leave it off).
 
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).

@@ -206,6 +206,22 @@ whose release is newer than your version.
   your project has old promotions never acked, enabling it will surface them; review and set
   `human_reviewed: true` (or leave it off).
 
+**Release 2026-08-23**
+
+- **Task status uses the `_Status:_` vocabulary, not checkboxes — convert existing `tasks.md`.**
+  Five skills (`plan`, `implement`, `replan`, `wrap-up`, `review`) had drifted to a `- [ ]` /
+  `- [x]` checkbox convention that the task template and Rule 11 never used. The skills now
+  track status on the template's `_Status:_` line (`planned | in_progress | done | blocked |
+  superseded`). This matters because a checkbox has two states and can't express
+  `blocked`/`superseded`, and `/wrap-up`'s "spec complete" gate was silently unsatisfiable
+  against `_Status:_`-form files. **Migration:** in any `tasks.md` that uses checkboxes,
+  convert each task to the template shape — `- [x]` → `_Status:_ done`, `- [ ]` → `_Status:_
+  planned` (or `in_progress`/`blocked` as appropriate), and add the `_Boundary:_`/`_Depends:_`/
+  `_Owner role:_` lines if missing (see `_framework/schema/spec-template/tasks.md.tmpl`). Skip
+  if your `tasks.md` files are already in template form (many are — the template itself carried
+  no checkbox, so specs authored from it are already correct). Code/skills arrive on pull; only
+  the `tasks.md` conversion is manual.
+
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).
 

@@ -40,7 +40,7 @@ If `tasks.md` doesn't exist, run `/plan` first. If the task implicates other are
    → closes: Does Rule 152 apply here?
    ```
 
-5. **Mark the task done.** In `tasks.md`, flip the checkbox: `- [x] Task description`.
+5. **Mark the task done.** In `tasks.md`, set the task's `_Status:_` line to `done` (or `blocked` if it can't proceed, noting why in Implementation Notes). Set it to `in_progress` when you pick the task up.
 
 6. **Verify.** Run `python _framework/tools/lint.py`. Fix any errors before stopping. Common ones:
    - Missing required frontmatter fields (Rule 1).

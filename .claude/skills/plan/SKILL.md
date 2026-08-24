@@ -38,8 +38,8 @@ Reads a spec brief (or drafts one with the user) and writes `plan.md`. After the
 6. **Write `tasks.md`** (only after approval). Use the template at `_framework/schema/spec-template/tasks.md.tmpl`. Each task should be:
    - **Small** — completable in one `/implement` invocation (rule of thumb: under an hour of focused work).
    - **Concrete** — phrased as "do X" not "investigate Y".
-   - **Numbered or bulleted** with a leading checkbox: `- [ ] Task description`.
-   - Marked with which kb pages it depends on or will produce.
+   - **Structured per the template** — a `### T<n>: <title>` heading with the annotation lines `_Boundary:_`, `_Depends:_`, `_Status:_ planned`, and `_Owner role:_`. Task status lives on the `_Status:_` line (values: `planned | in_progress | done | blocked | superseded`), **not** a checkbox.
+   - Marked (via `_Depends:_` and the description) with which kb pages it depends on or will produce.
 
 7. **Record in pulse.log.**
    ```

@@ -18,7 +18,7 @@ If the existing plan is mostly fine and only one task needs to change, just edit
 
 ## Steps
 
-1. **Read the current spec.** Read `brief.md`, `plan.md`, and `tasks.md` for the spec being revised. Note which tasks are done (`[x]`), which are in flight, and which are unstarted.
+1. **Read the current spec.** Read `brief.md`, `plan.md`, and `tasks.md` for the spec being revised. Note each task's `_Status:_` (`done` / `in_progress` / `planned` / `blocked`) to see what's finished, in flight, and unstarted.
 
 2. **Discuss with the user.** Explicitly: what changed, and what does the user want to do about it? Don't replan unilaterally — confirm the new direction. If the user is reacting to something you discovered, lay out the discovery and 2–3 options for how to proceed.
 
@@ -35,20 +35,31 @@ If the existing plan is mostly fine and only one task needs to change, just edit
    Leave the original approach/milestones text intact above. The history matters.
 
 4. **Update `tasks.md`.** For each task:
-   - Done tasks stay done. Don't touch them.
-   - Unstarted tasks that are no longer needed: mark with `~~strikethrough~~` and add `(abandoned: <reason>)` after.
+   - Done tasks stay done (`_Status:_ done`). Don't touch them.
+   - Unstarted tasks that are no longer needed: set `_Status:_ superseded` and note the reason in a trailing comment. Don't delete them — the record of what was dropped and why is the point.
    - Unstarted tasks that still apply: leave as-is, or edit if the revision changes their scope.
-   - New tasks: add at the end with the new revision's date in a comment.
+   - New tasks: append new `### T<n>:` blocks (template shape) with the revision date in a comment. Preserve every task's `_Boundary:_`/`_Depends:_`/`_Owner role:_` annotations — don't flatten tasks into bare bullets.
 
    Example:
    ```markdown
-   - [x] Original task 1 (done)
-   - [x] Original task 2 (done)
-   - [ ] ~~Original task 3~~ (abandoned 2026-05-15: concept c-... was falsified)
-   - [ ] Original task 4 (still applies)
+   ### T1: Original task 1
+   _Boundary:_ /areas/research/kb/**
+   _Depends:_ —
+   _Status:_ done
+   _Owner role:_ researcher
+
+   ### T3: Original task 3
+   _Boundary:_ /areas/research/kb/**
+   _Depends:_ —
+   _Status:_ superseded   <!-- 2026-05-15: concept c-... was falsified -->
+   _Owner role:_ researcher
+
    <!-- added 2026-05-15 revision -->
-   - [ ] New task 5 reflecting the revised approach
-   - [ ] New task 6
+   ### T5: New task reflecting the revised approach
+   _Boundary:_ /areas/research/kb/**
+   _Depends:_ T4
+   _Status:_ planned
+   _Owner role:_ researcher
    ```
 
 5. **Record in pulse.log.** Append a `decision` event:

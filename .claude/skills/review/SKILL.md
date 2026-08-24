@@ -34,7 +34,7 @@ A review is run by the **reviewer role**, not by the implementer. The orchestrat
 4. **Evaluate against the spec.** Three questions:
    - **Does the work do what the brief asked?** Match the outputs to the success criterion in brief.md.
    - **Is the kb sound?** New findings cite their provenance. New concepts have evidence (if at `under_test`+). New decisions list alternatives considered. Wikilinks resolve.
-   - **Are there gaps?** Tasks marked `[x]` whose outputs are missing or thin. Loose ends that should have been journaled as `question` events but weren't.
+   - **Are there gaps?** Tasks at `_Status:_ done` whose outputs are missing or thin. Loose ends that should have been journaled as `question` events but weren't.
 
 5. **Pick a verdict.** Exactly one of:
    - **APPROVE** — the work substantively meets the spec. Minor stylistic notes can go in the verdict but don't block.

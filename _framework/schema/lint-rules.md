@@ -64,7 +64,7 @@ Every kb page's `id` must be unique across the project (commons + all areas). Du
 
 These rules are **off by default** and enabled per project via `/framework enable-lint <rule>`. A disabled rule **self-gates** — it returns no findings (see "Warning visibility" below).
 
-**Implemented vs. planned.** Only rules with a shipped module under `_framework/tools/lint_rules/` (a `SEVERITY = "warning"` module exposing a `CONFIG_KEY`) are real; today that is **Rules 20 and 21**. Rules 4, 8, 9, 10, 11, 13, 14, and 16 below are **design sketches, not yet implemented** — `/framework enable-lint` derives its accepted set from the shipped modules, so it rejects them until they ship (this derivation is what keeps the enabler from drifting out of sync with the rules, as it once did). When you implement one, its module's `CONFIG_KEY` makes it enable-able automatically; add the key to the template `config.yml` and drop the "(planned)" marker here.
+**Implemented vs. planned.** Only rules with a shipped module under `_framework/tools/lint_rules/` (a `SEVERITY = "warning"` module exposing a `CONFIG_KEY`) are real; today that is **Rules 10, 20, and 21**. Rules 4, 8, 9, 11, 13, 14, and 16 below are **design sketches, not yet implemented** — `/framework enable-lint` derives its accepted set from the shipped modules, so it rejects them until they ship (this derivation is what keeps the enabler from drifting out of sync with the rules, as it once did). When you implement one, its module's `CONFIG_KEY` makes it enable-able automatically; add the key to the template `config.yml` and drop the "(planned)" marker here.
 
 ### Rule 4 — Orphan detection (planned)
 

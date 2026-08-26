@@ -249,6 +249,40 @@ The skills now tell agents to consult `when_to_load` before opening a body. Ther
 
 ---
 
+## Surfacing framework state (make the framework legible)
+
+Two related feature ideas (logged 2026-08-25). Shared theme: the framework is currently **pull** — the operator must remember to run `/check`, `/wrap-up`, ack promotions, close stale exchanges, commit before upgrading. That's the "read-and-remember" cognitive-overhead archetype. These make state **visible** and nudge best-practice workflow adherence instead of relying on memory. The two compose: the doctor's scan (entry 2) feeds the status line's indicator (entry 1).
+
+### Framework status line (at-a-glance state)
+
+**Idea:** a Claude Code status line showing framework state — active capabilities, pending items, health — so you see it without running a command.
+
+**Feasibility:** Claude Code supports a `statusLine` command in `.claude/settings.json` (a natural sibling to the hooks the framework already ships there); its stdout renders in the status bar. `framework.py status()` already returns a dict with `--json`, so a compact `statusline` output mode is a small add.
+
+**What to show (compact):** adopted area/role · active capabilities (`[por multi_area]`) · INBOX counts ("Needs decision" / "Awaiting your ack") · pulse over-cap flag · a **suggested-actions indicator** (count/dot, fed by entry 2).
+
+**Key constraint:** the status line runs on *every render*, so it must be cheap — read trivially-cheap signals (config capabilities, INBOX section counts) or a small cached state file that `/check` writes, **not** run git-log-heavy lint inline. Design around a cached snapshot refreshed by `/check`/`/wrap-up`.
+
+**Caveat:** status line is Claude-Code-specific (won't appear in the web/other interfaces).
+
+**Revisit when:** operators want at-a-glance state without `/framework status`, or alongside entry 2 (shared indicator).
+
+### Suggested-actions command / "framework doctor"
+
+**Idea:** a command that scans state and lists the recommended next actions **with the exact command to run**, oriented to workflow best-practice — with the status-line indicator (entry 1) lighting up when actions are pending. The user framed it as a hotkey; realistically the framework can ship a **slash command** (e.g. `/framework doctor` or `/next`) but can't bind a true hotkey (Claude Code key bindings aren't framework-configurable) — the always-visible surface is the status-line indicator.
+
+**What it aggregates** (each item = one line: what · why · the command):
+- lint findings, including the configurable warnings (drift, twin-links, promotion freshness);
+- INBOX pending items ("Awaiting your ack" promotions → review + set `human_reviewed: true`);
+- pulse over-cap (`/wrap-up`), answered exchange aging (`/close-exchange`);
+- lifecycle nudges nothing surfaces today: session ending → `/wrap-up` before `/clear`; uncommitted tree before `/framework update`; N findings accumulated → consider `/propose-promotion`; out-of-order `pulse.log`.
+
+**Relationship to existing items:** this is the natural home for the shelved **shadow-suggest** mechanism ([[#the-shadow-mechanism-itself--reconsider-or-remove]], "suggest enabling a rule past a threshold") and the **distributed lifecycle awareness** item (`### Distributed lifecycle awareness across existing skills`, above) — both are "nudge the right next action." Consolidating them in one doctor may beat scattering nudges across skills.
+
+**Revisit when:** workflow adherence slips (steps forgotten), or when building entry 1.
+
+---
+
 ## Documentation
 
 ### Body-structure guidance for findings

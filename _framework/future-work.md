@@ -217,6 +217,26 @@ This is now the standing backstop we said we'd add if the discipline slipped aga
 
 **Revisit when:** a release ships without a bump despite the discipline (then build it), or opportunistically if a CI pipeline is set up for the repo anyway.
 
+### Doc-dependency graph for non-pointer consistency (change → check dependents)
+
+**Idea (logged 2026-08-25):** maintain a graph of which documents must stay consistent with which — for the relationships a plain `[[wikilink]]` can't express — so any file change triggers a consistency check on the connected docs, not the whole tree.
+
+**This is the systemic cure for the dominant bug class of the whole build.** Roughly half the dogfood bugs were the same shape: a doc changed and a *dependent* doc silently didn't — `SETUP.md` still enumerated skills after `role-template.md` moved to referencing; `config.yml`'s `warnings_visible` drifted from the shipped rule modules; `lint-rules.md`'s "implemented rules today are 20 and 21" summary didn't move when Rule 10 shipped; the "sixteen skills" count; the version stamp. Every one is a **missing edge** in exactly this graph.
+
+**What already exists (the pointer case — out of scope here):** wikilink edges are covered — the linter maintains `links_in`/`links_out` in `.links.json` sidecars, and Rule 13 (planned) flags a page whose `links_out` target changed more recently ("content-consistency review"). And `maintaining.md`'s "Keep spec.md in sync" table is a *hand-maintained, unenforced* version of this graph. This idea is the **non-wikilink** edges — duplication, derived-value, summary-of — mechanized.
+
+**Two tiers of edge (they need different handling):**
+- **Hard / mechanically verifiable** — a derived value that must equal its source: `config.yml` warning keys == the rule modules' `CONFIG_KEY`s; no hardcoded counts (skill count == `.claude/skills/`); version stamp moved when pulled machinery did. These can be *checked and often auto-fixed*. They're the majority of this session's drift bugs, so highest value.
+- **Soft / prose consistency** — two sections that must stay semantically aligned (`SETUP.md` role bullets ↔ `role-template.md`). Not verifiable without an agent reading both; can only be **flagged** ("role-template.md changed → review SETUP.md"), not verified.
+
+**The walk (your optimization):** on change, look up the changed files' dependents and check only those; propagate as a worklist/fixpoint — follow an edge only from a doc that *actually* changed (including ones a fix just changed), so cost tracks the change frontier, not the graph size. Assumes the graph is **sparse** (it is — these are a few dozen deliberate edges, not all-pairs).
+
+**Feasibility / caveat:** prefer **deriving** edges from patterns over enumerating per-file edges in a manifest — an enumerated edge list is itself a doc that drifts (the meta-problem). "Every warning module's `CONFIG_KEY` is a live config key" is a rule about a pattern; "SETUP ↔ role-template" is a genuine one-off edge. Start with the hard, derivable checks (cheap, catch the common failures); add soft flags as a pre-commit/CI advisory.
+
+**Relationship:** subsumes [[#ci-check-version-stamp-must-move-when-framework-machinery-changes]] (one hard edge); complements Rule 13 (the wikilink edges); mechanizes the `maintaining.md` sync table (today discipline-only). Together with the "every requirement clause needs an enforcer or backfill" rule in `maintaining.md`, this is the automated half of stopping the drift class.
+
+**Revisit when:** the drift class recurs despite the discipline (it has, repeatedly), or when a CI pipeline gets set up — build the hard-edge checks first.
+
 ### Real tokenizer for `token_estimate.py`
 
 **Observed during:** Token-budget infrastructure work.

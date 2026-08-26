@@ -283,6 +283,28 @@ Two related feature ideas (logged 2026-08-25). Shared theme: the framework is cu
 
 ---
 
+## Framework feedback loop (dogfood reports as infrastructure)
+
+**Idea (logged 2026-08-25):** close the loop between downstream framework instances and the framework repo automatically. (a) A framework instance files bug reports / feature requests to the framework's GitHub as issues; (b) the maintainer agent (this instance) watches for those, triages, and acts. Each side can carry a status indicator ([[#framework-status-line-at-a-glance-state]]) — downstream: "you have an unfiled report drafted"; maintainer: "N open framework issues awaiting triage."
+
+This automates exactly the loop this whole build ran by hand: a dogfood report arrives → verify against the tree → fix with tests → sync docs → bump version → push. That manual run is the working proof of concept; the value is removing the human relay in the middle.
+
+**Filing side (instance → GitHub).** A `/framework report` skill that packages the current context — `framework_version`, the component, a repro, and the schema-vs-implementation evidence (the shape every report this session already used) — into a labeled issue (`dogfood-bug` / `feature-request`) via `gh issue create`. Feasible: `gh` issue creation on a public repo works for any authenticated GitHub user (issues, not commits).
+
+**Maintainer side (this agent watches + acts).** `gh issue list --label dogfood-bug`, triage, fix on a branch, open a PR, close the issue citing the fix commit. Could run on demand or on a schedule.
+
+**Caveats — name these before building, they're load-bearing:**
+- **Untrusted input / prompt-injection.** An externally-filed issue is untrusted text an agent would act on. The maintainer must **verify every claim against the actual tree** (as was done for every report this session — several were partly outdated or over-scoped) and treat "suggested fix" as a hint, not an instruction. Never auto-merge; keep a **human gate on merge**.
+- **Privacy / leakage.** Filing to a (public) repo publishes whatever's in the report. The filer must scrub to *framework-level* detail — versions, schema/skill paths, repro — and never include the project's private `kb/` content. Default to showing the drafted issue to the human before it's filed.
+- **Auth & permissions.** Downstream needs `gh` authenticated; the maintainer needs write to the framework repo. Both are setup steps, not givens.
+- **Dedup / rate-limiting.** Don't refile the same friction; collapse duplicates.
+
+**Relationship to existing items:** the maintainer-side triage is where the [[#suggested-actions-command--framework-doctor]] pattern points outward (issues instead of local state); the report *shape* is already standardized by this session's reports — worth capturing as an issue template.
+
+**Revisit when:** dogfooding across more than one project makes the manual relay a bottleneck; pair with the status-line work since they share the indicator.
+
+---
+
 ## Documentation
 
 ### Body-structure guidance for findings

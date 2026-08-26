@@ -126,14 +126,39 @@ def human_vitals(repo_root: Path) -> list[Vital]:
 
 # --- ROLE vitals (current adopted area) ---
 
+def _context_vital(repo_root: Path, config: dict) -> Vital | None:
+    """Restart nudge when the live session context is large. Session-scoped — it's
+    about the conversation, so it fires whether or not a role is adopted."""
+    threshold = config.get("kb_vitals", {}).get(
+        "context_restart_threshold_tokens", _DEFAULT_CONTEXT_THRESHOLD
+    )
+    tokens = session_state.context_tokens(repo_root)
+    if tokens is not None and tokens > threshold:
+        return Vital(
+            "role",
+            f"context ~{tokens // 1000}k tokens (over {threshold // 1000}k) — a fresh context would help",
+            "/wrap-up, then restart (quit + relaunch, not just /clear)",
+        )
+    return None
+
+
 def role_vitals(repo_root: Path, config: dict) -> list[Vital]:
     state = session_state.read(repo_root)
     role = state.get("role")
     area = state.get("area")
-    if not area:
-        return [Vital("role", "no role adopted this session", "/start")]
 
     vitals: list[Vital] = []
+
+    # Session-level context/restart check — before the no-role return, since it's
+    # about the conversation, not the adopted role.
+    context = _context_vital(repo_root, config)
+    if context:
+        vitals.append(context)
+
+    if not area:
+        vitals.append(Vital("role", "no role adopted this session", "/start"))
+        return vitals
+
     area_dir = repo_root / area
 
     # Wrap-up due — uncompacted pulse.log
@@ -149,18 +174,6 @@ def role_vitals(repo_root: Path, config: dict) -> list[Vital]:
         n = len(pulse_md.read_text(encoding="utf-8").splitlines())
         if n > cap:
             vitals.append(Vital("role", f"pulse.md over cap ({n}/{cap})", "/wrap-up"))
-
-    # Restart signal — context bloat
-    threshold = config.get("kb_vitals", {}).get(
-        "context_restart_threshold_tokens", _DEFAULT_CONTEXT_THRESHOLD
-    )
-    tokens = session_state.context_tokens(repo_root)
-    if tokens is not None and tokens > threshold:
-        vitals.append(Vital(
-            "role",
-            f"context ~{tokens // 1000}k tokens (over {threshold // 1000}k) — a fresh context would help",
-            "/wrap-up, then restart (quit + relaunch, not just /clear)",
-        ))
 
     # Restart signal — stale preload (a preload page changed since you adopted)
     started = _as_date(state.get("started_at"))

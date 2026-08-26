@@ -69,6 +69,22 @@ class TestRoleVitals:
         vitals = kv.role_vitals(tmp_path, _CONFIG)
         assert len(vitals) == 1 and "no role adopted" in vitals[0].message
 
+    def test_context_bloat_fires_without_role(self, tmp_path: Path) -> None:
+        """The restart nudge is session-scoped — it must surface even when no role
+        is adopted (regression: it was gated behind role adoption)."""
+        make_minimal_repo(tmp_path)
+        # Record a transcript with tokens over a low threshold, but no role/area.
+        t = tmp_path / "t.jsonl"
+        t.write_text(
+            '{"type":"assistant","message":{"usage":{"input_tokens":500,'
+            '"cache_creation_input_tokens":0,"cache_read_input_tokens":0}}}\n'
+        )
+        ss.write(tmp_path, transcript_path=str(t))
+        config = {"lint": {}, "capabilities": {}, "kb_vitals": {"context_restart_threshold_tokens": 100}}
+        vitals = kv.role_vitals(tmp_path, config)
+        assert any("context ~" in v.message for v in vitals)
+        assert any("no role adopted" in v.message for v in vitals)
+
     def test_wrapup_due(self, tmp_path: Path) -> None:
         make_minimal_repo(tmp_path)
         _setup_area(tmp_path)

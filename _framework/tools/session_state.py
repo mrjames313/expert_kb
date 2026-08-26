@@ -116,22 +116,9 @@ def _find_usage(obj) -> dict | None:
     return None
 
 
-def transcript_tokens(transcript_path) -> int | None:
-    """Current context size = input + cache_creation + cache_read tokens of the
-    most recent turn recorded in the transcript. None if unavailable.
-
-    Scans lines from the end so a large transcript is cheap.
-    """
-    if not transcript_path:
-        return None
-    path = Path(transcript_path)
-    if not path.is_file():
-        return None
-    try:
-        raw = path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return None
-    for line in reversed(raw.splitlines()):
+def _scan_usage(text: str) -> int | None:
+    """Sum the input+cache tokens of the last usage record in `text`, or None."""
+    for line in reversed(text.splitlines()):
         if '"usage"' not in line:
             continue
         try:
@@ -146,6 +133,44 @@ def transcript_tokens(transcript_path) -> int | None:
                 + int(usage.get("cache_read_input_tokens", 0) or 0)
             )
     return None
+
+
+def transcript_tokens(transcript_path) -> int | None:
+    """Current context size = input + cache_creation + cache_read tokens of the
+    most recent turn. Reads the whole transcript — fine on demand (`/kb-vitals`).
+    None if unavailable.
+    """
+    if not transcript_path:
+        return None
+    path = Path(transcript_path)
+    if not path.is_file():
+        return None
+    try:
+        return _scan_usage(path.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return None
+
+
+def transcript_tokens_tail(transcript_path, tail_bytes: int = 65536) -> int | None:
+    """Like `transcript_tokens` but reads only the last `tail_bytes` — cheap enough
+    to call per status-line render on a multi-MB transcript. The most recent usage
+    record is at the very end, so the tail is all that's needed.
+    """
+    if not transcript_path:
+        return None
+    path = Path(transcript_path)
+    if not path.is_file():
+        return None
+    try:
+        size = path.stat().st_size
+        with path.open("rb") as f:
+            if size > tail_bytes:
+                f.seek(size - tail_bytes)
+                f.readline()  # discard the partial line at the seek point
+            chunk = f.read()
+    except OSError:
+        return None
+    return _scan_usage(chunk.decode("utf-8", errors="replace"))
 
 
 def find_current_transcript(repo_root: Path) -> Path | None:
@@ -164,14 +189,16 @@ def find_current_transcript(repo_root: Path) -> Path | None:
     return max(transcripts, key=lambda p: p.stat().st_mtime)
 
 
-def context_tokens(repo_root: Path) -> int | None:
+def context_tokens(repo_root: Path, *, fast: bool = False) -> int | None:
     """Current context size for this session. Prefers the transcript recorded by
-    the hook; falls back to locating the active transcript on disk."""
+    the hook; falls back to locating the active transcript on disk. `fast=True`
+    tail-reads (for the per-render status line); default reads the whole file."""
+    reader = transcript_tokens_tail if fast else transcript_tokens
     recorded = read(repo_root).get("transcript_path")
-    tokens = transcript_tokens(recorded) if recorded else None
+    tokens = reader(recorded) if recorded else None
     if tokens is not None:
         return tokens
-    return transcript_tokens(find_current_transcript(repo_root))
+    return reader(find_current_transcript(repo_root))
 
 
 # --- CLI (used by /start and the session-start hook) ---

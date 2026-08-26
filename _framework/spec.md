@@ -74,6 +74,7 @@ project-root/
 │   │   ├── framework_check.py          # hard-edge self-consistency checks (CI/pre-push)
 │   │   ├── session_state.py            # _session.json read/write + transcript tokens
 │   │   ├── kb_vitals.py                # /kb-vitals: state + next-actions scan
+│   │   ├── statusline.py               # compact Claude Code status line (per render)
 │   │   ├── requirements.txt
 │   │   ├── requirements-dev.txt
 │   │   └── tests/

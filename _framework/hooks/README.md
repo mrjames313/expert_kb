@@ -11,8 +11,9 @@ The hooks are optional. Skills do everything they need to do (`/start` loads ori
 | `session-start.sh` | A Claude Code session begins | Prints CLAUDE.md, areas-index.md, and INBOX.md to stdout so the agent has the project shape in context. Warns about uncompacted pulse logs from a prior session and notes any orphan telemetry session marker. |
 | `session-end.sh` | A Claude Code session ends | If pulse logs are non-empty, runs `pulse_compact.py`. If a telemetry session marker exists, records a `session_end` event (with no citation/load data — the agent isn't around to ask). |
 | `pre-compact.sh` | Before Claude Code compacts the conversation context | Same as session-end except it doesn't record a session_end event (the session is still going). Flushes pulse to disk so it survives compaction. |
+| `statusline.sh` | On every status-line render | Prints a compact status line via `statusline.py`: `<project> · <role@area> · <⚠N pending human items \| ✓> · ctx <N>k[!]`. `!` marks a context past the restart threshold (the always-on version of `/kb-vitals`' restart nudge). Cheap: tail-reads the transcript, no KB scan. Wired via the `statusLine` key in `.claude/settings.json` (not the `hooks` block). |
 
-All three scripts are best-effort. They never fail the session — any error is logged to stderr and ignored.
+All scripts are best-effort. They never fail the session — any error is logged to stderr and ignored, and the status line prints nothing on trouble.
 
 ## Installation in Claude Code
 

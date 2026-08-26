@@ -254,6 +254,13 @@ whose release is newer than your version.
   or a preloaded page changed since you adopted). Reads `_session.json`; runs no lint. Always-
   available skill — code/skill arrive on pull. Optional: set `kb_vitals.context_restart_threshold_tokens`
   in your `config.yml` (default 400000; tune to your context window).
+- **New status line — at-a-glance vitals.** `statusline.py` + `statusline.sh` render
+  `<project> · <role@area> · <⚠N pending | ✓> · ctx <N>k[!]` (`!` = context past the restart
+  threshold). Cheap per render (tail-reads the transcript; no KB scan). Code arrives on pull.
+  **One manual step:** `.claude/settings.json` is reconciled by hand (Step 4), so add the
+  `statusLine` block to yours:
+  `"statusLine": { "type": "command", "command": "bash $CLAUDE_PROJECT_DIR/_framework/hooks/statusline.sh" }`.
+  Like the hooks, it activates on the next launch after the setting is present.
 
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).

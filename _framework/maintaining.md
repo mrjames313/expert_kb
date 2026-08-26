@@ -15,6 +15,7 @@ Author-facing notes for evolving the Expert Coordination framework itself. This 
 | frontmatter / types / lifecycle | §5 Frontmatter | `_framework/schema/frontmatter.md` |
 | link / promotion / exchange / commons-extension rules | §13 / §16 / §12 (+ the protocol) | matching `_framework/schema/*-protocol.md` |
 | the bootstrap flow | `SETUP.md` | "Building / refreshing the template" below |
+| role-file structure (`role-template.md`) | — | `SETUP.md`'s role-authoring bullets **duplicate** the template inline (boundaries, allowed skills, default behaviors), so they drift when the template changes. Keep them in sync — better, have SETUP defer to the template ("fill in per `role-template.md`") rather than re-list its content. This is how the "reference the skill baseline, don't enumerate it" change reached `role-template.md` but not `SETUP.md`. |
 
 Rule of thumb: if a change would make the §2 tree or any protocol section wrong, the change isn't done until spec.md is fixed too. Treat spec.md as documentation that must be re-derived from reality — nothing else will catch the drift.
 

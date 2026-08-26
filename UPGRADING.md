@@ -232,6 +232,11 @@ whose release is newer than your version.
   referenced `future-work.md`/`maintaining.md` by local path — files deleted at bootstrap, so
   the links dangled in every live project. Rephrased to self-contained wording. Doc-only —
   arrives on pull.
+- **New `framework_check.py` — hard-edge self-consistency checks.** Verifies config
+  `warnings_visible` == the shipped warning rules, no pulled doc references a maintainer-only
+  file, and `framework_version` == the latest release. Maintainer/CI tool (run
+  `python _framework/tools/framework_check.py`); no effect on a running project — it degrades
+  gracefully when its inputs (e.g. `UPGRADING.md`) are absent. Code-only — arrives on pull.
 
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).

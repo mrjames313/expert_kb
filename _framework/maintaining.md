@@ -63,6 +63,12 @@ release.
    no-action one, so the list is a complete ledger.
 3. **Sync the docs** per the two sections above (spec.md; schema docs; skills). Already
    required, restated here so "done" means all of it.
+4. **Run the hard-edge checks:** `python _framework/tools/framework_check.py`. It mechanically
+   verifies the derived-vs-source invariants that kept drifting — config `warnings_visible` ==
+   shipped warning rules, no pulled doc references a maintainer-only file, and
+   `framework_version` == the latest `UPGRADING.md` release. Fix anything it flags before
+   pushing. (Not exhaustive — it covers the *checkable* edges; see the doc-dependency-graph
+   item in `future-work.md` for the rest.)
 
 Rule of thumb: **pulled machinery changed → the change isn't done until `config.yml` and
 `UPGRADING.md` are updated in the same branch.** If you catch an unreleased change after the

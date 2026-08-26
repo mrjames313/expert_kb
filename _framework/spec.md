@@ -71,6 +71,7 @@ project-root/
 │   │   ├── token_estimate.py
 │   │   ├── telemetry.py
 │   │   ├── framework.py
+│   │   ├── framework_check.py          # hard-edge self-consistency checks (CI/pre-push)
 │   │   ├── requirements.txt
 │   │   ├── requirements-dev.txt
 │   │   └── tests/

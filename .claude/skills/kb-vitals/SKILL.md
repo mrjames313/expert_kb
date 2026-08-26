@@ -20,9 +20,9 @@ Scans state and surfaces the next actions to keep the workflow healthy — each 
    python _framework/tools/kb_vitals.py
    ```
 
-2. **Present it next-actions-first.** Show the human block first (project-wide decisions/acks — the blocking ones), then the role block (current area). Lead with what to *do*, not raw counts. If a section is clean, say so briefly.
+2. **Show its output verbatim.** The tool already formats the result (human block, then role block, each with the command to run). **Reproduce that output as-is in a fenced code block** — do not re-narrate, re-order, or summarize it. The point is that the human sees the actual tool output, not your paraphrase.
 
-3. **Offer to act, don't auto-act.** Each vital names a command. Offer to run the most pressing one (e.g. `/wrap-up` if pulse is over cap, or walk through the "Awaiting your ack" pages), but let the human choose. Don't start resolving items unprompted.
+3. **Add one line, then offer to act.** Below the output, add at most a single line pointing at the most pressing item, then offer to run it (e.g. "Want me to run `/wrap-up`?"). Let the human choose — don't start resolving items unprompted.
 
 ## Notes
 

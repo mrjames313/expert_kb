@@ -24,3 +24,8 @@ lint:
 prune:
   full_tier_stale_sessions: 10
   frontmatter_tier_stale_sessions: 30
+kb_vitals:
+  # /kb-vitals nudges a role restart when the live session context exceeds this
+  # many tokens. Absolute (the context window isn't reliably detectable) — tune
+  # to your window; a 200k-window client auto-compacts well before this.
+  context_restart_threshold_tokens: 400000

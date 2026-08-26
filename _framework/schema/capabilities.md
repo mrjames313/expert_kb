@@ -31,7 +31,7 @@ This is the **single source of truth** for the baseline skill set — the skills
 
 ```
 start, ingest, ask, plan, implement, replan, wrap-up, check,
-propose-promotion, promote, amend-commons, framework, budget, add-area
+propose-promotion, promote, amend-commons, framework, budget, add-area, kb-vitals
 ```
 
 When you ship a new always-available skill, add it here and nowhere else. Capability-gated skills are **not** in this list — they activate with their capability (see each capability's "Role file edits" below and spec.md §15):

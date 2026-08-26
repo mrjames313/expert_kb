@@ -73,6 +73,7 @@ project-root/
 │   │   ├── framework.py
 │   │   ├── framework_check.py          # hard-edge self-consistency checks (CI/pre-push)
 │   │   ├── session_state.py            # _session.json read/write + transcript tokens
+│   │   ├── kb_vitals.py                # /kb-vitals: state + next-actions scan
 │   │   ├── requirements.txt
 │   │   ├── requirements-dev.txt
 │   │   └── tests/
@@ -138,6 +139,7 @@ project-root/
         ├── check/SKILL.md
         ├── propose-promotion/SKILL.md
         ├── promote/SKILL.md
+        ├── kb-vitals/SKILL.md
         └── (capability-gated skills, see section 15)
 ```
 
@@ -846,6 +848,7 @@ Each skill is a Claude Code Agent Skill with a `SKILL.md`. Skills can be invoked
 | `check` | Run lint; display findings; surface shadow-rule suggestions. |
 | `budget` | Report estimated context cost of role preloads and recent session telemetry; identify heavy paths and pruning candidates. |
 | `add-area` | Walk the human through creating a new area or sub-area: directory structure, brief, pulse template, roles, and any parent-area role file updates. |
+| `kb-vitals` | Scan operational state → next actions: human vitals (decisions/acks, project-wide) + role vitals (current area hygiene, incl. a stale/bloated-session restart nudge). Reads `_session.json`; runs no lint. |
 
 **Capability-gated:**
 

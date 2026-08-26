@@ -247,6 +247,13 @@ whose release is newer than your version.
   Code arrives on pull. **One manual step:** `.gitignore` is not pulled, so add `/_session.json`
   to your project's `.gitignore` (it holds per-session, per-machine runtime state and must not
   be committed). No other action — nothing reads the file yet except `session_state.py show`.
+- **New `/kb-vitals` skill — operational state + next actions.** `kb_vitals.py` scans human
+  vitals (INBOX "Needs decision", commons pages awaiting review, proposals ready to promote —
+  project-wide) and role vitals (wrap-up due, pulse over-cap, blocked/complete specs, a
+  restart nudge when the live session context passes `kb_vitals.context_restart_threshold_tokens`
+  or a preloaded page changed since you adopted). Reads `_session.json`; runs no lint. Always-
+  available skill — code/skill arrive on pull. Optional: set `kb_vitals.context_restart_threshold_tokens`
+  in your `config.yml` (default 400000; tune to your context window).
 
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).

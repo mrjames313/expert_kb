@@ -72,6 +72,7 @@ project-root/
 │   │   ├── telemetry.py
 │   │   ├── framework.py
 │   │   ├── framework_check.py          # hard-edge self-consistency checks (CI/pre-push)
+│   │   ├── session_state.py            # _session.json read/write + transcript tokens
 │   │   ├── requirements.txt
 │   │   ├── requirements-dev.txt
 │   │   └── tests/
@@ -140,7 +141,7 @@ project-root/
         └── (capability-gated skills, see section 15)
 ```
 
-**Underscore convention.** A single `_framework/` directory holds all infrastructure. Project content has no underscore prefix (`commons`, `areas`, `roles`, `specs`, `kb`, `raw`, `code`, `data`, `exchanges`). Two exceptions: `_proposed/` inside `commons/` (workflow artifact; "do not write directly") and `_journal/` per area (transient working records; written through skills, not by hand).
+**Underscore convention.** A single `_framework/` directory holds all infrastructure. Project content has no underscore prefix (`commons`, `areas`, `roles`, `specs`, `kb`, `raw`, `code`, `data`, `exchanges`). Exceptions: `_proposed/` inside `commons/` (workflow artifact; "do not write directly"), `_journal/` per area (transient working records; written through skills, not by hand), and `_session.json` at the repo root (git-ignored per-session runtime state — adopted role/area, session id, transcript path, context tokens; written by `/start` and the session-start hook, read by `/kb-vitals`).
 
 **Areas nest.** Sub-specialties (e.g., `areas/research/optics/`) have the same internal shape as parents. Explicit inheritance — role files in the child explicitly reference parent paths in preload lists.
 

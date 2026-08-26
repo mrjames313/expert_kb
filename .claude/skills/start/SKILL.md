@@ -30,10 +30,13 @@ Picks a role, loads its preload context, records a session_start telemetry event
 
    Lines wrapped in `# capability: X` / `# end capability: X` markers are conditional. Only load them if capability `X` is enabled in `_framework/config.yml`.
 
-4. **Record telemetry.** Run:
+4. **Record telemetry and session state.** Run:
    ```
    python _framework/tools/telemetry.py session-start --role <path-to-role.md>
+   python _framework/tools/session_state.py adopt --role <role-name> --area <area-path>
    ```
+   The second line records the adopted role/area (and an adoption timestamp) in the git-ignored `_session.json`, so `/kb-vitals` can scope its role checks and detect a stale/bloated session. `<area-path>` is the role's area (`areas/<area>`, or `commons` for the coordinator). This is the authoritative writer — it overwrites whatever the session-start hook left, so it's correct even when hooks didn't fire.
+
    Show the user the preload cost in the telemetry output. If it's much higher than expected, suggest `/budget` to investigate.
 
 5. **Orient to current state.** From the role's area:

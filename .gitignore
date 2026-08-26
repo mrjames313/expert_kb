@@ -32,6 +32,10 @@ desktop.ini
 # Telemetry is per-clone, not committed
 _framework/telemetry/
 
+# Session runtime state (per-session role/area/context; written by /start and the
+# session-start hook, never committed)
+/_session.json
+
 # Claude Code settings: keep settings.json (project hooks config) and
 # skills/ (the framework's skills) but ignore per-machine local overrides
 # and session state.

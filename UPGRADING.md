@@ -238,6 +238,16 @@ whose release is newer than your version.
   `python _framework/tools/framework_check.py`); no effect on a running project — it degrades
   gracefully when its inputs (e.g. `UPGRADING.md`) are absent. Code-only — arrives on pull.
 
+**Release 2026-08-26**
+
+- **Session state file (`_session.json`) — foundation for `/kb-vitals`.** New
+  `session_state.py` + wiring records the adopted role/area, session id, transcript path, and
+  session-start time in a git-ignored `_session.json` at the repo root: `/start` writes it,
+  the session-start hook resets/stamps it on a new session, and (soon) `/kb-vitals` reads it.
+  Code arrives on pull. **One manual step:** `.gitignore` is not pulled, so add `/_session.json`
+  to your project's `.gitignore` (it holds per-session, per-machine runtime state and must not
+  be committed). No other action — nothing reads the file yet except `session_state.py show`.
+
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).
 

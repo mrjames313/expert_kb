@@ -112,7 +112,7 @@ def _generate_areas_index(repo_root: Path) -> str:
     # Areas
     for area_dir in sorted(iter_areas(repo_root)):
         area_rel = area_dir.relative_to(repo_root)
-        depth = len(area_rel.parts) - 1  # areas/X = depth 0, areas/X/Y = depth 1
+        depth = len(area_rel.parts) - 2  # areas/X = depth 0, areas/X/Y = depth 1
         prefix = "#" * (3 + depth)  # h3 for top-level area, h4 for sub-area, etc.
         lines.append(f"{prefix} {area_rel}/")
         summary = _read_brief_summary(area_dir / "brief.md")

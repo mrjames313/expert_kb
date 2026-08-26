@@ -293,7 +293,7 @@ Capability-specific change lists are described declaratively in `_framework/sche
 ```yaml
 # _framework/config.yml
 
-framework_version: 2026-08-15   # illustrative; the live value in _framework/config.yml is authoritative and is bumped per release (see maintaining.md → "Releasing a framework change")
+framework_version: 2026-08-15   # illustrative; the live value in _framework/config.yml is authoritative, bumped on each framework upgrade
 
 capabilities:
   multi_area: false
@@ -812,7 +812,7 @@ Rule 20. Commons drift (source updated after the commons page's aligned_on; also
 Rule 21. Commons twin-link preference (commons page cites an area page that has a twin).
 ```
 
-**Shadow behavior (not implemented; under reconsideration).** The original design had disabled rules run silently, accumulate trigger counts, and surface a "consider enabling" suggestion past `shadow_suggest_threshold`. That isn't built — warning rules self-gate instead — and it may be dropped as noise-without-value. Only Rules 20–21 are implemented among the configurable set. See `future-work.md`.
+**Shadow behavior (not implemented; under reconsideration).** The original design had disabled rules run silently, accumulate trigger counts, and surface a "consider enabling" suggestion past `shadow_suggest_threshold`. That isn't built — warning rules self-gate instead — and it may be dropped as noise-without-value. Rules 10, 20, and 21 are the implemented members of the configurable set; the shadow decision remains open in the framework repo's backlog.
 
 **Activity-based thresholds.** All time thresholds use git-log-derived active days, computed via `_framework/tools/activity_days.py`.
 

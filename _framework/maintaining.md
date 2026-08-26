@@ -19,6 +19,8 @@ Author-facing notes for evolving the Expert Coordination framework itself. This 
 
 Rule of thumb: if a change would make the §2 tree or any protocol section wrong, the change isn't done until spec.md is fixed too. Treat spec.md as documentation that must be re-derived from reality — nothing else will catch the drift.
 
+**Don't reference template-only files from pulled docs.** `SETUP.md`, `UPGRADING.md`, `_framework/future-work.md`, and `_framework/maintaining.md` are deleted at bootstrap (SETUP.md Step 6) and are *not* pulled on upgrade, so a live project never has them. A pulled doc (`spec.md`, `_framework/schema/*.md`, `CLAUDE.md`, `.claude/skills/*`) that links one by local path leaves a dangling reference in every project. Keep such statements self-contained (say "tracked in the framework repo's backlog", not "see `future-work.md`"). This is a grep-checkable edge — a natural first hard check for the doc-dependency-graph idea in `future-work.md`.
+
 ## Skills must match their schema docs
 
 Skills (`.claude/skills/*/SKILL.md`) are runbooks that implement the schema docs (`_framework/schema/*.md`, `CLAUDE.md`, the spec-template). Nothing enforces their agreement, and when they drift the *skill* is what an agent actually follows — so a skill that contradicts its schema causes real damage. CLAUDE.md tells agents "schema wins," but that only helps if they cross-check.

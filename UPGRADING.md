@@ -222,6 +222,17 @@ whose release is newer than your version.
   no checkbox, so specs authored from it are already correct). Code/skills arrive on pull; only
   the `tasks.md` conversion is manual.
 
+**Release 2026-08-25**
+
+- **`areas-index.md` heading levels fixed (Rule 15).** Top-level areas were rendered as `####`
+  (h4) under the `##` commons heading, skipping h3, due to an off-by-one in the index
+  generator. Now `###` for a top-level area, `####` for a sub-area. Code-only — the next lint
+  run regenerates `areas-index.md` with corrected levels; no manual action.
+- **Dangling references to template-only files removed.** `spec.md` and `lint-rules.md`
+  referenced `future-work.md`/`maintaining.md` by local path — files deleted at bootstrap, so
+  the links dangled in every live project. Rephrased to self-contained wording. Doc-only —
+  arrives on pull.
+
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).
 

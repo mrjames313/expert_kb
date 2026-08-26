@@ -124,4 +124,4 @@ For in-flight events not yet committed (e.g., `_journal/pulse.log` entries), the
 
 A configurable-visibility rule is **off by default** and **self-gates**: when its `lint.warnings_visible.<rule>` flag is false it returns no findings. Enable it with `/framework enable-lint <rule>`.
 
-The originally-designed *shadow* behavior — run every rule silently, accumulate trigger counts, and suggest enabling one past `shadow_suggest_threshold` — is **not implemented and under reconsideration** (it may add noise without clear value; see `future-work.md`). Until that's decided, `shadow_suggest_threshold` in `config.yml` is inert, and Rules 10, 20, and 21 are the implemented members of the configurable set.
+The originally-designed *shadow* behavior — run every rule silently, accumulate trigger counts, and suggest enabling one past `shadow_suggest_threshold` — is **not implemented and under reconsideration** (it may add noise without clear value; the decision is tracked in the framework repo's backlog). Until that's decided, `shadow_suggest_threshold` in `config.yml` is inert, and Rules 10, 20, and 21 are the implemented members of the configurable set.

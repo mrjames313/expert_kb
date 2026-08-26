@@ -606,6 +606,21 @@ class TestRule15Index:
         content = idx.read_text()
         assert "research" in content
         assert "investigate optical noise" in content
+        # Top-level area renders as h3 (### areas/research/), not h4 — no skipped
+        # heading level under the ## commons heading.
+        assert "### areas/research/" in content
+        assert "#### areas/research/" not in content
+
+    def test_sub_area_renders_one_level_deeper(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        sub = tmp_path / "areas" / "research" / "optics"
+        sub.mkdir(parents=True)
+        (tmp_path / "areas" / "research" / "brief.md").write_text("# Research\n\nParent.\n")
+        (sub / "brief.md").write_text("# Optics\n\nSub-area.\n")
+        rule_15_index.check(tmp_path, DEFAULT_CONFIG)
+        content = (tmp_path / "areas-index.md").read_text()
+        assert "### areas/research/" in content            # parent at h3
+        assert "#### areas/research/optics/" in content     # sub-area at h4
 
     def test_generates_kb_index(self, tmp_path: Path) -> None:
         make_minimal_repo(tmp_path)

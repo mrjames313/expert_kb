@@ -303,6 +303,37 @@ The skills now tell agents to consult `when_to_load` before opening a body. Ther
 
 Two related feature ideas (logged 2026-08-25). Shared theme: the framework is currently **pull** — the operator must remember to run `/check`, `/wrap-up`, ack promotions, close stale exchanges, commit before upgrading. That's the "read-and-remember" cognitive-overhead archetype. These make state **visible** and nudge best-practice workflow adherence instead of relying on memory. The two compose: the doctor's scan (entry 2) feeds the status line's indicator (entry 1).
 
+### Per-session state files — concurrency fix — READY TO BUILD
+
+**Spec written 2026-08-26 with full context, to build from a fresh session** (this session hit ~690k tokens — the exact restart case the tool flags; a clean context will do the multi-file refactor more reliably).
+
+**Problem.** `_session.json` is a single repo-global file. Two Claude Code sessions in the same repo (e.g. a `researcher` and a `reviewer`) overwrite each other's `role`/`area`/`started_at`/`transcript_path` — so `/kb-vitals` and the status line read the wrong session's state. Silent.
+
+**Decisive fact (verified 2026-08-26).** `CLAUDE_CODE_SESSION_ID` is exported into agent-invoked Bash (observed value `7af3d44e-…`, maps exactly to `~/.claude/projects/<munged-cwd>/<id>.jsonl`). So every consumer can key on its own session id: **agent tools** (`/start`, `/kb-vitals`) via the env var; **hooks + statusline** via the payload `session_id`.
+
+**Design.** Shard into per-session files: **`_session/<session_id>.json`** (git-ignored directory). No shared write target → no races, no locking. *Rejected:* sections in one file (concurrent writes to one file race; locking wouldn't fix the logical clobber). *Rejected:* PID files (session id is stabler and maps to the transcript).
+
+**Starting state (what exists today, single-file):** `session_state.py` has `session_path(repo_root)`, `read/write/adopt/new_session/reset`, `context_tokens(repo_root, *, fast, cwd, session_id)`, `transcript_for_session(cwd, session_id)`, `transcript_tokens[_tail]`. Consumers: `statusline.py` (payload), `kb_vitals.py` (`context_tokens(repo_root)`), `/start` skill step 4 (`session_state.py adopt --role --area`), `session-start.sh` (pipes payload → `new-session`), `session-end.sh` (telemetry/pulse). `.gitignore` ignores `/_session.json`.
+
+**Exact changes:**
+- `session_state.py`: add `current_session_id()` = `os.environ.get("CLAUDE_CODE_SESSION_ID")`; add `_resolve_sid(session_id)` = `session_id or current_session_id() or "default"`; `session_path(repo_root, session_id=None)` → `repo_root/"_session"/f"{_resolve_sid(session_id)}.json"`; thread `session_id=None` through `read`/`write`/`adopt`/`new_session`/`reset`/`context_tokens` (each resolves via `_resolve_sid`); `write` must `mkdir(parents=True, exist_ok=True)`; add `sweep_stale(repo_root, max_age_days=7) -> int` (delete `_session/*.json` older than N days by mtime). CLI: add `--session-id` (default env) to the subcommands; add a `sweep` subcommand.
+- `statusline.py`: pass `session_id=payload.get("session_id")` to `ss.read(...)` and `ss.context_tokens(...)`.
+- `kb_vitals.py`: read with `session_id=ss.current_session_id()` in `role_vitals` (`ss.read`) and `_context_vital` (`ss.context_tokens`).
+- `/start` skill: `adopt` already defaults session id to the env var — just document that it keys on `$CLAUDE_CODE_SESSION_ID`.
+- `session-start.sh`: after `new-session`, also run `session_state.py sweep` (or fold sweep into `new-session`).
+- `session-end.sh`: remove this session's file (pipe payload → a `clear` that resolves the payload's session_id). Best-effort.
+- `.gitignore`: `/_session.json` → `/_session/`.
+
+**Tests:** update `test_session_state.py`/`test_statusline.py`/`test_kb_vitals.py` to pass explicit `session_id=` (don't depend on env). Add: two session ids don't collide (write A, write B, read A intact); `sweep_stale` removes old, keeps fresh; `current_session_id` reads env (monkeypatch).
+
+**Migration (UPGRADING, Release <build-day>):** `.gitignore` isn't pulled — change `/_session.json` → `/_session/` by hand; delete the orphaned `_session.json` (harmless). Code arrives on pull.
+
+**Release discipline:** pulled machinery → bump `framework_version` + Release entry + `framework_check` clean.
+
+**Gotchas:** (1) Context reconstruction still needs the *session cwd*, which agent tools can't get — this refactor fixes **concurrency**, not the hookless-context-None case; agent tools rely on the hook-recorded `transcript_path` in their per-session file, and the env session id just lets them find the *right* file. (2) `"default"` fallback when the env var is absent (dev/non-Claude) is fine; tests pass explicit ids. (3) No external callers of the single-file API exist outside these tools.
+
+**Verify:** two shells with different `CLAUDE_CODE_SESSION_ID`, `adopt` different roles, confirm two independent `_session/<id>.json`; statusline with two payload session_ids shows each its own state.
+
 ### Framework status line (at-a-glance state)
 
 **Shipped (2026-08-26):** `statusline.py` + `statusline.sh` + the `statusLine` key in `.claude/settings.json`. Renders `<project> · <role@area | (no role)> · <⚠N | ✓> · ctx <N>k[!]` — role/area from `_session.json`, pending-human count from INBOX (cheap), context tokens via a tail-read (measured ~26ms on a 12MB transcript), `!` past the restart threshold. Verified live. **Remaining:** show active capabilities in the line; a richer indicator once framework vitals exist; and (if per-render cost ever bites) a cached snapshot refreshed on a turn-cadence hook instead of the current self-contained cheap reads.

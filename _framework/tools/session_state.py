@@ -173,32 +173,46 @@ def transcript_tokens_tail(transcript_path, tail_bytes: int = 65536) -> int | No
     return _scan_usage(chunk.decode("utf-8", errors="replace"))
 
 
-def find_current_transcript(repo_root: Path) -> Path | None:
-    """Best-effort locate this session's transcript without a hook: Claude Code
-    stores transcripts at ~/.claude/projects/<munged-cwd>/<session>.jsonl, munging
-    non-alphanumeric chars in the path to '-'. Return the most recently modified
-    .jsonl there (the active session's). None if the dir/files aren't found.
+def transcript_for_session(cwd, session_id) -> Path | None:
+    """The *exact* transcript path for a session. Claude Code stores it at
+    ~/.claude/projects/<munged-cwd>/<session_id>.jsonl, munging non-alphanumeric
+    chars in the **session cwd** (the launch directory — NOT the repo root, which
+    can differ) to '-'. Deterministic: keyed on session identity, so no mtime
+    guessing and no cross-session ambiguity. None if cwd/session_id are missing or
+    the file doesn't exist.
+
+    (Both inputs come from Claude Code's payload — the hook/status-line stdin. A
+    caller without them cannot determine the transcript and should get None rather
+    than a guess: guessing from the repo root read an unrelated session's context.)
     """
-    munged = re.sub(r"[^a-zA-Z0-9]", "-", str(Path(repo_root).resolve()))
-    proj_dir = Path.home() / ".claude" / "projects" / munged
-    if not proj_dir.is_dir():
+    if not cwd or not session_id:
         return None
-    transcripts = list(proj_dir.glob("*.jsonl"))
-    if not transcripts:
-        return None
-    return max(transcripts, key=lambda p: p.stat().st_mtime)
+    munged = re.sub(r"[^a-zA-Z0-9]", "-", str(cwd))
+    path = Path.home() / ".claude" / "projects" / munged / f"{session_id}.jsonl"
+    return path if path.is_file() else None
 
 
-def context_tokens(repo_root: Path, *, fast: bool = False) -> int | None:
-    """Current context size for this session. Prefers the transcript recorded by
-    the hook; falls back to locating the active transcript on disk. `fast=True`
-    tail-reads (for the per-render status line); default reads the whole file."""
+def context_tokens(
+    repo_root: Path, *, fast: bool = False, cwd=None, session_id=None
+) -> int | None:
+    """Current context size for this session, or None if it can't be determined
+    from an authoritative source. Never guesses — a wrong number is worse than none.
+
+    Order: (1) the transcript path recorded in `_session.json` by the hook;
+    (2) the exact path reconstructed from `cwd` + `session_id` when a caller
+    supplies them (from Claude Code's payload). `fast=True` tail-reads (per-render
+    status line); default reads the whole file (on-demand `/kb-vitals`).
+    """
     reader = transcript_tokens_tail if fast else transcript_tokens
     recorded = read(repo_root).get("transcript_path")
-    tokens = reader(recorded) if recorded else None
-    if tokens is not None:
-        return tokens
-    return reader(find_current_transcript(repo_root))
+    if recorded:
+        tokens = reader(recorded)
+        if tokens is not None:
+            return tokens
+    exact = transcript_for_session(cwd, session_id)
+    if exact is not None:
+        return reader(exact)
+    return None
 
 
 # --- CLI (used by /start and the session-start hook) ---

@@ -83,7 +83,15 @@ def build_line(repo_root: Path, payload: dict) -> str:
     who = f"{role}@{area_short}" if role and area_short else (role or "(no role)")
 
     tpath = payload.get("transcript_path")
-    tokens = ss.transcript_tokens_tail(tpath) if tpath else ss.context_tokens(repo_root, fast=True)
+    if tpath:
+        tokens = ss.transcript_tokens_tail(tpath)
+    else:
+        # No transcript in the payload — reconstruct the exact path from session
+        # identity (cwd + session_id), never guess from the repo root.
+        tokens = ss.context_tokens(
+            repo_root, fast=True,
+            cwd=payload.get("cwd"), session_id=payload.get("session_id"),
+        )
 
     parts = [repo_root.name, who]
     pending = _pending_human(repo_root)

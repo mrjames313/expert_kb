@@ -99,31 +99,50 @@ class TestContextTokens:
         ss.write(tmp_path, transcript_path=str(p))
         assert ss.context_tokens(tmp_path) == 204
 
-    def test_none_when_no_transcript_anywhere(self, tmp_path: Path, monkeypatch) -> None:
-        # No recorded path; point HOME at an empty dir so find_current_transcript misses.
-        monkeypatch.setenv("HOME", str(tmp_path / "fakehome"))
+    def test_none_when_no_authoritative_source(self, tmp_path: Path) -> None:
+        # No recorded path and no cwd/session_id → None (never guesses from disk).
         assert ss.context_tokens(tmp_path) is None
+        assert ss.context_tokens(tmp_path, cwd="/some/where") is None  # missing session_id
 
-
-class TestFindCurrentTranscript:
-    def test_picks_newest_in_munged_dir(self, tmp_path: Path, monkeypatch) -> None:
+    def test_reconstructs_from_cwd_and_session_id(self, tmp_path: Path, monkeypatch) -> None:
+        import re
         home = tmp_path / "home"
         monkeypatch.setenv("HOME", str(home))
-        repo = tmp_path / "proj"
-        repo.mkdir()
-        import re
-        munged = re.sub(r"[^a-zA-Z0-9]", "-", str(repo.resolve()))
-        proj_dir = home / ".claude" / "projects" / munged
-        proj_dir.mkdir(parents=True)
-        old = proj_dir / "old.jsonl"
-        new = proj_dir / "new.jsonl"
-        old.write_text("{}\n")
-        new.write_text("{}\n")
-        import os
-        os.utime(old, (1000, 1000))
-        os.utime(new, (2000, 2000))
-        assert ss.find_current_transcript(repo) == new
+        cwd = "/launch/dir"
+        sid = "sess-abc"
+        munged = re.sub(r"[^a-zA-Z0-9]", "-", cwd)
+        proj = home / ".claude" / "projects" / munged
+        proj.mkdir(parents=True)
+        (proj / f"{sid}.jsonl").write_text(json.dumps({
+            "type": "assistant",
+            "message": {"usage": {"input_tokens": 4,
+                                  "cache_creation_input_tokens": 0,
+                                  "cache_read_input_tokens": 200}},
+        }) + "\n")
+        assert ss.context_tokens(tmp_path, cwd=cwd, session_id=sid) == 204
 
-    def test_none_when_dir_absent(self, tmp_path: Path, monkeypatch) -> None:
-        monkeypatch.setenv("HOME", str(tmp_path / "empty"))
-        assert ss.find_current_transcript(tmp_path / "proj") is None
+
+class TestTranscriptForSession:
+    def test_exact_path_keyed_on_cwd_not_repo(self, tmp_path: Path, monkeypatch) -> None:
+        """Regression: keyed on the session cwd (munged) + session id — not the
+        repo root, and not an mtime guess among sibling transcripts."""
+        import re
+        home = tmp_path / "home"
+        monkeypatch.setenv("HOME", str(home))
+        cwd = "/Users/x/projects"          # session launched in a parent dir
+        sid = "the-session"
+        proj = home / ".claude" / "projects" / re.sub(r"[^a-zA-Z0-9]", "-", cwd)
+        proj.mkdir(parents=True)
+        target = proj / f"{sid}.jsonl"
+        target.write_text("{}\n")
+        # A sibling dir (repo-root-derived) with a newer, foreign transcript.
+        other = home / ".claude" / "projects" / "-Users-x-projects-myrepo"
+        other.mkdir(parents=True)
+        (other / "foreign.jsonl").write_text("{}\n")
+        assert ss.transcript_for_session(cwd, sid) == target
+
+    def test_none_without_identity_or_file(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setenv("HOME", str(tmp_path / "h"))
+        assert ss.transcript_for_session(None, "s") is None
+        assert ss.transcript_for_session("/c", None) is None
+        assert ss.transcript_for_session("/c", "missing") is None  # file absent

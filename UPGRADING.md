@@ -261,6 +261,13 @@ whose release is newer than your version.
   `statusLine` block to yours:
   `"statusLine": { "type": "command", "command": "bash $CLAUDE_PROJECT_DIR/_framework/hooks/statusline.sh" }`.
   Like the hooks, it activates on the next launch after the setting is present.
+- **Fix: context size no longer read from the wrong session.** The context-token fallback
+  munged the repo root to locate the transcript, but Claude Code keys it on the session cwd —
+  so when they differ (launched from a parent dir, or the hook-less install session) it read a
+  *foreign* session's context and showed it as authoritative. It now reconstructs the exact
+  path from session identity (cwd + session_id) or returns nothing — never guesses. Code-only,
+  arrives on pull; the status line and `/kb-vitals` simply show no `ctx` figure until an
+  authoritative source exists (hook-recorded transcript, or the status-line payload).
 
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).

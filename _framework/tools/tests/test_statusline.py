@@ -35,6 +35,15 @@ class TestBuildLine:
         ss.adopt(tmp_path, "researcher", "areas/research")
         assert "researcher@research" in build_line(tmp_path, {})
 
+    def test_each_session_sees_its_own_role(self, tmp_path: Path) -> None:
+        """Two sessions in one repo: each status line reads its own state file,
+        keyed on the payload's session_id."""
+        make_minimal_repo(tmp_path)
+        ss.adopt(tmp_path, "researcher", "areas/research", session_id="sess-a")
+        ss.adopt(tmp_path, "reviewer", "areas/engineering", session_id="sess-b")
+        assert "researcher@research" in build_line(tmp_path, {"session_id": "sess-a"})
+        assert "reviewer@engineering" in build_line(tmp_path, {"session_id": "sess-b"})
+
     def test_pending_human_count(self, tmp_path: Path) -> None:
         make_minimal_repo(tmp_path)
         (tmp_path / "INBOX.md").write_text(

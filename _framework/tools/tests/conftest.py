@@ -17,6 +17,15 @@ TOOLS_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(TOOLS_DIR))
 
 
+@pytest.fixture(autouse=True)
+def _no_ambient_session_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Session state is keyed on `$CLAUDE_CODE_SESSION_ID`, which is set whenever
+    the suite runs inside Claude Code. Drop it so tests key on the `default`
+    fallback (or an id they set themselves) rather than on the runner's session.
+    """
+    monkeypatch.delenv("CLAUDE_CODE_SESSION_ID", raising=False)
+
+
 @pytest.fixture
 def git_repo(tmp_path: Path) -> Path:
     """Create an empty git repo in tmp_path. Returns the repo root."""

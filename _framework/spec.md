@@ -72,7 +72,7 @@ project-root/
 │   │   ├── telemetry.py
 │   │   ├── framework.py
 │   │   ├── framework_check.py          # hard-edge self-consistency checks (CI/pre-push)
-│   │   ├── session_state.py            # _session.json read/write + transcript tokens
+│   │   ├── session_state.py            # _session/<id>.json read/write + transcript tokens
 │   │   ├── kb_vitals.py                # /kb-vitals: state + next-actions scan
 │   │   ├── statusline.py               # compact Claude Code status line (per render)
 │   │   ├── requirements.txt
@@ -144,7 +144,7 @@ project-root/
         └── (capability-gated skills, see section 15)
 ```
 
-**Underscore convention.** A single `_framework/` directory holds all infrastructure. Project content has no underscore prefix (`commons`, `areas`, `roles`, `specs`, `kb`, `raw`, `code`, `data`, `exchanges`). Exceptions: `_proposed/` inside `commons/` (workflow artifact; "do not write directly"), `_journal/` per area (transient working records; written through skills, not by hand), and `_session.json` at the repo root (git-ignored per-session runtime state — adopted role/area, session id, transcript path, context tokens; written by `/start` and the session-start hook, read by `/kb-vitals`).
+**Underscore convention.** A single `_framework/` directory holds all infrastructure. Project content has no underscore prefix (`commons`, `areas`, `roles`, `specs`, `kb`, `raw`, `code`, `data`, `exchanges`). Exceptions: `_proposed/` inside `commons/` (workflow artifact; "do not write directly"), `_journal/` per area (transient working records; written through skills, not by hand), and `_session/` at the repo root (git-ignored runtime state, **one file per session**: `_session/<session-id>.json` holds that session's adopted role/area, session id, transcript path, and context tokens; written by `/start` and the session-start hook, read by `/kb-vitals` and the status line). Sharding on the Claude session id keeps concurrent sessions in one repo — each with its own adopted role — from overwriting each other; consumers key on `$CLAUDE_CODE_SESSION_ID` (agent tools) or the `session_id` in their hook/status-line payload. Files from dead sessions are swept at session start.
 
 **Areas nest.** Sub-specialties (e.g., `areas/research/optics/`) have the same internal shape as parents. Explicit inheritance — role files in the child explicitly reference parent paths in preload lists.
 
@@ -849,7 +849,7 @@ Each skill is a Claude Code Agent Skill with a `SKILL.md`. Skills can be invoked
 | `check` | Run lint; display findings; surface shadow-rule suggestions. |
 | `budget` | Report estimated context cost of role preloads and recent session telemetry; identify heavy paths and pruning candidates. |
 | `add-area` | Walk the human through creating a new area or sub-area: directory structure, brief, pulse template, roles, and any parent-area role file updates. |
-| `kb-vitals` | Scan operational state → next actions: human vitals (decisions/acks, project-wide) + role vitals (current area hygiene, incl. a stale/bloated-session restart nudge). Reads `_session.json`; runs no lint. |
+| `kb-vitals` | Scan operational state → next actions: human vitals (decisions/acks, project-wide) + role vitals (current area hygiene, incl. a stale/bloated-session restart nudge). Reads this session's `_session/<session-id>.json`; runs no lint. |
 
 **Capability-gated:**
 

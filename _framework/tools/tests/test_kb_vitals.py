@@ -85,6 +85,26 @@ class TestRoleVitals:
         assert any("context ~" in v.message for v in vitals)
         assert any("no role adopted" in v.message for v in vitals)
 
+    def test_scopes_to_this_session_not_a_concurrent_one(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Role vitals key on $CLAUDE_CODE_SESSION_ID: a second session's adopted
+        role in the same repo must not scope this session's checks."""
+        make_minimal_repo(tmp_path)
+        _setup_area(tmp_path)
+        (tmp_path / "areas/research/_journal/pulse.log").write_text("## [x] decision r\nfoo\n")
+        ss.adopt(tmp_path, "researcher", "areas/research", session_id="sess-a")
+        ss.adopt(tmp_path, "reviewer", "areas/engineering", session_id="sess-b")
+
+        monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "sess-a")
+        assert any("uncompacted pulse.log" in m
+                   for m in _msgs(kv.role_vitals(tmp_path, _CONFIG), "role"))
+
+        monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "sess-b")
+        # sess-b is in an area with no pulse.log of its own — nothing to compact.
+        assert not any("uncompacted pulse.log" in m
+                       for m in _msgs(kv.role_vitals(tmp_path, _CONFIG), "role"))
+
     def test_wrapup_due(self, tmp_path: Path) -> None:
         make_minimal_repo(tmp_path)
         _setup_area(tmp_path)

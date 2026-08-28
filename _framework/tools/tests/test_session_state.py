@@ -15,7 +15,9 @@ class TestReadWrite:
         assert ss.read(tmp_path) == {}
 
     def test_read_malformed_is_empty(self, tmp_path: Path) -> None:
-        ss.session_path(tmp_path).write_text("not json{")
+        path = ss.session_path(tmp_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("not json{")
         assert ss.read(tmp_path) == {}
 
     def test_write_merges(self, tmp_path: Path) -> None:
@@ -30,6 +32,82 @@ class TestReadWrite:
         ss.write(tmp_path, last_wrapup_at=None)
         assert "last_wrapup_at" not in ss.read(tmp_path)
 
+    def test_write_creates_the_session_dir(self, tmp_path: Path) -> None:
+        ss.write(tmp_path, role="researcher")
+        assert ss.session_dir(tmp_path).is_dir()
+
+
+class TestSessionKeying:
+    def test_two_sessions_do_not_collide(self, tmp_path: Path) -> None:
+        """The bug this sharding fixes: a second session used to clobber the first."""
+        ss.adopt(tmp_path, "researcher", "areas/research", session_id="sess-a")
+        ss.adopt(tmp_path, "reviewer", "areas/engineering", session_id="sess-b")
+        assert ss.read(tmp_path, "sess-a")["role"] == "researcher"
+        assert ss.read(tmp_path, "sess-a")["area"] == "areas/research"
+        assert ss.read(tmp_path, "sess-b")["role"] == "reviewer"
+
+    def test_reset_only_drops_its_own_session(self, tmp_path: Path) -> None:
+        ss.adopt(tmp_path, "researcher", "areas/research", session_id="sess-a")
+        ss.adopt(tmp_path, "reviewer", "areas/engineering", session_id="sess-b")
+        ss.reset(tmp_path, session_id="sess-a")
+        assert ss.read(tmp_path, "sess-a") == {}
+        assert ss.read(tmp_path, "sess-b")["role"] == "reviewer"
+
+    def test_path_is_session_scoped_file(self, tmp_path: Path) -> None:
+        assert ss.session_path(tmp_path, "sess-a") == tmp_path / "_session" / "sess-a.json"
+
+    def test_defaults_to_env_session_id(self, tmp_path: Path, monkeypatch) -> None:
+        monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "from-env")
+        assert ss.current_session_id() == "from-env"
+        ss.write(tmp_path, role="researcher")  # no explicit id → this session
+        assert (tmp_path / "_session" / "from-env.json").is_file()
+        assert ss.read(tmp_path, "from-env")["role"] == "researcher"
+
+    def test_falls_back_to_default_without_env(self, tmp_path: Path) -> None:
+        assert ss.current_session_id() is None  # cleared by the autouse fixture
+        ss.write(tmp_path, role="researcher")
+        assert (tmp_path / "_session" / "default.json").is_file()
+
+    def test_session_id_is_sanitized_to_a_bare_filename(self, tmp_path: Path) -> None:
+        """The id arrives from the environment / a hook payload and becomes a path
+        component — it must not be able to escape `_session/`."""
+        path = ss.session_path(tmp_path, "../../etc/passwd")
+        assert path.parent == ss.session_dir(tmp_path)
+        assert path.name == "etc-passwd.json"
+
+
+class TestSweepStale:
+    def test_removes_old_keeps_fresh(self, tmp_path: Path) -> None:
+        import os
+        import time
+
+        ss.write(tmp_path, session_id="old", role="researcher")
+        ss.write(tmp_path, session_id="fresh", role="reviewer")
+        stale = ss.session_path(tmp_path, "old")
+        ancient = time.time() - 30 * 86400
+        os.utime(stale, (ancient, ancient))
+
+        assert ss.sweep_stale(tmp_path, max_age_days=7) == 1
+        assert not stale.exists()
+        assert ss.read(tmp_path, "fresh")["role"] == "reviewer"
+
+    def test_never_sweeps_the_current_session(self, tmp_path: Path, monkeypatch) -> None:
+        """A long-lived session's file may not have been written since /start."""
+        import os
+        import time
+
+        monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "mine")
+        ss.write(tmp_path, role="researcher")
+        mine = ss.session_path(tmp_path)
+        ancient = time.time() - 30 * 86400
+        os.utime(mine, (ancient, ancient))
+
+        assert ss.sweep_stale(tmp_path, max_age_days=7) == 0
+        assert mine.is_file()
+
+    def test_no_session_dir_is_not_an_error(self, tmp_path: Path) -> None:
+        assert ss.sweep_stale(tmp_path) == 0
+
 
 class TestAdoptAndNewSession:
     def test_adopt_stamps_role_area_time(self, tmp_path: Path) -> None:
@@ -40,9 +118,9 @@ class TestAdoptAndNewSession:
         assert state["started_at"]  # timestamp present
 
     def test_new_session_drops_role_keeps_identity(self, tmp_path: Path) -> None:
-        ss.adopt(tmp_path, "researcher", "areas/research")
+        ss.adopt(tmp_path, "researcher", "areas/research", session_id="sess-2")
         ss.new_session(tmp_path, session_id="sess-2", transcript_path="/t/x.jsonl")
-        state = ss.read(tmp_path)
+        state = ss.read(tmp_path, "sess-2")
         assert "role" not in state and "area" not in state  # reset
         assert state["session_id"] == "sess-2"
         assert state["transcript_path"] == "/t/x.jsonl"
@@ -50,8 +128,8 @@ class TestAdoptAndNewSession:
     def test_adopt_overwrites_after_new_session(self, tmp_path: Path) -> None:
         """/start is authoritative even when the hook left only session identity."""
         ss.new_session(tmp_path, session_id="sess-2", transcript_path="/t/x.jsonl")
-        ss.adopt(tmp_path, "engineer", "areas/engineering")
-        state = ss.read(tmp_path)
+        ss.adopt(tmp_path, "engineer", "areas/engineering", session_id="sess-2")
+        state = ss.read(tmp_path, "sess-2")
         assert state["role"] == "engineer"
         assert state["session_id"] == "sess-2"  # identity preserved (merge)
 

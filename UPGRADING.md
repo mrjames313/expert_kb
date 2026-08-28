@@ -269,6 +269,20 @@ whose release is newer than your version.
   arrives on pull; the status line and `/kb-vitals` simply show no `ctx` figure until an
   authoritative source exists (hook-recorded transcript, or the status-line payload).
 
+**Release 2026-08-27**
+
+- **Fix: session state is now per-session (`_session/<session-id>.json`).** The single repo-global
+  `_session.json` was a shared write target: two Claude Code sessions in one repo (say a
+  researcher and a reviewer) overwrote each other's role/area/transcript, so `/kb-vitals` and the
+  status line silently reported the *other* session's state. State is now sharded one file per
+  session under `_session/`, keyed on the Claude session id (`$CLAUDE_CODE_SESSION_ID` for agent
+  tools, the `session_id` payload field for hooks and the status line). Files from sessions that
+  ended without the end hook are swept at session start (7 days). Code arrives on pull.
+  **One manual step:** `.gitignore` is not pulled — change the `/_session.json` line you added in
+  Release 2026-08-26 to `/_session/` (or add `/_session/` if you skipped it), then delete the
+  now-orphaned `_session.json` at your repo root; it is unread and harmless, but dead. Nothing
+  else to do: the next session-start hook writes the new file, and `/start` overwrites it.
+
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).
 

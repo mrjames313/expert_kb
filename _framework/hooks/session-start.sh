@@ -25,9 +25,12 @@ cd "$REPO_ROOT"
 # --- Session state: reset role/area for the new session, stamp identity ---
 # Claude Code passes the hook a JSON payload on stdin (session_id, transcript_path,
 # source). Consume it only when piped (a real hook invocation), never when run
-# interactively for testing. Reset drops any prior role so a cleared/new session
-# has "no role adopted" until /start; the transcript stamp powers the context-length
-# signal. Best-effort — never fail the session over it.
+# interactively for testing. State lives in _session/<session-id>.json, so this
+# writes only *this* session's file and never disturbs a concurrent session's.
+# Reset drops any prior role so a cleared/new session has "no role adopted" until
+# /start; the transcript stamp powers the context-length signal. `new-session` also
+# sweeps state files left behind by sessions that ended without the end hook.
+# Best-effort — never fail the session over it.
 HOOK_JSON=""
 if [ ! -t 0 ]; then HOOK_JSON="$(cat)"; fi
 if [ -x ".venv/bin/python" ]; then PYTHON=".venv/bin/python"

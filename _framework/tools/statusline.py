@@ -75,7 +75,10 @@ def _pending_human(repo_root: Path) -> int:
 
 
 def build_line(repo_root: Path, payload: dict) -> str:
-    state = ss.read(repo_root)
+    # The payload's session_id keys this session's state file — with several
+    # sessions open in one repo, each status line must read its own.
+    sid = payload.get("session_id")
+    state = ss.read(repo_root, session_id=sid)
 
     role = state.get("role")
     area = state.get("area") or ""
@@ -89,8 +92,7 @@ def build_line(repo_root: Path, payload: dict) -> str:
         # No transcript in the payload — reconstruct the exact path from session
         # identity (cwd + session_id), never guess from the repo root.
         tokens = ss.context_tokens(
-            repo_root, fast=True,
-            cwd=payload.get("cwd"), session_id=payload.get("session_id"),
+            repo_root, fast=True, cwd=payload.get("cwd"), session_id=sid,
         )
 
     parts = [repo_root.name, who]

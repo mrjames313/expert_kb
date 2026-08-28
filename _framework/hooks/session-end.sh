@@ -21,6 +21,12 @@ fi
 
 cd "$REPO_ROOT"
 
+# Claude Code passes a JSON payload on stdin (session_id, transcript_path, reason).
+# Read it once, here, before anything else consumes stdin — it identifies which
+# session's state file to retire below. Only when piped (a real hook invocation).
+HOOK_JSON=""
+if [ ! -t 0 ]; then HOOK_JSON="$(cat)"; fi
+
 # Locate python (project venv preferred)
 if [ -x ".venv/bin/python" ]; then
   PYTHON=".venv/bin/python"
@@ -52,5 +58,10 @@ fi
 if [ -f "_framework/telemetry/.current-session" ]; then
   "$PYTHON" _framework/tools/telemetry.py session-end >/dev/null 2>&1 || true
 fi
+
+# Retire this session's state file (_session/<session-id>.json) — the id comes
+# from the payload, so a concurrent session's state is left alone. Best-effort:
+# sessions also die without this hook, which the start-of-session sweep covers.
+printf '%s' "$HOOK_JSON" | "$PYTHON" _framework/tools/session_state.py clear >/dev/null 2>&1 || true
 
 exit 0

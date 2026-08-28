@@ -5,7 +5,7 @@ each with the command to run. Powers `/kb-vitals`.
 Two scopes:
   HUMAN (project-wide, always shown): decisions/acks only the human can resolve —
     INBOX "Needs decision", commons pages awaiting review, proposals ready to promote.
-  ROLE (current area, from _session.json): the working agent's local hygiene —
+  ROLE (current area, from this session's _session/<session-id>.json): local hygiene —
     wrap-up due, pulse over-cap, restart-the-role signals (context bloat, stale
     preload), spec complete → outcome, blocked tasks, exchanges to close.
 Framework-level vitals (upgrade currency) are deferred.
@@ -132,7 +132,9 @@ def _context_vital(repo_root: Path, config: dict) -> Vital | None:
     threshold = config.get("kb_vitals", {}).get(
         "context_restart_threshold_tokens", _DEFAULT_CONTEXT_THRESHOLD
     )
-    tokens = session_state.context_tokens(repo_root)
+    tokens = session_state.context_tokens(
+        repo_root, session_id=session_state.current_session_id()
+    )
     if tokens is not None and tokens > threshold:
         return Vital(
             "role",
@@ -143,7 +145,9 @@ def _context_vital(repo_root: Path, config: dict) -> Vital | None:
 
 
 def role_vitals(repo_root: Path, config: dict) -> list[Vital]:
-    state = session_state.read(repo_root)
+    # Keyed on this session's id: a second session in the same repo has its own
+    # adopted role, and reading its state would scope these checks to the wrong area.
+    state = session_state.read(repo_root, session_id=session_state.current_session_id())
     role = state.get("role")
     area = state.get("area")
 

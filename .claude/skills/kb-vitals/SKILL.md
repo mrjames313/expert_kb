@@ -5,7 +5,7 @@ description: Show operational state and the recommended next actions — what th
 
 # /kb-vitals
 
-Scans state and surfaces the next actions to keep the workflow healthy — each with the command to run. Two scopes: **human vitals** (project-wide — things only you can resolve) and **role vitals** (the currently adopted area/role's local hygiene). Reads the adopted role/area from `_session.json` (written by `/start`), so it needs no arguments.
+Scans state and surfaces the next actions to keep the workflow healthy — each with the command to run. Two scopes: **human vitals** (project-wide — things only you can resolve) and **role vitals** (the currently adopted area/role's local hygiene). Reads the adopted role/area from this session's `_session/<session-id>.json` (written by `/start`), so it needs no arguments.
 
 ## When to use
 
@@ -29,4 +29,4 @@ Scans state and surfaces the next actions to keep the workflow healthy — each 
 - **No role adopted?** The role block will say so — run `/start` first for the role-scoped checks. Human vitals still show.
 - **Restart nudge.** When it reports the context is large, recommend a **full restart (quit + relaunch)**, not just `/clear` — `/clear` reuses the same process (and, until the hooks fix lands, the same stale hook snapshot). The token figure is read live from the session transcript.
 - **Cheap by design.** It does not run lint (`/check` does that); it reads cheap signals only. Capability-gated checks (exchanges) are silently skipped when the capability is off.
-- It reads `_session.json` and the KB; it changes nothing.
+- It reads this session's state file and the KB; it changes nothing. State is per-session, so with two sessions open in one repo each reports its own adopted role.

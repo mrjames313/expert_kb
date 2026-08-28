@@ -189,6 +189,65 @@ python _framework/tools/activity_days.py --since 2026-01-01
 python _framework/tools/activity_days.py --back 30    # calendar date 30 active days ago
 ```
 
+### `framework_check.py` — hard-edge self-consistency checks
+
+Maintainer/CI tool. Verifies the mechanical invariants between a derived value and its source — the edges a `[[wikilink]]` can't express and discipline alone keeps forgetting: config `warnings_visible` matches the shipped warning-rule modules, no pulled doc references a maintainer-only file, and `framework_version` equals the latest `UPGRADING.md` release (with releases in ascending order).
+
+```bash
+python _framework/tools/framework_check.py
+```
+
+Part of the release definition-of-done (see the maintainer notes). It degrades gracefully when its inputs are absent, so it is harmless to run in a live project — but it exists for the framework repo.
+
+### `session_state.py` — per-session runtime state
+
+Reads and writes `_session/<session-id>.json` (git-ignored): the session's adopted role/area, when it was adopted, its Claude session id and transcript path. One file per session, keyed on `$CLAUDE_CODE_SESSION_ID` for agent-invoked tools and on the payload `session_id` for hooks and the status line — two sessions in one repo would otherwise overwrite each other's role.
+
+```bash
+# Recorded by /start when it adopts a role
+python _framework/tools/session_state.py adopt --role researcher --area areas/research
+
+# Reset + stamp identity (session-start hook pipes it the payload); also sweeps
+# files left by sessions that ended without the end hook
+echo '{"session_id":"abc","transcript_path":"/path/x.jsonl"}' \
+    | python _framework/tools/session_state.py new-session
+
+python _framework/tools/session_state.py show          # this session's state + live context tokens
+python _framework/tools/session_state.py sweep --max-age-days 7
+```
+
+It also reads the live context size out of the session transcript (`transcript_tokens`, and a cheap `transcript_tokens_tail` for the status line). That reader is a Claude Code internal and is deliberately defensive: it returns `None` rather than guessing when no authoritative transcript path is available.
+
+### `kb_vitals.py` — operational state → next actions
+
+Powers `/kb-vitals`. Scans **human vitals** (project-wide: INBOX "Needs decision", commons pages awaiting review, proposals ready to promote) and **role vitals** (the adopted area: wrap-up due, pulse over cap, blocked/complete specs, context-bloat and stale-preload restart nudges, exchanges). Cheap reads only — it never runs lint.
+
+```bash
+python _framework/tools/kb_vitals.py
+python _framework/tools/kb_vitals.py --json
+python _framework/tools/kb_vitals.py --refresh-cache   # rebuild the status line's cache, no output
+```
+
+Always live: it computes everything on each run and never reads the vitals cache it writes. When it and the status line disagree, this one is right.
+
+### `vitals_cache.py` — snapshot of the expensive vitals
+
+The status line renders on every conversation event, so it cannot afford the three vitals that need a frontmatter walk of the whole KB (commons awaiting review, exchanges, preload staleness — ~79ms on a 350-page repo, growing with the KB). Those are snapshotted to `_framework/telemetry/vitals-cache.json`; the fast-moving vitals stay live, because a stale count is worse than none for signals that change minute to minute.
+
+Stdlib only by contract — the status line imports it and must not pay for `yaml`. Writes are atomic (temp file + `os.replace`): the cache is repo-global, so concurrent sessions can write it, and a reader must never see a half-written file.
+
+Three writers, deliberately: `/kb-vitals`, `lint.py` on a full run (so `/check` and `/wrap-up`), and `/start` + the session-start hook — the last of which bounds staleness to a single session. Mutating skills are *not* writers: an enumerated writer list is a list of places to forget one.
+
+### `statusline.py` — compact Claude Code status line
+
+Renders `<project> · <role@area> · H<n|✓> R<n|✓|–> · ctx <N>k[!] · run /kb-vitals`, where **H** is what the human owes project-wide and **R** is the adopted role's hygiene (`–` = no role adopted, which is not the same as clear). Green clear, yellow hygiene, red blocking; the hint appears only when something is pending.
+
+```bash
+echo '{"session_id":"abc","cwd":"/path/to/repo"}' | python _framework/tools/statusline.py
+```
+
+Invoked by `_framework/hooks/statusline.sh`, wired through the `statusLine` key in `.claude/settings.json`. Kept to ~0.6ms of scanning by two rules: no `yaml` import (config is read with regexes) and no unbounded walk (the expensive counts come from `vitals_cache`). Color can be disabled with `statusline.color: false` or the `NO_COLOR` environment variable.
+
 ## Tests
 
 ```bash
@@ -196,7 +255,9 @@ cd _framework/tools
 python -m pytest tests/ -q
 ```
 
-Tests cover each rule module's pass case and per-violation cases, plus `activity_days`, `token_estimate`, and `telemetry` edge cases (empty repo, cold-project resumption, role file outside repo root, unpaired session_end, etc.).
+Tests cover each rule module's pass case and per-violation cases, plus `activity_days`, `token_estimate`, and `telemetry` edge cases (empty repo, cold-project resumption, role file outside repo root, unpaired session_end, etc.), and the session/status-line layer: session-id keying and sweeps, vitals-cache shape and degradation, and status-line rendering.
+
+`tests/conftest.py` clears `CLAUDE_CODE_SESSION_ID` for every test, so session-keyed state resolves to the `default` bucket (or an id the test sets) rather than to the session that happens to be running the suite.
 
 ## Architecture
 
@@ -210,5 +271,7 @@ def check(repo_root: Path, config: dict) -> list[Finding]:
 `lint.py` runs fixup rules first (rules 3 and 15, which write files), then inspection rules. Shared utilities are in `common.py`. Tests share fixtures from `tests/conftest.py` and `tests/lint_helpers.py`.
 
 `token_estimate.py` and `telemetry.py` are standalone but interoperate: telemetry calls `estimate_role_preload` when recording a session start.
+
+The session/status-line tools form a second small cluster with one hard constraint: **anything on the status line's import path is stdlib-only.** `statusline.py` imports `session_state` and `vitals_cache` and nothing heavier, because `import yaml` alone costs ~10ms on a path that runs on every render. `kb_vitals.py` sits on the other side of that line — it parses frontmatter, so it may use `common` — and hands its expensive results across through the cache file rather than through an import.
 
 The lint tools have no dependencies on Claude or any LLM — they're pure Python with PyYAML and stdlib only.

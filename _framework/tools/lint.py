@@ -165,6 +165,17 @@ def main() -> int:
 
     findings = _run_rules(rules_to_run, repo_root, config)
 
+    if not args.rule:
+        # A full lint already walked every page, so refreshing the status line's
+        # vitals cache here is nearly free — and it makes `/check` and `/wrap-up`
+        # (which runs lint) two of the three refresh points. Never fail over it.
+        try:
+            import kb_vitals
+
+            kb_vitals.refresh_cache(repo_root, config)
+        except Exception:  # noqa: BLE001 — lint's job is lint; the cache is a courtesy
+            pass
+
     if args.json:
         _print_json(findings)
     else:

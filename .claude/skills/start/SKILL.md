@@ -34,8 +34,11 @@ Picks a role, loads its preload context, records a session_start telemetry event
    ```
    python _framework/tools/telemetry.py session-start --role <path-to-role.md>
    python _framework/tools/session_state.py adopt --role <role-name> --area <area-path>
+   python _framework/tools/kb_vitals.py --refresh-cache
    ```
    The second line records the adopted role/area (and an adoption timestamp) in the git-ignored `_session/<session-id>.json`, so `/kb-vitals` and the status line can scope their role checks and detect a stale/bloated session. It keys on `$CLAUDE_CODE_SESSION_ID` automatically — one file per session, so adopting a role here never disturbs a concurrent session working as another role in the same repo. `<area-path>` is the role's area (`areas/<area>`, or `commons` for the coordinator). This is the authoritative writer — it overwrites whatever the session-start hook left, so it's correct even when hooks didn't fire.
+
+   The third line refreshes the status line's vitals cache — the snapshot of the counts too expensive to compute per render (commons pages awaiting review, exchanges, preload staleness). It's cheap here, and it's what keeps the H/R indicators honest for the rest of the session; the session-start hook does the same, so this line matters most when hooks didn't fire.
 
    Show the user the preload cost in the telemetry output. If it's much higher than expected, suggest `/budget` to investigate.
 

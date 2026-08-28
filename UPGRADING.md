@@ -282,6 +282,24 @@ whose release is newer than your version.
   Release 2026-08-26 to `/_session/` (or add `/_session/` if you skipped it), then delete the
   now-orphaned `_session.json` at your repo root; it is unread and harmless, but dead. Nothing
   else to do: the next session-start hook writes the new file, and `/start` overwrites it.
+- **Status line: H / R indicators, colored, with a `/kb-vitals` prompt.** The single
+  `⚠N | ✓` counter (INBOX items only) is replaced by two: **H** — what you owe project-wide
+  (INBOX "Needs decision" and "Awaiting your ack", proposals ready to promote, commons pages
+  awaiting review) — and **R** — the adopted role's hygiene (uncompacted pulse.log, pulse.md
+  over cap, blocked tasks, finished specs with no outcome.md, stale preload, open exchanges),
+  shown as `–` when no role is adopted. Green = clear, yellow = hygiene, red = blocking (a
+  decision you owe, or a blocked task); `run /kb-vitals` is appended when anything is pending.
+  Code arrives on pull. Optional: `statusline.color: false` in your `config.yml` if your
+  terminal renders escape codes literally (the `NO_COLOR` environment variable also works).
+- **New vitals cache — `_framework/telemetry/vitals-cache.json`.** Three of the vitals need a
+  frontmatter walk of the whole KB (~74ms, unbounded as the KB grows), which the status line
+  cannot pay for on every render. They are now snapshotted to a cache that `/kb-vitals`,
+  `lint.py` (so `/check` and `/wrap-up`), and `/start` + the session-start hook refresh —
+  bounding staleness to a single session, which is well inside the tolerance of counts that
+  move on the order of days. Everything fast-moving is still computed live per render.
+  `/kb-vitals` itself never reads the cache: it stays authoritative. The file lives in the
+  already-git-ignored telemetry directory, so there is no `.gitignore` change and nothing to
+  do — it is rebuilt on the next session start, `/check`, or `/kb-vitals`.
 
 Set `framework_version` in `_framework/config.yml` to the version of the template you just
 pulled (the template's `_framework/config.yml` carries the current value).

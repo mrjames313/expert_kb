@@ -38,6 +38,12 @@ elif command -v python3 >/dev/null 2>&1; then PYTHON="python3"
 else PYTHON="python"; fi
 printf '%s' "$HOOK_JSON" | "$PYTHON" _framework/tools/session_state.py new-session >/dev/null 2>&1 || true
 
+# --- Vitals cache: refresh the status line's expensive counts once per session ---
+# The status line computes the cheap vitals live but reads commons-review,
+# exchange and preload-staleness counts from this snapshot. Refreshing here is
+# what bounds their staleness to a single session. ~100ms, best-effort.
+"$PYTHON" _framework/tools/kb_vitals.py --refresh-cache >/dev/null 2>&1 || true
+
 # --- CLAUDE.md ---
 if [ -f "CLAUDE.md" ]; then
   echo "==== CLAUDE.md ===="

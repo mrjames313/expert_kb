@@ -26,7 +26,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 import session_state  # noqa: E402
-from common import find_repo_root, load_config, parse_frontmatter  # noqa: E402
+import vitals_cache  # noqa: E402
+from common import find_repo_root, iter_areas, load_config, parse_frontmatter  # noqa: E402
 from token_estimate import parse_role_preload  # noqa: E402
 
 _DEFAULT_CONTEXT_THRESHOLD = 400_000  # tokens; tune to your context window
@@ -88,6 +89,95 @@ def _task_statuses(tasks_md: Path) -> list[str]:
     return statuses
 
 
+# --- Expensive scans (shared with the status line via the vitals cache) ---
+
+def commons_awaiting_review(repo_root: Path) -> int:
+    """Commons pages still carrying `human_reviewed: false`.
+
+    The costliest vital: a frontmatter parse per commons page, growing with the
+    KB. Cached for the status line (see `vitals_cache`); computed live here.
+    """
+    commons_kb = repo_root / "commons" / "kb"
+    if not commons_kb.is_dir():
+        return 0
+    return sum(
+        1 for p in commons_kb.rglob("*.md")
+        if p.name != "index.md" and _fm(p).get("human_reviewed") is False
+    )
+
+
+def exchange_counts(repo_root: Path, area: str) -> tuple[int, int]:
+    """(open exchanges addressed to `area`, answered ones it should close)."""
+    ex_dir = repo_root / "exchanges"
+    if not ex_dir.is_dir():
+        return (0, 0)
+    to_close = to_answer = 0
+    for q in ex_dir.glob("*/q-*.md"):
+        fm = _fm(q)
+        status = str(fm.get("status", "")).lower()
+        if status == "answered" and fm.get("from_area") == area:
+            to_close += 1
+        elif status == "open" and fm.get("to_area") == area:
+            to_answer += 1
+    return (to_answer, to_close)
+
+
+def preload_newest_update(repo_root: Path, role_file: Path) -> str | None:
+    """The most recent `updated` date across a role's full-tier preload, as ISO.
+
+    The status line compares this against its own session's `started_at` to
+    decide whether the loaded copies have gone stale — which keeps the
+    per-session half of that question out of the shared cache.
+    """
+    if not role_file.is_file():
+        return None
+    try:
+        preload = parse_role_preload(role_file.read_text(encoding="utf-8")).get("full", [])
+    except OSError:
+        return None
+    newest: date | None = None
+    for rel in preload:
+        target = repo_root / rel
+        upd = _as_date(_fm(target).get("updated")) if target.is_file() else None
+        if upd and (newest is None or upd > newest):
+            newest = upd
+    return newest.isoformat() if newest else None
+
+
+def refresh_cache(repo_root: Path, config: dict) -> dict:
+    """Recompute the expensive vitals for every area and write the cache.
+
+    Called by `/kb-vitals`, by `lint.py` (so `/check` and `/wrap-up` refresh it),
+    and once per session by `/start` and the session-start hook. Mutating skills
+    deliberately don't call it — see the note in `vitals_cache`.
+    """
+    multi_area = bool(config.get("capabilities", {}).get("multi_area"))
+    areas: dict = {}
+    for area_dir in iter_areas(repo_root):
+        area = area_dir.relative_to(repo_root).as_posix()
+        entry: dict = {}
+        if multi_area:
+            to_answer, to_close = exchange_counts(repo_root, area)
+            entry["exchanges_to_answer"] = to_answer
+            entry["exchanges_to_close"] = to_close
+        roles: dict = {}
+        for role_file in sorted((area_dir / "roles").glob("*/role.md")):
+            newest = preload_newest_update(repo_root, role_file)
+            if newest:
+                roles[role_file.parent.name] = {"preload_newest_update": newest}
+        if roles:
+            entry["roles"] = roles
+        areas[area] = entry
+
+    snapshot = {
+        "computed_at": datetime.now().isoformat(timespec="seconds"),
+        "commons_awaiting_review": commons_awaiting_review(repo_root),
+        "areas": areas,
+    }
+    vitals_cache.write(repo_root, snapshot)
+    return snapshot
+
+
 # --- HUMAN vitals (project-wide) ---
 
 def human_vitals(repo_root: Path) -> list[Vital]:
@@ -97,18 +187,13 @@ def human_vitals(repo_root: Path) -> list[Vital]:
     if needs:
         vitals.append(Vital("human", f"{len(needs)} item(s) need your decision", "review INBOX.md"))
 
-    commons_kb = repo_root / "commons" / "kb"
-    if commons_kb.is_dir():
-        unreviewed = [
-            p for p in commons_kb.rglob("*.md")
-            if p.name != "index.md" and _fm(p).get("human_reviewed") is False
-        ]
-        if unreviewed:
-            vitals.append(Vital(
-                "human",
-                f"{len(unreviewed)} promoted commons page(s) awaiting your review",
-                "review each and set human_reviewed: true",
-            ))
+    unreviewed = commons_awaiting_review(repo_root)
+    if unreviewed:
+        vitals.append(Vital(
+            "human",
+            f"{unreviewed} promoted commons page(s) awaiting your review",
+            "review each and set human_reviewed: true",
+        ))
 
     proposed = repo_root / "commons" / "_proposed"
     if proposed.is_dir():
@@ -218,17 +303,7 @@ def role_vitals(repo_root: Path, config: dict) -> list[Vital]:
 
 
 def _exchange_vitals(repo_root: Path, area: str) -> list[Vital]:
-    ex_dir = repo_root / "exchanges"
-    if not ex_dir.is_dir():
-        return []
-    to_close = to_answer = 0
-    for q in ex_dir.glob("*/q-*.md"):
-        fm = _fm(q)
-        status = str(fm.get("status", "")).lower()
-        if status == "answered" and fm.get("from_area") == area:
-            to_close += 1
-        elif status == "open" and fm.get("to_area") == area:
-            to_answer += 1
+    to_answer, to_close = exchange_counts(repo_root, area)
     vitals: list[Vital] = []
     if to_answer:
         vitals.append(Vital("role", f"{to_answer} open exchange(s) addressed to your area", "/respond-exchange"))
@@ -270,16 +345,32 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Show operational state + recommended next actions.")
     parser.add_argument("--repo", type=Path, default=None)
     parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--refresh-cache", action="store_true",
+        help="recompute the status line's vitals cache and exit (no output)",
+    )
     args = parser.parse_args(argv)
 
     repo_root = args.repo.resolve() if args.repo else find_repo_root()
     config = load_config(repo_root)
+
+    if args.refresh_cache:
+        refresh_cache(repo_root, config)
+        return 0
+
     vitals = collect(repo_root, config)
 
     if args.json:
         print(json.dumps([v.__dict__ for v in vitals], indent=2))
     else:
         print(_format(vitals))
+
+    # This run already paid for most of the expensive scans; leave the status
+    # line a fresh snapshot. Never let a cache problem fail the command.
+    try:
+        refresh_cache(repo_root, config)
+    except OSError:
+        pass
     return 0
 
 

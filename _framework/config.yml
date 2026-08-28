@@ -29,3 +29,8 @@ kb_vitals:
   # many tokens. Absolute (the context window isn't reliably detectable) — tune
   # to your window; a 200k-window client auto-compacts well before this.
   context_restart_threshold_tokens: 400000
+statusline:
+  # ANSI color for the H (human) / R (role) indicators: green clear, yellow
+  # hygiene, red blocking. Set false if your terminal renders escape codes
+  # literally; the NO_COLOR environment variable turns it off too.
+  color: true

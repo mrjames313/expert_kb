@@ -165,3 +165,122 @@ class TestRoleVitals:
         # Adopted AFTER the page's update → not stale.
         ss.write(tmp_path, role="researcher", area="areas/research", started_at="2026-06-01T00:00:00")
         assert not any("stale" in m for m in _msgs(kv.role_vitals(tmp_path, _CONFIG), "role"))
+
+
+# --- Exchanges (multi_area) ---
+
+_MULTI = {"lint": {"pulse_line_cap": 80}, "capabilities": {"multi_area": True}, "kb_vitals": {}}
+
+
+def _exchange(repo: Path, id_: str, **fm: str) -> Path:
+    """Write an exchange the way `/exchange` does: `exchanges/<a>--<b>/ex-<date>-<slug>.md`
+    with *bare* area names — the contract in exchange-protocol.md."""
+    ex = repo / "exchanges" / "engineering--research"
+    ex.mkdir(parents=True, exist_ok=True)
+    lines = "\n".join(f"{k}: {v}" for k, v in fm.items())
+    path = ex / f"{id_}.md"
+    path.write_text(f"---\nid: {id_}\n{lines}\ncreated: 2026-08-28\n---\n# Question\nText.\n")
+    return path
+
+
+class TestExchangeCounts:
+    """Unit-level: the two silent defects were a glob that matched no real file
+    and an area compared across two formats."""
+
+    def test_matches_the_real_filename_form(self, tmp_path: Path) -> None:
+        _exchange(tmp_path, "ex-2026-08-28-thermal", kind="query", status="open",
+                  from_area="engineering", to_area="research")
+        assert kv.exchange_counts(tmp_path, "areas/research").to_answer == 1
+
+    def test_accepts_both_area_forms(self, tmp_path: Path) -> None:
+        """Callers pass the repo-relative form (session state, cache writer);
+        frontmatter uses the bare form. Both must resolve."""
+        _exchange(tmp_path, "ex-2026-08-28-thermal", kind="query", status="open",
+                  from_area="engineering", to_area="research")
+        assert kv.exchange_counts(tmp_path, "areas/research").to_answer == 1
+        assert kv.exchange_counts(tmp_path, "research").to_answer == 1
+
+    def test_sub_area_normalises_to_the_nested_form(self, tmp_path: Path) -> None:
+        _exchange(tmp_path, "ex-2026-08-28-optics", kind="query", status="open",
+                  from_area="engineering", to_area="research/optics")
+        assert kv.exchange_counts(tmp_path, "areas/research/optics").to_answer == 1
+
+    def test_answered_query_counts_for_the_filer(self, tmp_path: Path) -> None:
+        _exchange(tmp_path, "ex-2026-08-28-drift", kind="query", status="answered",
+                  from_area="research", to_area="engineering")
+        counts = kv.exchange_counts(tmp_path, "areas/research")
+        assert (counts.to_answer, counts.to_close) == (0, 1)
+
+    def test_kind_defaults_to_query(self, tmp_path: Path) -> None:
+        """`kind` is optional in the schema and defaults to query."""
+        _exchange(tmp_path, "ex-2026-08-28-legacy", status="open",
+                  from_area="engineering", to_area="research")
+        assert kv.exchange_counts(tmp_path, "areas/research").to_answer == 1
+
+    def test_brief_is_counted_by_open_for_not_to_area(self, tmp_path: Path) -> None:
+        _exchange(tmp_path, "ex-2026-08-28-model", kind="brief", status="open",
+                  from_area="engineering", to_area="research",
+                  to_roles="[researcher, reviewer]", open_for="[researcher]")
+        counts = kv.exchange_counts(tmp_path, "areas/research")
+        assert counts.briefs_by_role == {"researcher": 1}
+        assert counts.to_answer == 0  # never folded into the query total
+
+    def test_no_exchanges_dir(self, tmp_path: Path) -> None:
+        counts = kv.exchange_counts(tmp_path, "areas/research")
+        assert (counts.to_answer, counts.to_close, counts.briefs_by_role) == (0, 0, {})
+
+
+class TestExchangeVitals:
+    """End-to-end through role_vitals: the right command for each kind."""
+
+    def test_open_query_routes_to_respond(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        _setup_area(tmp_path)
+        ss.adopt(tmp_path, "researcher", "areas/research")
+        _exchange(tmp_path, "ex-2026-08-28-thermal", kind="query", status="open",
+                  from_area="engineering", to_area="research")
+        vitals = [v for v in kv.role_vitals(tmp_path, _MULTI) if "query" in v.message]
+        assert len(vitals) == 1
+        assert vitals[0].command == "/respond-exchange"
+
+    def test_answered_query_routes_to_close(self, tmp_path: Path) -> None:
+        """The case with no second line of defence: `/start`'s manual scan
+        surfaces open-to-you exchanges, but nothing else surfaces this one."""
+        make_minimal_repo(tmp_path)
+        _setup_area(tmp_path)
+        ss.adopt(tmp_path, "researcher", "areas/research")
+        _exchange(tmp_path, "ex-2026-08-28-drift", kind="query", status="answered",
+                  from_area="research", to_area="engineering")
+        vitals = [v for v in kv.role_vitals(tmp_path, _MULTI) if "to close" in v.message]
+        assert len(vitals) == 1
+        assert vitals[0].command == "/close-exchange"
+
+    def test_brief_for_your_role_routes_to_close_not_respond(self, tmp_path: Path) -> None:
+        """A brief has no responder — pointing it at /respond-exchange was defect 3."""
+        make_minimal_repo(tmp_path)
+        _setup_area(tmp_path)
+        ss.adopt(tmp_path, "researcher", "areas/research")
+        _exchange(tmp_path, "ex-2026-08-28-model", kind="brief", status="open",
+                  from_area="engineering", to_area="research",
+                  to_roles="[researcher]", open_for="[researcher]")
+        vitals = [v for v in kv.role_vitals(tmp_path, _MULTI) if "brief" in v.message]
+        assert len(vitals) == 1
+        assert vitals[0].command == "/close-exchange"
+        assert not any("/respond-exchange" == v.command for v in kv.role_vitals(tmp_path, _MULTI))
+
+    def test_brief_not_addressed_to_your_role_is_silent(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        _setup_area(tmp_path)
+        ss.adopt(tmp_path, "researcher", "areas/research")
+        _exchange(tmp_path, "ex-2026-08-28-model", kind="brief", status="open",
+                  from_area="engineering", to_area="research",
+                  to_roles="[reviewer]", open_for="[reviewer]")
+        assert not any("brief" in m for m in _msgs(kv.role_vitals(tmp_path, _MULTI), "role"))
+
+    def test_silent_when_multi_area_is_off(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        _setup_area(tmp_path)
+        ss.adopt(tmp_path, "researcher", "areas/research")
+        _exchange(tmp_path, "ex-2026-08-28-thermal", kind="query", status="open",
+                  from_area="engineering", to_area="research")
+        assert not any("query" in m for m in _msgs(kv.role_vitals(tmp_path, _CONFIG), "role"))

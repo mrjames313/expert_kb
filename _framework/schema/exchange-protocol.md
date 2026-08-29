@@ -125,9 +125,10 @@ _(pending)_
 
 ## Surfacing
 
-Pending exchanges reach the right role two ways:
+Pending exchanges reach the right role three ways:
 
 - **`/start`** scans `exchanges/*/` for the adopted role R in area A and surfaces: open queries `to_area==A` (respond), answered queries `from_area==A` (close), and briefs `to_area==A` where `R ∈ open_for` (dispose).
+- **`/kb-vitals`** (and the status line's **R** indicator) reports the same three as role vitals, each with its command. This is the only path that fires *during* a session: `/start`'s scan runs once at adoption, so an exchange another area answers while you are working reaches you here or not at all.
 - **Staleness lint** flags items aged past `exchange_stale_active_days` — open queries, and briefs with a non-empty `open_for` (naming the outstanding roles) — to INBOX under "Heads up."
 
 ## Persistence

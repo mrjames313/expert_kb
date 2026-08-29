@@ -13,6 +13,24 @@ from lint_helpers import make_minimal_repo
 _CONFIG = {"lint": {}, "capabilities": {"multi_area": True}, "kb_vitals": {}}
 
 
+def _exchange(ex_dir: Path, id_: str, **fm: str) -> Path:
+    """Write an exchange file the way `/exchange` does: `ex-<date>-<slug>.md`,
+    with *bare* area names (`research`, not `areas/research`)."""
+    lines = "\n".join(f"{k}: {v}" for k, v in fm.items())
+    path = ex_dir / f"{id_}.md"
+    path.write_text(f"---\nid: {id_}\n{lines}\ncreated: 2026-08-28\n---\n# Question\nText.\n")
+    return path
+
+
+def _role(repo: Path, area: str, role: str) -> Path:
+    """A role the cache writer can see — it globs `roles/*/role.md`."""
+    d = repo / area / "roles" / role
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "role.md").write_text(
+        f"# {role}\n\n## Preload context (full)\n\n## Preload context (frontmatter only)\n")
+    return d / "role.md"
+
+
 def _area(repo: Path, area: str = "areas/research", role: str = "researcher") -> Path:
     d = repo / area
     (d / "roles" / role).mkdir(parents=True, exist_ok=True)
@@ -86,17 +104,71 @@ class TestRefreshCache:
         assert vc.read(tmp_path)["commons_awaiting_review"] == 1
 
     def test_counts_exchanges_per_area(self, tmp_path: Path) -> None:
+        """Fixtures follow the `/exchange` contract exactly: `ex-<date>-<slug>.md`
+        filenames and *bare* area names. An earlier version of this test invented
+        `q-*.md` files with `areas/`-prefixed areas — matching the implementation's
+        two defects rather than the protocol — and so passed against dead code."""
         make_minimal_repo(tmp_path)
         _area(tmp_path)
-        ex = tmp_path / "exchanges" / "research--engineering"
+        ex = tmp_path / "exchanges" / "engineering--research"
         ex.mkdir(parents=True)
-        (ex / "q-1.md").write_text(
-            "---\nstatus: open\nfrom_area: areas/engineering\nto_area: areas/research\n---\n")
-        (ex / "q-2.md").write_text(
-            "---\nstatus: answered\nfrom_area: areas/research\nto_area: areas/engineering\n---\n")
+        _exchange(ex, "ex-2026-08-28-thermal", status="open",
+                  from_area="engineering", to_area="research")
+        _exchange(ex, "ex-2026-08-28-drift", status="answered",
+                  from_area="research", to_area="engineering")
         entry = kv.refresh_cache(tmp_path, _CONFIG)["areas"]["areas/research"]
         assert entry["exchanges_to_answer"] == 1
         assert entry["exchanges_to_close"] == 1
+
+    def test_ignores_sibling_files_in_the_exchange_dir(self, tmp_path: Path) -> None:
+        """Each exchange dir also holds OWNERS, README.md and index.md."""
+        make_minimal_repo(tmp_path)
+        _area(tmp_path)
+        ex = tmp_path / "exchanges" / "engineering--research"
+        ex.mkdir(parents=True)
+        (ex / "index.md").write_text("---\nstatus: open\nto_area: research\n---\n")
+        (ex / "README.md").write_text("---\nstatus: open\nto_area: research\n---\n")
+        (ex / "OWNERS").write_text("research\nengineering\n")
+        entry = kv.refresh_cache(tmp_path, _CONFIG)["areas"]["areas/research"]
+        assert entry["exchanges_to_answer"] == 0
+
+    def test_briefs_are_counted_per_role_not_per_area(self, tmp_path: Path) -> None:
+        """Brief eligibility is `open_for` membership, so the snapshot carries it
+        under the role rather than in the area-level query totals."""
+        make_minimal_repo(tmp_path)
+        _area(tmp_path)
+        _role(tmp_path, "areas/research", "researcher")
+        _role(tmp_path, "areas/research", "reviewer")
+        ex = tmp_path / "exchanges" / "engineering--research"
+        ex.mkdir(parents=True)
+        _exchange(ex, "ex-2026-08-28-model-update", kind="brief", status="open",
+                  from_area="engineering", to_area="research",
+                  to_roles="[researcher]", open_for="[researcher]")
+        entry = kv.refresh_cache(tmp_path, _CONFIG)["areas"]["areas/research"]
+        assert entry["roles"]["researcher"]["briefs_open"] == 1
+        # A role the brief doesn't target carries no count at all.
+        assert "briefs_open" not in entry["roles"].get("reviewer", {})
+        # And a brief never inflates the area-wide query total.
+        assert entry["exchanges_to_answer"] == 0
+
+    def test_drained_brief_is_no_longer_owed(self, tmp_path: Path) -> None:
+        """`open_for` drains as each role disposes; an emptied one owes nobody."""
+        make_minimal_repo(tmp_path)
+        _area(tmp_path)
+        _role(tmp_path, "areas/research", "researcher")
+        ex = tmp_path / "exchanges" / "engineering--research"
+        ex.mkdir(parents=True)
+        _exchange(ex, "ex-2026-08-28-drained", kind="brief", status="open",
+                  from_area="engineering", to_area="research",
+                  to_roles="[researcher]", open_for="[]")
+        entry = kv.refresh_cache(tmp_path, _CONFIG)["areas"]["areas/research"]
+        assert "briefs_open" not in entry.get("roles", {}).get("researcher", {})
+
+    def test_open_briefs_accessor(self, tmp_path: Path) -> None:
+        cache = {"areas": {"areas/research": {"roles": {"researcher": {"briefs_open": 2}}}}}
+        assert vc.open_briefs(cache, "areas/research", "researcher") == 2
+        assert vc.open_briefs(cache, "areas/research", "reviewer") == 0
+        assert vc.open_briefs({}, "areas/research", "researcher") == 0
 
     def test_exchanges_omitted_when_capability_off(self, tmp_path: Path) -> None:
         make_minimal_repo(tmp_path)

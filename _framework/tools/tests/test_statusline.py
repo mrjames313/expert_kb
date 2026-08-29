@@ -86,6 +86,18 @@ class TestIndicators:
         # pulse.log + pulse.md over cap + spec complete w/o outcome + 2 exchanges
         assert "R5" in _plain(build_line(tmp_path, {}))
 
+    def test_briefs_count_only_for_the_adopted_role(self, tmp_path: Path) -> None:
+        """R is the *adopted role's* hygiene, and a brief is owed by the roles in
+        its `open_for` — so a brief for another role must not light this one up."""
+        make_minimal_repo(tmp_path)
+        _area(tmp_path)
+        vc.write(tmp_path, {"areas": {"areas/research": {"roles": {
+            "researcher": {"briefs_open": 2},
+            "reviewer": {"briefs_open": 5},
+        }}}})
+        ss.adopt(tmp_path, "researcher", "areas/research")
+        assert "R2" in _plain(build_line(tmp_path, {}))
+
     def test_stale_preload_compares_cache_against_this_session(self, tmp_path: Path) -> None:
         """The cache holds the preload's newest `updated`; whether that is stale
         depends on when *this* session adopted, which is per-session state."""

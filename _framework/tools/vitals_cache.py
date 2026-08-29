@@ -105,7 +105,8 @@ def for_area(cache: dict, area: str) -> dict:
 
 
 def exchange_counts(cache: dict, area: str) -> int:
-    """Open-to-you plus answered-to-close, for the area's exchange vitals."""
+    """Open queries to you plus answered ones to close, area-wide. Briefs are
+    per-role — see `open_briefs`."""
     entry = for_area(cache, area)
     total = 0
     for key in ("exchanges_to_answer", "exchanges_to_close"):
@@ -113,6 +114,20 @@ def exchange_counts(cache: dict, area: str) -> int:
         if isinstance(value, int):
             total += value
     return total
+
+
+def open_briefs(cache: dict, area: str, role: str) -> int:
+    """Open briefs awaiting this role's disposition. Per-role because brief
+    eligibility is `open_for` membership, not the area-level match the query
+    counts above use."""
+    roles = for_area(cache, area).get("roles")
+    if not isinstance(roles, dict):
+        return 0
+    entry = roles.get(role)
+    if not isinstance(entry, dict):
+        return 0
+    value = entry.get("briefs_open")
+    return value if isinstance(value, int) else 0
 
 
 def preload_newest_update(cache: dict, area: str, role: str) -> str | None:

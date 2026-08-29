@@ -83,6 +83,16 @@ Rule: **when you add or change a requirement clause, name — in the same change
 
 This generalizes the release discipline above: the version bump makes machinery *arrive*; this makes a new requirement *observable*.
 
+## Test fixtures come from the contract, not from the code
+
+Where a tool's input is written by a **skill** rather than by the tool itself — exchange files, spec and task files, pulse-log entries, proposal directories, INBOX sections — the filename form and field spelling are a contract between two documents, with nothing mechanical holding them together. A fixture invented while looking at the implementation encodes whatever the code already does. It passes, it reads as coverage, and it pins the bug.
+
+That is not hypothetical: the `/kb-vitals` exchange scan globbed `q-*.md` (the skill writes `ex-<date>-<slug>.md`) and compared `areas/research` against the bare `research` that exchange frontmatter carries. It returned zero for every project with `multi_area` on. A test existed and passed — its fixtures used `q-1.md` and `from_area: areas/engineering`, copied from the code. It would have asserted the defect indefinitely.
+
+Rule: **when a fixture stands in for something a skill produces, copy its shape from the skill's own documented output** (`SKILL.md`, the schema doc, or the spec's example block) and say so in the test, so the next reader knows which document the fixture is accountable to. A test whose fixtures came from the implementation can only tell you the code still does what it did.
+
+Two aggravating factors worth recognising: a helper named the same as one in another module (`vitals_cache.exchange_counts`, the cache *reader*) can make a genuinely untested producer look covered — check that the coverage is of the thing you think it is. And a test asserting only counts, never routing, will miss a value that is computed correctly and then sent to the wrong command.
+
 ## Building / refreshing the template
 
 1. Create the template repo with `_framework/` populated, plus empty `commons/` and `areas/` skeletons. Write `CLAUDE.md` (always-on sections only), `_framework/config.yml` with initial state (all four capabilities off; all warnings shadowed).

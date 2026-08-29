@@ -222,6 +222,8 @@ It also reads the live context size out of the session transcript (`transcript_t
 
 Powers `/kb-vitals`. Scans **human vitals** (project-wide: INBOX "Needs decision", commons pages awaiting review, proposals ready to promote) and **role vitals** (the adopted area: wrap-up due, pulse over cap, blocked/complete specs, context-bloat and stale-preload restart nudges, exchanges). Cheap reads only — it never runs lint.
 
+Exchanges report by kind, because they dispose differently: open **queries** addressed to your area route to `/respond-exchange`, answered queries your area filed route to `/close-exchange`, and **briefs** route to `/close-exchange` for the roles still listed in their `open_for` — a brief has no responder, so area membership alone doesn't make it yours. `exchange_counts` normalises the area it's given (`areas/research` or bare `research`) because callers hold the repo-relative form while exchange frontmatter uses the bare one, and it globs the `ex-<date>-<slug>.md` filename `/exchange` writes. Both of those are contracts with the skill rather than with the code, so they're pinned by tests.
+
 ```bash
 python _framework/tools/kb_vitals.py
 python _framework/tools/kb_vitals.py --json
@@ -233,6 +235,8 @@ Always live: it computes everything on each run and never reads the vitals cache
 ### `vitals_cache.py` — snapshot of the expensive vitals
 
 The status line renders on every conversation event, so it cannot afford the three vitals that need a frontmatter walk of the whole KB (commons awaiting review, exchanges, preload staleness — ~79ms on a 350-page repo, growing with the KB). Those are snapshotted to `_framework/telemetry/vitals-cache.json`; the fast-moving vitals stay live, because a stale count is worse than none for signals that change minute to minute.
+
+Exchange counts are split in the snapshot the way eligibility is: area-level `exchanges_to_answer` / `exchanges_to_close` for queries, and a per-role `briefs_open` under `areas.<area>.roles.<role>`, since a brief is owed by the roles in its `open_for` and not by the area. **R** is the adopted role's hygiene, so counting briefs area-wide there would light the indicator up for work another role owes.
 
 Stdlib only by contract — the status line imports it and must not pay for `yaml`. Writes are atomic (temp file + `os.replace`): the cache is repo-global, so concurrent sessions can write it, and a reader must never see a half-written file.
 

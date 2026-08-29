@@ -201,9 +201,13 @@ def role_vitals(repo_root: Path, state: dict, cache: dict, cap: int) -> tuple[in
     count += spec_count
     count += vc.exchange_counts(cache, area)
 
+    role = state.get("role")
+    if role:
+        # Briefs are owed by the role, not the area — count only this one's.
+        count += vc.open_briefs(cache, area, role)
+
     # Stale preload: the cache holds the newest `updated` across the role's
     # preload; whether that's stale depends on when *this* session adopted.
-    role = state.get("role")
     started = str(state.get("started_at") or "")[:10]
     if role and started:
         newest = vc.preload_newest_update(cache, area, role)

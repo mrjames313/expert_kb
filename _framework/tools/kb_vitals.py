@@ -7,7 +7,7 @@ Two scopes:
     INBOX "Needs decision", commons pages awaiting review, proposals ready to promote.
   ROLE (current area, from this session's _session/<session-id>.json): local hygiene —
     wrap-up due, pulse over-cap, restart-the-role signals (context bloat, stale
-    preload), spec complete → outcome, blocked tasks, exchanges to close.
+    preload), spec complete → outcome, blocked tasks, exchanges to act on.
 Framework-level vitals (upgrade currency) are deferred.
 
 Everything is a cheap read; no lint run. Missing inputs are skipped, not errored.
@@ -19,7 +19,7 @@ Public API:
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 
@@ -39,6 +39,17 @@ class Vital:
     scope: str        # "human" | "role"
     message: str      # what's up + why
     command: str = ""  # the command to run (may be empty)
+
+
+@dataclass
+class ExchangeCounts:
+    """An area's outstanding exchanges, split by kind because they dispose
+    differently: queries route to /respond-exchange (open, to you) or
+    /close-exchange (answered, yours); briefs have no responder and are owed
+    only by the roles still listed in `open_for`."""
+    to_answer: int = 0   # open queries addressed to the area
+    to_close: int = 0    # answered queries the area filed
+    briefs_by_role: dict[str, int] = field(default_factory=dict)
 
 
 # --- helpers ---
@@ -106,20 +117,42 @@ def commons_awaiting_review(repo_root: Path) -> int:
     )
 
 
-def exchange_counts(repo_root: Path, area: str) -> tuple[int, int]:
-    """(open exchanges addressed to `area`, answered ones it should close)."""
+def _bare_area(area: str) -> str:
+    """Exchange frontmatter names areas bare (`research`, `research/optics`);
+    session state and the cache carry the repo-relative path (`areas/research`).
+    Normalising here keeps both call sites passing what they already pass."""
+    prefix = "areas/"
+    return area[len(prefix):] if area.startswith(prefix) else area
+
+
+def exchange_counts(repo_root: Path, area: str) -> ExchangeCounts:
+    """Open exchanges bearing on `area`, split by the command that disposes of them.
+
+    `area` may arrive repo-relative (`areas/research`) or bare (`research`).
+    Files are `exchanges/<a>--<b>/ex-<date>-<slug>.md` per `exchange-protocol.md`;
+    the `ex-` prefix is the naming contract with `/exchange` (pinned by tests).
+    """
+    counts = ExchangeCounts()
     ex_dir = repo_root / "exchanges"
     if not ex_dir.is_dir():
-        return (0, 0)
-    to_close = to_answer = 0
-    for q in ex_dir.glob("*/q-*.md"):
-        fm = _fm(q)
+        return counts
+    me = _bare_area(area)
+    for path in ex_dir.glob("*/ex-*.md"):
+        fm = _fm(path)
         status = str(fm.get("status", "")).lower()
-        if status == "answered" and fm.get("from_area") == area:
-            to_close += 1
-        elif status == "open" and fm.get("to_area") == area:
-            to_answer += 1
-    return (to_answer, to_close)
+        kind = str(fm.get("kind", "query")).lower()
+        if kind == "brief":
+            # A brief has no responder: each targeted role disposes of it via
+            # /close-exchange, and is eligible only while still in `open_for`.
+            if status == "open" and fm.get("to_area") == me:
+                for role in fm.get("open_for") or []:
+                    name = str(role)
+                    counts.briefs_by_role[name] = counts.briefs_by_role.get(name, 0) + 1
+        elif status == "answered" and fm.get("from_area") == me:
+            counts.to_close += 1
+        elif status == "open" and fm.get("to_area") == me:
+            counts.to_answer += 1
+    return counts
 
 
 def preload_newest_update(repo_root: Path, role_file: Path) -> str | None:
@@ -156,15 +189,23 @@ def refresh_cache(repo_root: Path, config: dict) -> dict:
     for area_dir in iter_areas(repo_root):
         area = area_dir.relative_to(repo_root).as_posix()
         entry: dict = {}
+        counts = exchange_counts(repo_root, area) if multi_area else ExchangeCounts()
         if multi_area:
-            to_answer, to_close = exchange_counts(repo_root, area)
-            entry["exchanges_to_answer"] = to_answer
-            entry["exchanges_to_close"] = to_close
+            entry["exchanges_to_answer"] = counts.to_answer
+            entry["exchanges_to_close"] = counts.to_close
         roles: dict = {}
         for role_file in sorted((area_dir / "roles").glob("*/role.md")):
+            name = role_file.parent.name
+            info: dict = {}
             newest = preload_newest_update(repo_root, role_file)
             if newest:
-                roles[role_file.parent.name] = {"preload_newest_update": newest}
+                info["preload_newest_update"] = newest
+            # Brief eligibility is per-role (`open_for`), so the status line needs
+            # it here rather than the area-level query totals above.
+            if counts.briefs_by_role.get(name):
+                info["briefs_open"] = counts.briefs_by_role[name]
+            if info:
+                roles[name] = info
         if roles:
             entry["roles"] = roles
         areas[area] = entry
@@ -295,20 +336,23 @@ def role_vitals(repo_root: Path, config: dict) -> list[Vital]:
             if all(s in _TERMINAL_STATUSES for s in statuses) and not (spec_dir / "outcome.md").is_file():
                 vitals.append(Vital("role", f"spec '{spec_dir.name}' complete — no outcome.md yet", "/wrap-up (writes outcome.md)"))
 
-    # Exchanges (multi_area only) — answered-not-closed / open-to-you
+    # Exchanges (multi_area only) — queries to answer / to close, briefs to dispose
     if config.get("capabilities", {}).get("multi_area"):
-        vitals.extend(_exchange_vitals(repo_root, area))
+        vitals.extend(_exchange_vitals(repo_root, area, role))
 
     return vitals
 
 
-def _exchange_vitals(repo_root: Path, area: str) -> list[Vital]:
-    to_answer, to_close = exchange_counts(repo_root, area)
+def _exchange_vitals(repo_root: Path, area: str, role: str | None) -> list[Vital]:
+    counts = exchange_counts(repo_root, area)
     vitals: list[Vital] = []
-    if to_answer:
-        vitals.append(Vital("role", f"{to_answer} open exchange(s) addressed to your area", "/respond-exchange"))
-    if to_close:
-        vitals.append(Vital("role", f"{to_close} answered exchange(s) to close", "/close-exchange"))
+    if counts.to_answer:
+        vitals.append(Vital("role", f"{counts.to_answer} open query(ies) addressed to your area", "/respond-exchange"))
+    if counts.to_close:
+        vitals.append(Vital("role", f"{counts.to_close} answered query(ies) to close", "/close-exchange"))
+    briefs = counts.briefs_by_role.get(role or "", 0)
+    if briefs:
+        vitals.append(Vital("role", f"{briefs} brief(s) awaiting your disposition", "/close-exchange"))
     return vitals
 
 

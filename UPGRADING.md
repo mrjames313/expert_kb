@@ -332,6 +332,27 @@ git checkout <your-default-branch> && git branch -D framework-upgrade
 
 Once satisfied, merge the branch.
 
+**Release 2026-08-29**
+
+- **Fix: `/kb-vitals` and the status line never reported exchanges.** With `multi_area` on, the
+  exchange scan was dead code — it returned zero unconditionally, so a role was never told it had
+  an open query to answer, an answered query to close, or a brief to dispose of, and the status
+  line's **R** indicator stayed clean. Two independent defects each suppressed it on their own:
+  the scan globbed `q-*.md` (nothing `/exchange` writes is named that — the id is
+  `ex-<date>-<slug>`), and it compared the repo-relative area it was passed (`areas/research`)
+  against the bare area name exchange frontmatter carries (`research`). A third defect would have
+  misrouted the result: briefs were counted with queries and pointed at `/respond-exchange`, which
+  does not apply to them — a brief has no responder, and only the roles still in its `open_for`
+  owe it a disposition. All three are fixed, queries and briefs now report separately with the
+  right command, and briefs are counted per-role. **Code-only; takes effect on pull in Step 4.**
+  The status line's cache gains a per-role `briefs_open` key, written on the next refresh
+  (`/kb-vitals`, `/check`, `/wrap-up`, or session start) — no action needed.
+  Worth knowing: `/start` step 5 tells the agent to scan `exchanges/*/` by hand, which masked this
+  at session start — but it only fires *at* session start. An exchange answered by another area
+  while your session is already running had nothing to surface it. If you have been running with
+  `multi_area` on, check `exchanges/*/` for answered queries your area filed and never closed;
+  `/kb-vitals` will list them from now on.
+
 ---
 
 ## Notes for the agent

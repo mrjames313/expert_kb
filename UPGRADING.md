@@ -352,6 +352,12 @@ Once satisfied, merge the branch.
   while your session is already running had nothing to surface it. If you have been running with
   `multi_area` on, check `exchanges/*/` for answered queries your area filed and never closed;
   `/kb-vitals` will list them from now on.
+- **`/wrap-up` clarifies that it does not un-adopt the role.** Doc-only. Wrap-up closes a working
+  session in the bookkeeping sense but never touches `_session/<session-id>.json`, so the role,
+  area and preload survive it — an agent read the two skills together and concluded it had to
+  re-`/start` before continuing, which was never required. The skill now says so, and says that
+  `/start` is needed only for a role *change* or after a `/clear`. **No action; takes effect on
+  pull in Step 4.**
 
 ---
 

@@ -97,6 +97,10 @@ When a decision exercises an under_test concept, real-world use of the decision 
 
 **Observed during:** Dogfood-pass operational discussion about when to `/clear` and when to restart Claude Code.
 
+**Partially overtaken (2026-08-27):** item 1 below shipped — as git-ignored `_session/<session-id>.json` (`session_state.py`), not the proposed `_framework/telemetry/.session-state.json`, and sharded per session rather than repo-global. It records adopted role/area, session id, transcript path, and `started_at`; it does **not** record last-wrap-up time or whether the last exit was clean, which items 2 and 5 still want. `/kb-vitals` (2026-08-26) also absorbed several of the nudges this entry proposed scattering across skills — see the doctor entry below, which argues for consolidating them there instead. Read items 2–5 against that, not against the original blank slate.
+
+**A concrete instance (2026-08-29):** an agent finished work, ran `/wrap-up`, and then told the user it had to re-adopt its role before continuing. It didn't. `/wrap-up` never touches session state — only the session-start hook (new session) and session-end hook (exit) clear it — so the role, area, and preload all survived. The agent appears to have chained `/start`'s "the first thing in any working session" to `/wrap-up`'s "closes a working session" and concluded a new one had begun. The gap is that `/wrap-up` closes a working session in the *bookkeeping* sense while the Claude Code session, the loaded context, and the state file carry on unchanged. Patched cheaply in `wrap-up/SKILL.md` with a note saying so explicitly; **item 3's end-prompt is the real fix** — had wrap-up ended with "continuing, switching role, or done?", the question would never have arisen. This is the first evidence that the ambiguity misleads an *agent*, not just costs a user a remembered step, which raises the entry's priority.
+
 The framework has clean session boundaries via `/start` (open) and `/wrap-up` (close), plus three Claude Code hooks (SessionStart, SessionEnd, PreCompact). But the *transitions* between sessions are unsupported. Specifically:
 
 - **Role switches.** Going from role A to role B currently requires the user to remember three things in order: `/wrap-up` for A, then `/clear` (Claude Code primitive), then `/start B`. The middle step is on the user; forgetting it means B's session starts with A's context still loaded.
@@ -111,7 +115,7 @@ The friction isn't dramatic, but it's recurring and the cognitive load adds up o
 
 A distributed approach where several existing skills become lifecycle-aware, sharing an on-disk session-state marker:
 
-1. **Session-state marker on disk** — `_framework/telemetry/.session-state.json` recording current role, session-start timestamp, last wrap-up timestamp, whether the last exit was clean. Updated by `/start`, `/wrap-up`, and the session-end hook.
+1. ~~**Session-state marker on disk**~~ — **shipped** as `_session/<session-id>.json`; see the note above. What it still lacks for items 2 and 5: a last-wrap-up timestamp and a clean/abrupt exit flag. `/wrap-up` is not currently a writer of session state at all — adding those two fields is the smallest step that unblocks the rest.
 
 2. **`/start` detects state.** Before adopting the requested role, check the marker:
    - If a prior session is open and unwrapped: "Last session as role X didn't wrap up cleanly. Wrap-up first, or override and adopt Y now?" (Override is needed for cases where the prior session was abandoned and isn't recoverable.)
@@ -125,9 +129,9 @@ A distributed approach where several existing skills become lifecycle-aware, sha
 
 A new `/switch-role` skill *could* sit on top of this as a convenience wrapper for the common case, but it isn't required — the distributed awareness solves the core problem and `/switch-role` would just save one invocation.
 
-**Revisit when:** v2 dogfood pass exercises multiple roles in the same project. Friction patterns will be clearer when there are 2-3 areas with separate roles being switched between in real work. Without that evidence, the design risks optimizing for cases that don't actually occur.
+**Revisit when:** v2 dogfood pass exercises multiple roles in the same project. Friction patterns will be clearer when there are 2-3 areas with separate roles being switched between in real work. Without that evidence, the design risks optimizing for cases that don't actually occur. **Or sooner** — the 2026-08-29 instance above suggests item 3 (the `/wrap-up` end-prompt) earns its place on its own, independently of the role-switch evidence the rest of the entry is waiting on. It is a few lines in one skill, and it is the step that would have prevented an agent from inventing a prerequisite.
 
-**Implementation order if this lands:** Session-state marker first (everything else depends on it). Then `/start` detection. Then `/wrap-up` end-prompt. Then SessionStart hook enrichment. Other skills' inconsistency detection last — likely overkill for v1 of this work; can wait for evidence it's needed.
+**Implementation order if this lands:** ~~Session-state marker first~~ (shipped; needs the two extra fields noted in item 1). Then `/wrap-up` end-prompt — now the cheapest and best-evidenced piece, and it depends on nothing. Then `/start` detection. Then SessionStart hook enrichment. Other skills' inconsistency detection last — likely overkill for v1 of this work; can wait for evidence it's needed.
 
 ---
 

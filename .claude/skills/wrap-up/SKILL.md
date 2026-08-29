@@ -81,3 +81,8 @@ If a session ends without `/wrap-up`, pulse.log will be non-empty when the next 
 - Don't agonize over getting telemetry exactly right. Best-effort is fine; the data is for trend analysis (which preloads aren't being used) not precise accounting.
 - If `por` is enabled, also update `POR.md` for the area if anything material shifted: phase change, completed workstream, new dependency.
 - After `/wrap-up` is the natural place to `git commit`. The skill itself doesn't commit, but the project is in a clean, journaled state ready for one.
+- **Wrap-up does not un-adopt the role.** It closes a working session in the *bookkeeping* sense — journal compacted, specs finalized, lint clean — but it never touches `_session/<session-id>.json`. The adopted role and area survive, the preload is still loaded, and `/kb-vitals` and the status line stay scoped to that role. Only the session-start hook (new session) and the session-end hook (process exit) clear it.
+
+  So if the user carries on in the same role, **nothing is required** — keep working, and new pulse entries accumulate in the freshly-truncated log. Re-run `/start` only when the role is *changing*, or after a `/clear` or restart, which is what actually discards context.
+
+  Two things do drift if a session continues well past a wrap-up, neither blocking: the `session_end` telemetry event is now unpaired (a second `/wrap-up` logs a second one against one `session_start`), and `started_at` still holds the original adoption time, so `/kb-vitals`'s stale-preload check may flag pages this session itself updated. Re-running `/start` restamps both. Offer it as tidiness, never as a prerequisite.

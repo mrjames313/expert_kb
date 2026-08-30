@@ -359,6 +359,39 @@ Once satisfied, merge the branch.
   `/start` is needed only for a role *change* or after a `/clear`. **No action; takes effect on
   pull in Step 4.**
 
+**Release 2026-08-30**
+
+- **Lint now checks spec files' wikilinks (Rules 2 and 5). Expect new errors on your first
+  `/check` — fix them as part of the upgrade.** `/plan`, `/replan` and the brief template all
+  tell agents to cite kb pages by wikilink from a `brief.md`, `plan.md`, `tasks.md`,
+  `revisions.md` or `outcome.md`, but no rule ever read those files, so the citations could rot
+  silently — a page renamed or promoted left dangling links in every spec that cited it, with
+  nothing to say so. Rule 2 (unresolvable link, wrong `area:` prefix) and Rule 5 (link to a
+  superseded page) now walk spec files on the same terms as kb pages. Specs remain exempt from
+  *frontmatter* requirements — Rule 1 still checks well-formedness only.
+  **Action:** run `python _framework/tools/lint.py` right after upgrading and fix what it
+  reports in `*/specs/*`. These are real broken links that were already there; the rule only
+  made them visible. Note `/wrap-up` will not complete while lint is dirty, so do this before
+  your next wrap-up rather than during one.
+- **`revisions.md` is now linted at all.** It was missing from the spec-file set entirely, even
+  though `/replan` tells agents to cite kb pages in it. It is now covered by Rules 1, 2 and 5
+  like its siblings. Same action as above.
+- **Rule 5 now catches area-prefixed links to superseded pages.** The status index is keyed on
+  bare ids, but the rule looked up the raw link text, so any `[[research:findings/f-…]]` form
+  slipped past — cross-area citations of a retired page were never flagged. Fixed by stripping
+  the prefix before lookup. This applies to kb pages too, so it may surface findings unrelated
+  to specs. Same action.
+- **`/plan` corrected: link a prior spec's `outcome.md` as a relative markdown link, not a
+  wikilink.** `link-conventions.md` is normative — references to files outside `kb/` use
+  relative markdown links — and an `outcome.md` wikilink could never have resolved, since the
+  wikilink index only holds kb pages. If you have plans citing `[[…outcome]]`, rewrite them as
+  `[name](../<spec>/outcome.md)`; Rule 2 will now flag them.
+- **Brief template: the `## Pointers` placeholders are no longer live wikilinks.** They shipped
+  as `[[concepts/...]]` / `[[findings/...]]`, which under the new rule would make every unfilled
+  brief an error. They are now plain angle-bracket placeholders. Existing briefs that still
+  carry the old placeholders will be flagged — replace them with real citations or delete the
+  line. Code and template arrive on pull.
+
 ---
 
 ## Notes for the agent

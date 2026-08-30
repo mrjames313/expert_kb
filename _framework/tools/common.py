@@ -271,12 +271,14 @@ def iter_manifest_files(repo_root: Path) -> Iterator[Path]:
 
 def iter_spec_files(repo_root: Path) -> Iterator[Path]:
     """
-    Yield spec planning files: brief.md, plan.md, tasks.md, outcome.md
-    under any spec directory at areas/<area>/specs/<spec>/.
+    Yield spec planning files: brief.md, plan.md, tasks.md, revisions.md,
+    outcome.md under any spec directory at areas/<area>/specs/<spec>/.
 
-    These are prose files where frontmatter is OPTIONAL. They get lighter
-    lint treatment than kb pages (only well-formedness is checked, not
-    required fields).
+    These are prose files where frontmatter is OPTIONAL, so they get lighter
+    treatment than kb pages for *frontmatter* (Rule 1 checks well-formedness
+    only, never required fields). Their **wikilinks are held to the same
+    standard as a kb page's** — the skills tell agents to cite kb pages from a
+    brief, plan, or revision, so Rules 2 and 5 walk these files too.
     """
     areas_root = repo_root / "areas"
     if not areas_root.is_dir():
@@ -287,7 +289,7 @@ def iter_spec_files(repo_root: Path) -> Iterator[Path]:
         for spec_dir in specs_dir.iterdir():
             if not spec_dir.is_dir():
                 continue
-            for name in ("brief.md", "plan.md", "tasks.md", "outcome.md"):
+            for name in ("brief.md", "plan.md", "tasks.md", "revisions.md", "outcome.md"):
                 path = spec_dir / name
                 if path.is_file():
                     yield path

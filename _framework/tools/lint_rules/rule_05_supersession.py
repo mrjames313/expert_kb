@@ -4,6 +4,11 @@ Rule 5 — Supersession integrity.
 - Pages with `status: superseded` must have `superseded_by` populated.
 - Forward wikilinks to pages with `status: superseded` are errors;
   suggest the replacement via the target's `superseded_by`.
+
+Pass 2 covers kb pages *and* spec planning files: a plan that builds on a
+retired decision is the same defect as a page that cites one, and specs cite
+across areas often enough that the `area:` prefix has to be stripped before
+lookup (the index is keyed bare, as Rule 18 makes ids project-unique).
 """
 
 from __future__ import annotations
@@ -16,7 +21,9 @@ from common import (
     Finding,
     extract_wikilinks,
     iter_kb_pages,
+    iter_spec_files,
     parse_frontmatter,
+    split_wikilink,
 )
 
 RULE_ID = "rule_05"
@@ -79,7 +86,7 @@ def check(repo_root: Path, config: dict) -> list[Finding]:
                 )
 
     # Pass 2: forward links to superseded pages are errors
-    for page in iter_kb_pages(repo_root):
+    for page in [*iter_kb_pages(repo_root), *iter_spec_files(repo_root)]:
         try:
             text = page.read_text(encoding="utf-8")
             _fm, body = parse_frontmatter(text)
@@ -87,7 +94,11 @@ def check(repo_root: Path, config: dict) -> list[Finding]:
             continue
 
         rel = str(page.relative_to(repo_root))
-        for target in extract_wikilinks(body):
+        for raw in extract_wikilinks(body):
+            # The index is keyed on bare targets, so an `area:` prefix has to
+            # come off first — without this, every cross-area citation slipped
+            # past the check.
+            _prefix, target = split_wikilink(raw)
             if target in status_index:
                 _target_path, target_fm = status_index[target]
                 if target_fm.get("status") == "superseded":

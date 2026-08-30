@@ -402,6 +402,62 @@ class TestRule03Backlinks:
         assert any("f-2026-05-cites-eng" in p for p in data["links_in"])
 
 
+
+class TestRule02SpecFiles:
+    """Spec planning files cite kb pages by wikilink (see /plan, /replan and the
+    brief template) and were never checked — the links could rot silently."""
+
+    def _spec(self, repo: Path, name: str, text: str) -> Path:
+        d = repo / "areas" / "research" / "specs" / "test-spec"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / name).write_text(text)
+        return d / name
+
+    def test_broken_wikilink_in_plan_is_an_error(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        self._spec(tmp_path, "plan.md", "# Plan\n\nBuilds on [[findings/f-2026-05-nope]].\n")
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert any("plan.md" in f.file_path and "does not resolve" in f.message
+                   for f in findings)
+
+    def test_resolving_wikilink_in_plan_is_clean(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/research", "finding", "real")
+        self._spec(tmp_path, "plan.md", "# Plan\n\nBuilds on [[findings/f-2026-05-real]].\n")
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert [f for f in findings if "/specs/" in f.file_path] == []
+
+    def test_every_spec_file_is_covered_including_revisions(self, tmp_path: Path) -> None:
+        """revisions.md was absent from iter_spec_files entirely, though /replan
+        tells agents to cite kb pages in it."""
+        make_minimal_repo(tmp_path)
+        for name in ("brief.md", "plan.md", "tasks.md", "revisions.md", "outcome.md"):
+            self._spec(tmp_path, name, f"# {name}\n\nSee [[findings/f-2026-05-nope]].\n")
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        flagged = {Path(f.file_path).name for f in findings if "/specs/" in f.file_path}
+        assert flagged == {"brief.md", "plan.md", "tasks.md", "revisions.md", "outcome.md"}
+
+    def test_wrong_area_prefix_in_a_spec_is_an_error(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/research", "finding", "real")
+        self._spec(tmp_path, "brief.md",
+                   "# Brief\n\nSee [[engineering:findings/f-2026-05-real]].\n")
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert any("brief.md" in f.file_path and "declares area" in f.message
+                   for f in findings)
+
+    def test_shipped_brief_template_has_no_live_wikilinks(self, tmp_path: Path) -> None:
+        """The template's Pointers placeholders used to be real wikilinks
+        (`[[concepts/...]]`), so with this rule on, every unfilled brief would
+        error the moment it was created."""
+        tmpl = (Path(__file__).resolve().parents[1] / ".." / "schema"
+                / "spec-template" / "brief.md.tmpl").resolve()
+        make_minimal_repo(tmp_path)
+        self._spec(tmp_path, "brief.md", tmpl.read_text(encoding="utf-8"))
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert [f for f in findings if "/specs/" in f.file_path] == []
+
+
 # --- Rule 5: Supersession integrity ---
 
 class TestRule05Supersession:
@@ -438,6 +494,39 @@ class TestRule05Supersession:
         findings = rule_05_supersession.check(tmp_path, DEFAULT_CONFIG)
         # No link-to-superseded; old has its replacement set
         assert findings == []
+
+    def test_plan_citing_a_superseded_page(self, tmp_path: Path) -> None:
+        """A plan built on a retired decision is the same defect as a page
+        citing one — pass 2 covers spec files too."""
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/research", "decision", "new")
+        write_kb_page(
+            tmp_path, "areas/research", "decision", "old",
+            frontmatter_overrides={"status": "superseded", "superseded_by": "[[d-2026-05-new]]"},
+        )
+        spec = tmp_path / "areas" / "research" / "specs" / "test-spec"
+        spec.mkdir(parents=True)
+        (spec / "plan.md").write_text("# Plan\n\nProceeds from [[d-2026-05-old]].\n")
+        findings = rule_05_supersession.check(tmp_path, DEFAULT_CONFIG)
+        assert any("plan.md" in f.file_path and "which is superseded" in f.message
+                   for f in findings)
+
+    def test_area_prefixed_link_to_superseded_is_caught(self, tmp_path: Path) -> None:
+        """The status index is keyed on bare targets, so an `area:` prefix had
+        to be stripped before lookup. Without that, every cross-area citation
+        slipped past this rule — and specs cite across areas constantly."""
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/research", "finding", "new")
+        write_kb_page(
+            tmp_path, "areas/research", "finding", "old",
+            frontmatter_overrides={"status": "superseded", "superseded_by": "[[f-2026-05-new]]"},
+        )
+        write_kb_page(
+            tmp_path, "areas/engineering", "concept", "uses",
+            body="Builds on [[research:findings/f-2026-05-old]].",
+        )
+        findings = rule_05_supersession.check(tmp_path, DEFAULT_CONFIG)
+        assert any("which is superseded" in f.message for f in findings)
 
 
 # --- Rule 6: Type-specific completeness ---

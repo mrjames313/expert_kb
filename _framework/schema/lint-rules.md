@@ -18,9 +18,11 @@ Every `[[wikilink]]` resolves to an existing page — in the page **body and in 
 
 A link may carry an area prefix (`[[area:target]]`, e.g. `[[research:findings/f-…]]`). When present, the prefix must name the target's actual area, or it's an error. See `link-conventions.md`.
 
-Every relative markdown link to a repo path resolves to an existing file.
+**Scope: kb pages and spec planning files.** `/plan`, `/replan` and the brief template all tell agents to cite kb pages by wikilink from a `brief.md`, `plan.md`, `tasks.md`, `revisions.md` or `outcome.md`, so those files are checked on the same terms — a citation that resolves to nothing is the same defect wherever it is written. Specs are still exempt from *frontmatter* requirements (Rule 1 checks well-formedness only). Note that a reference from a spec to another non-kb file — another spec's `outcome.md`, a code file — is a relative markdown link, not a wikilink, so this rule never sees it.
 
 Source pages: `provenance.raw_path` must resolve to an existing file in `raw/` (when populated).
+
+*Not yet implemented:* checking that relative markdown links to repo paths resolve. The clause was documented here ahead of the code.
 
 ### Rule 3 — Backlink synchronization
 
@@ -30,7 +32,7 @@ For every forward link A→B, B's `.links.json` sidecar lists A in `links_in`. A
 
 Pages with `status: superseded` must have `superseded_by` populated.
 
-Forward links to pages with `status: superseded` are errors; the linter suggests the replacement via `superseded_by`.
+Forward links to pages with `status: superseded` are errors; the linter suggests the replacement via `superseded_by`. **Scope: kb pages and spec planning files** — a plan that proceeds from a retired decision is the same defect as a page that cites one. Area-prefixed links (`[[research:findings/f-…]]`) are resolved by stripping the prefix, so a cross-area citation is checked like any other.
 
 ### Rule 6 — Type-specific completeness
 

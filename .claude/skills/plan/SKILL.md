@@ -57,4 +57,4 @@ Reads a spec brief (or drafts one with the user) and writes `plan.md`. After the
 - If the user wants a very small change (one finding, one edit), `/plan` is overkill — go straight to making the edit and journaling it. `/plan` is for work that needs scoping.
 - The plan can cite concepts under test as evidence. If the plan depends on a concept being supported and it isn't, mark this as a precondition in the plan (a task to validate the concept).
 - If, while planning, you discover the work spans multiple areas: ask the user. With `multi_area` enabled, use `/exchange` to coordinate. Without it, the user has to choose one area to own the work, or run `/add-area` to create a new area.
-- A plan can reference earlier specs that established context. Use `[[wikilinks]]` to the prior `outcome.md` if relevant.
+- A plan can reference earlier specs that established context. An `outcome.md` lives outside `kb/`, so link it as a **relative markdown link**, not a wikilink — `[2026-04-noise-floor](../2026-04-noise-floor/outcome.md)` — per `link-conventions.md`. Wikilinks in a plan are for kb pages, and Rule 2 checks that each one resolves.

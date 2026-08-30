@@ -1,7 +1,8 @@
 """
 Rule 2 — Forward-link integrity.
 
-- Every [[wikilink]] in a kb page body resolves to an existing kb page.
+- Every [[wikilink]] in a kb page *or spec planning file* body resolves to an
+  existing kb page.
 - Every [[wikilink]] in a frontmatter value (e.g. `evidence`, `provenance.ref`,
   `alternatives_considered`, `superseded_by`) resolves too. Frontmatter links
   used to be invisible to lint, which let tools that re-serialize frontmatter
@@ -24,6 +25,7 @@ from common import (
     build_wikilink_index,
     extract_wikilinks,
     iter_kb_pages,
+    iter_spec_files,
     page_area,
     parse_frontmatter,
     split_wikilink,
@@ -134,5 +136,12 @@ def check(repo_root: Path, config: dict) -> list[Finding]:
     findings: list[Finding] = []
     index = build_wikilink_index(repo_root)
     for path in iter_kb_pages(repo_root):
+        findings.extend(_check_page(path, repo_root, index))
+    # Spec planning files cite kb pages by wikilink too (see /plan, /replan and
+    # the brief template), and a citation that resolves to nothing is the same
+    # defect wherever it is written. Non-kb targets — another spec's outcome.md,
+    # a code file — are relative markdown links per link-conventions.md, so they
+    # are not wikilinks and nothing here looks at them.
+    for path in iter_spec_files(repo_root):
         findings.extend(_check_page(path, repo_root, index))
     return findings

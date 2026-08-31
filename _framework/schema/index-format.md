@@ -112,6 +112,10 @@ The agent's initial context is "full preload bodies" plus "frontmatter blocks fo
 
 The linter regenerates the index on every run. If you make edits and don't run lint, the index will be out of sync with reality. The `/wrap-up` skill always runs lint, so end-of-session it's correct. Mid-session staleness is fine — agents who need it fresh can run `/check`.
 
+## Not the only index Rule 15 generates
+
+This file describes `kb/index.md`. Rule 15 also regenerates `areas-index.md` and, when exchanges exist, each `exchanges/<a>--<b>/index.md` — a different shape (grouped by exchange status, entries as relative markdown links, since exchanges are not in the wikilink index) documented in `exchange-protocol.md` → "The index". What they share is the `L` maintenance category: generated from files read elsewhere, and a hand edit is overwritten rather than flagged.
+
 ## Per-directory indices for sub-areas
 
 Each kb directory gets its own index. For `areas/research/`, that's:

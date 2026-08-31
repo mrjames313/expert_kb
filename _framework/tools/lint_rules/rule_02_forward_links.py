@@ -1,8 +1,8 @@
 """
 Rule 2 — Forward-link integrity.
 
-- Every [[wikilink]] in a kb page, spec planning file, or data manifest resolves
-  to an existing kb page (body and frontmatter alike — a manifest's links live
+- Every [[wikilink]] in a kb page, spec planning file, data manifest, or exchange
+  file resolves to an existing kb page (body and frontmatter alike — a manifest's links live
   entirely in its `context_pages` frontmatter list).
 - Every [[wikilink]] in a frontmatter value (e.g. `evidence`, `provenance.ref`,
   `alternatives_considered`, `superseded_by`) resolves too. Frontmatter links
@@ -28,6 +28,7 @@ from common import (
     build_wikilink_index,
     extract_markdown_links,
     extract_wikilinks,
+    iter_exchange_files,
     iter_kb_pages,
     iter_manifest_files,
     iter_spec_files,
@@ -202,5 +203,13 @@ def check(repo_root: Path, config: dict) -> list[Finding]:
     # data meaning. Rule 12 requires the list be non-empty but never resolved it,
     # so a manifest could point at pages that don't exist.
     for path in iter_manifest_files(repo_root):
+        findings.extend(_check_page(path, repo_root, index))
+    # Exchange files carry a `## Context` section of area-prefixed wikilinks by
+    # protocol, and `/respond-exchange` has always told the responder that the
+    # wikilinks in their answer must resolve — a check that did not exist until
+    # `iter_exchange_files` did. `_check_page` needs no special-casing: an
+    # exchange has no `type: source`, so the raw_path branch is skipped, and its
+    # references to non-kb files are relative markdown links like anywhere else.
+    for path in iter_exchange_files(repo_root):
         findings.extend(_check_page(path, repo_root, index))
     return findings

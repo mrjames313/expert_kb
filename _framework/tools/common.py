@@ -14,6 +14,7 @@ from __future__ import annotations
 import re
 from urllib.parse import unquote
 from dataclasses import dataclass, field
+from datetime import date, datetime
 from pathlib import Path
 from typing import Iterator
 
@@ -309,6 +310,46 @@ def iter_raw_files(repo_root: Path) -> Iterator[Path]:
                     yield path
 
 
+def iter_exchange_files(repo_root: Path) -> Iterator[Path]:
+    """
+    Yield exchange files: `exchanges/<a>--<b>/ex-<date>-<slug>.md`.
+
+    The `ex-` prefix is the naming contract with `/exchange`, not an incidental
+    glob — pinned by tests, because it has already broken once (the `kb_vitals`
+    scan globbed the dead `q-*` prefix and returned zero for every project).
+    Restricting to it also excludes the directory's `README.md` and the
+    lint-generated `index.md` without naming them.
+
+    Exchanges are neither kb pages nor spec files, so Rules 2 and 5 never saw
+    them until this iterator existed — while `/respond-exchange` told agents to
+    run lint *because* the wikilinks in their response must resolve.
+    """
+    ex_root = repo_root / "exchanges"
+    if not ex_root.is_dir():
+        return
+    for path in sorted(ex_root.glob("*/ex-*.md")):
+        if path.is_file():
+            yield path
+
+
+def exchange_dir_name(area_a: str, area_b: str) -> str:
+    """The canonical directory name for an exchange between two areas.
+
+    Areas sort alphabetically and join with `--`, so one directory serves a pair
+    regardless of direction (`exchanges/engineering--research/`); the direction
+    lives in the `from_area`/`to_area` fields.
+
+    A sub-area id carries a slash (`research/optics`), which would nest the
+    directory a level deeper and hide it from every consumer — all of which glob
+    exactly one level (`exchanges/*/`). So a slash collapses to `-`:
+    `exchanges/engineering--research-optics/`. That makes the name ambiguous
+    with a hypothetical top-level area of the same spelling, which is harmless —
+    the frontmatter is the authority on the parties, the directory name is only
+    filing.
+    """
+    return "--".join(sorted(a.replace("/", "-") for a in (area_a, area_b)))
+
+
 def iter_areas(repo_root: Path) -> Iterator[Path]:
     """Yield each area directory (including sub-areas) under areas/."""
     areas_root = repo_root / "areas"
@@ -377,6 +418,27 @@ def new_commons_id(source_page_id: str) -> str:
     if not slug:
         return f"{type_prefix}-commons"
     return f"{type_prefix}-commons-{slug}"
+
+
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def is_iso_date(value: object) -> bool:
+    """True for a YYYY-MM-DD date, as either a string or a PyYAML `date`.
+
+    PyYAML parses an unquoted `2026-05-08` into a `datetime.date`, so every
+    caller has to accept both forms; keeping that in one place stops the two
+    rules that check dates from disagreeing about which.
+    """
+    if isinstance(value, date):
+        return True
+    if isinstance(value, str) and _ISO_DATE_RE.match(value):
+        try:
+            datetime.strptime(value, "%Y-%m-%d")
+            return True
+        except ValueError:
+            return False
+    return False
 
 
 def is_valid_id(page_id: str, page_type: str) -> bool:

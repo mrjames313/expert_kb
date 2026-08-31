@@ -17,8 +17,9 @@ roughly a third are definitions or descriptions rather than requirements, leavin
 clauses. Each was resolved against the code by reading the relevant rule module or tool.
 
 **Audited at:** framework_version 2026-08-31. G1 resolved by rewording; C1, C2 and C3 fixed the
-same day; G2 and G3 are planned in `future-work.md`; C4 and C5 were found while planning G2 and
-remain open.
+same day. G2 — with C4 and C5, which were found while planning it — shipped 2026-08-31; a fourth
+issue found the same way (C6, sub-area exchange directories) shipped with them. G3 remains
+planned in the framework repo's backlog.
 
 **How to keep it true.** Clause anchors below are quoted verbatim so a grep can verify the
 clause still exists as written — an edited or deleted clause self-reports. Only genuinely *new*
@@ -77,20 +78,19 @@ inside the *no-role* branch, so naming your role — the common case — skipped
 and the real defect behind a report that blamed them. `/start` now runs
 `session-start.sh --orient-only` as step 1, unconditionally.
 
-### G2. Exchange files are entirely unlinted, and a skill says otherwise
+### G2. Exchange files are entirely unlinted, and a skill says otherwise — fixed 2026-08-31
 
-`common.py` has no exchange-file iterator at all — no `iter_exchange_files`. Rule 2 walks kb
-pages, spec files, and manifests; Rule 5 walks kb pages and spec files. Exchanges are in none of
-them. Yet:
+`common.py` had no exchange-file iterator at all. Rule 2 walked kb pages, spec files and
+manifests; Rule 5 walked kb pages and spec files. Exchanges were in none of them — while
+`respond-exchange/SKILL.md` told the responder to run lint *because* "any `[[wikilinks]]` in your
+response **must resolve**", and `exchange-protocol.md` requires a `## Context` section of
+`[[area:…]]` prefixed links, precisely the form Rule 2's area-prefix check exists for.
 
-- `respond-exchange/SKILL.md:61` — "Run `python _framework/tools/lint.py`. Any `[[wikilinks]]`
-  in your response **must resolve**." Lint does not check this.
-- `exchange-protocol.md` requires briefs to carry a `## Context` section of `[[area:…]]`
-  prefixed links — precisely the form Rule 2's area-prefix check exists for.
-
-Same shape as the spec-file gap closed on 2026-08-30, and the fix is the same three lines:
-an iterator plus two rule walks. Worth doing together with a decision about `exchanges/**`
-frontmatter, which Rule 1 also never checks.
+**Fixed** with `common.iter_exchange_files` (`exchanges/*/ex-*.md`; the `ex-` prefix pinned by
+test, since that naming contract has already broken once), walked by Rules 2 and 5. Exchange
+frontmatter is a different schema — only three of Rule 1's eight required fields exist on an
+exchange — so it became **Rule 22** rather than an extension of Rule 1. C4 and C5 below were
+prerequisites and shipped in the same change.
 
 ### G3. Nothing detects a role file that re-enumerates the skill baseline
 
@@ -104,6 +104,30 @@ list). It was fixed by migration, and the clause warning against a recurrence ha
 
 **Mechanizable:** a role file's `## Allowed skills` section, outside `# capability:` blocks,
 should not list baseline skill names. Cheap grep-level check.
+
+### G4. A query in `follow_up` is stranded — no consumer surfaces it
+
+Found 2026-08-31 while reconciling `/close-exchange` against the protocol. `exchange-protocol.md`
+defines the query cycle as "the asker fills the Follow-up section, sets status `follow_up`, and
+the responder cycle repeats", and `spec.md` lists `follow_up` in the query status vocabulary.
+Nothing routes it:
+
+- `kb_vitals.exchange_counts` counts `open` → `/respond-exchange` and `answered` →
+  `/close-exchange`. `follow_up` falls through both branches.
+- `respond-exchange/SKILL.md` scans for `kind: query`, `status: open`.
+- `/start`'s scan surfaces "open queries with `to_area` == this area".
+- Rule 14 (exchange staleness, still unimplemented) is specified as `status: open` past the
+  threshold, so a stranded follow-up would not age into a warning either.
+
+Same shape as C6: not an error anywhere, the exchange is simply never handed to the role that
+owes the next answer. `/close-exchange` step 3 said `status: open` — contradicting the protocol,
+but accidentally keeping the routing alive. Corrected to `follow_up` under schema-wins, which
+makes the gap reachable rather than masked.
+
+**Fix (not yet made):** treat `follow_up` as responder-actionable wherever `open` is — the
+`to_answer` branch of `exchange_counts`, `/respond-exchange`'s scan, `/start`'s surfacing, and
+Rule 14's threshold when it lands. Rule 22 already accepts the status, so no lint change. Worth
+doing with Rule 14, which needs the same predicate.
 
 ---
 
@@ -166,28 +190,50 @@ the normative spec. Harmless today because nothing reads the table, which is G1'
 
 **Fixed 2026-08-31** — the row now reads `exchanges/**/ex-*.md`.
 
-### C4. The exchange protocol teaches two unresolvable wikilink forms
+### C4. The exchange protocol teaches two unresolvable wikilink forms — fixed 2026-08-31
 
 Found while planning G2's fix. `link-conventions.md` says references to files outside `kb/` are
 relative markdown links, and only kb pages are in the wikilink index. The exchange protocol
-authors two references that violate this:
+authored two references that violated this — the index line (`- [[<id>]] — <kind> from …`, a
+wikilink to another exchange) and its own example `## Context`
+(`[[specs/2026-05-detector-thermal/brief]]`, a wikilink to a spec file). Neither could ever
+resolve, and the second was the worse one: it was the example an agent copies.
 
-- `exchange-protocol.md:35` specifies the index line as `- [[<id>]] — <kind> from …` — a wikilink
-  to another exchange file.
-- `exchange-protocol.md:56`'s own example `## Context` contains
-  `[[specs/2026-05-detector-thermal/brief]]` — a wikilink to a spec file.
+**Fixed.** Both are now relative markdown links. The index half fell out of C5's resolution — a
+generator emits whichever form is decided on — and the example is now a real relative path, which
+Rule 2 resolves like any other. The protocol gained a "Linking from an exchange" section stating
+the split, and both `/exchange` templates say it inline.
 
-Neither can ever resolve. The second is the worse one: it is the example an agent copies. Both
-are blocking G2 (turning Rule 2 on for exchanges would flag every index line), and the options
-are laid out in the future-work plan.
+### C5. `exchanges/**/index.md` is categorised lint-maintained, and no lint maintains it — fixed 2026-08-31
 
-### C5. `exchanges/**/index.md` is categorised lint-maintained, and no lint maintains it
+`spec.md` put it in the `L` category — regenerated by lint, never hand-edited — while Rule 15
+regenerated `areas-index.md` and each `kb/index.md` and nothing else. Three skills appended to or
+rewrote the exchange index by hand, which is `A`-category behaviour, and each was copying a
+`status` the exchange file's own frontmatter already carried.
 
-`spec.md:189` puts it in the `L` category — regenerated by lint, never hand-edited. Rule 15
-regenerates `areas-index.md` and each `kb/index.md`, and nothing else. The `/exchange` skill
-appends to the exchange index by hand, which is an `A`-category behaviour. Either Rule 15 should
-own the file or the category is wrong; settling it also settles C4's index half, since a
-generator can emit whichever link form is decided on.
+**Fixed by making the category true:** Rule 15 now generates each `exchanges/<a>--<b>/index.md`
+from the pair's exchange frontmatter, and the hand-edit step is gone from `/exchange`,
+`/respond-exchange` and `/close-exchange`. Deliberately not gated on `multi_area` — exchange
+directories survive disabling the capability, and an index that silently stopped tracking the
+files beside it is worse than one kept honest. Downstream projects with hand-annotated indexes
+are warned in the Release 2026-08-31 migration; `README.md` is where such notes belong.
+
+### C6. Sub-area exchanges file into a directory nothing can see — fixed 2026-08-31
+
+Found while writing G2's iterator. Exchange directories are `<a>--<b>` with the areas sorted, and
+every consumer globs exactly one level: `kb_vitals.exchange_counts`, `/start`,
+`/respond-exchange` and `/close-exchange` all scan `exchanges/*/`. A sub-area id carries a slash,
+so `to_area: research/optics` produced `exchanges/engineering--research/optics/` — nested, and
+invisible to all four. Sub-areas are plainly contemplated elsewhere (`kb_vitals._bare_area`
+exists to normalise `areas/research/optics`); the directory scheme simply had no form for them.
+
+Worse than an error, because it isn't one: the exchange is filed, lint passes, and it never
+reaches the role that owes it a response.
+
+**Fixed** by flattening a slash to `-` (`exchanges/engineering--research-optics/`), which leaves
+every existing one-level glob working, and by having Rule 22 check that a file sits in the
+canonical directory for its pair. No migration — the shape was unreachable in practice, since
+no project had filed a sub-area exchange.
 
 ---
 
@@ -224,10 +270,20 @@ Grouped by enforcer. Each row's clause text is verbatim enough to grep.
 - "files outside `kb/` … use relative markdown links" — `link-conventions.md:24`
 - "`[[data/manifests/…]]` can never resolve" — `frontmatter.md:256`
 - `context_pages` are "wikilinks into `kb/`" — `lint-rules.md:49`
+- "Any `[[wikilinks]]` in your response **must resolve**" — `respond-exchange/SKILL.md`.
+  *The clause that named this rule before the rule could see the file* (G2).
 
 ### Rule 5 — supersession integrity
 - "A page with `status: superseded` must have `superseded_by` populated" — `link-conventions.md:56`
-- "**Linking to a superseded page is an error**, not a warning" — `link-conventions.md:58`, `spec.md:772`
+- "**Linking to a superseded page is an error**, not a warning" — `link-conventions.md:58`, `spec.md:772`.
+  Scope now includes exchange files, where the receiving area may preload what an answer cites.
+
+### Rule 22 — exchange frontmatter validity
+- "`status: open | answered | follow_up | closed`" (query) and "`open | closed` (closed when
+  `open_for` is empty)" (brief) — `exchange-protocol.md`, both example blocks
+- "`open_for` is **frozen**" and is drained from the `to_roles` snapshot — `exchange-protocol.md`
+- "the id is `ex-YYYY-MM-DD-<slug>`" — `exchange/SKILL.md` step 4
+- "One canonical directory per pair regardless of direction" — `exchange-protocol.md`
 
 ### Rule 6 — type-specific completeness
 - "Required-at-creation fields (per type) are enforced by lint Rule 6" — `frontmatter.md:24`.
@@ -245,6 +301,8 @@ Grouped by enforcer. Each row's clause text is verbatim enough to grep.
 ### Rule 15 — index maintenance (enforced by regeneration, not detection)
 - "**Auto-generated by lint** (Rule 15); never hand-edited" — `index-format.md:7`
 - "The linter regenerates the index on every run" — `index-format.md:113`
+- `exchanges/**/index.md` as an `L`-category path — `spec.md`. *Was the category without the
+  machinery* (C5); Rule 15 now generates it.
 
 ### Rule 17 — raw immutability
 - "Existing files never modified" / "raw materials are immutable" — `CLAUDE.md:14,42`

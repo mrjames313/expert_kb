@@ -5,10 +5,12 @@ Rule 5 — Supersession integrity.
 - Forward wikilinks to pages with `status: superseded` are errors;
   suggest the replacement via the target's `superseded_by`.
 
-Pass 2 covers kb pages *and* spec planning files: a plan that builds on a
-retired decision is the same defect as a page that cites one, and specs cite
-across areas often enough that the `area:` prefix has to be stripped before
-lookup (the index is keyed bare, as Rule 18 makes ids project-unique).
+Pass 2 covers kb pages, spec planning files *and* exchange files: a plan that
+builds on a retired decision, or an answer that hands one to another area, is
+the same defect as a page that cites one. Both cite across areas often enough
+that the `area:` prefix has to be stripped before lookup (the index is keyed
+bare, as Rule 18 makes ids project-unique) — and for an exchange, crossing areas
+is the whole point.
 """
 
 from __future__ import annotations
@@ -20,6 +22,7 @@ import yaml
 from common import (
     Finding,
     extract_wikilinks,
+    iter_exchange_files,
     iter_kb_pages,
     iter_spec_files,
     parse_frontmatter,
@@ -86,7 +89,11 @@ def check(repo_root: Path, config: dict) -> list[Finding]:
                 )
 
     # Pass 2: forward links to superseded pages are errors
-    for page in [*iter_kb_pages(repo_root), *iter_spec_files(repo_root)]:
+    for page in [
+        *iter_kb_pages(repo_root),
+        *iter_spec_files(repo_root),
+        *iter_exchange_files(repo_root),
+    ]:
         try:
             text = page.read_text(encoding="utf-8")
             _fm, body = parse_frontmatter(text)

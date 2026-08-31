@@ -50,17 +50,15 @@ Picks up an open **query** where the role's area is the `to_area`, drafts a resp
 
    Update the frontmatter `status:` to `answered`.
 
-6. **Update the exchange's index.** In `exchanges/<a>--<b>/index.md`, change the entry's status from `open` to `answered`.
-
-7. **Record in pulse.log** in your area's `_journal/pulse.log`:
+6. **Record in pulse.log** in your area's `_journal/pulse.log`:
    ```
    ## [YYYY-MM-DD HH:MM] decision <role>
    Answered exchange <id> from <from_area>: <one-line summary>.
    ```
 
-8. **Verify.** Run `python _framework/tools/lint.py`. Any `[[wikilinks]]` in your response must resolve.
+7. **Verify.** Run `python _framework/tools/lint.py`. Any `[[wikilinks]]` in your response must resolve — Rule 2 checks this, and Rule 5 rejects a link to a superseded page, which matters here because the asker may preload what you cite. The run also regenerates the pair's `index.md` from the status you just set; there is no index line to edit by hand.
 
-9. **Brief the user.** Tell them the response is filed. The asker will pick it up at their next `/start` (or by direct invocation of `/close-exchange`).
+8. **Brief the user.** Tell them the response is filed. The asker will pick it up at their next `/start` (or by direct invocation of `/close-exchange`).
 
 ## Notes
 

@@ -33,10 +33,11 @@ Don't use `/exchange` for:
 
 2. **For a brief, determine the target roles.** Ask which role(s) in `to_area` the brief is for, or "all." List `areas/<to_area>/roles/*/` to resolve "all" into an explicit set. Record them as `to_roles`, and copy the same list into `open_for`. (Queries skip this — any role in `to_area` may respond.)
 
-3. **Determine the exchange directory.** Sort the two area names alphabetically → `exchanges/<a>--<b>/`, regardless of direction. If it doesn't exist, create:
+3. **Determine the exchange directory.** Sort the two area names alphabetically → `exchanges/<a>--<b>/`, regardless of direction. A sub-area's slash flattens to `-` (`research/optics` → `research-optics`) — every consumer globs one level, so a nested directory would make the exchange invisible rather than invalid. If the directory doesn't exist, create:
    - `OWNERS` — one line: `<a>, <b>`.
    - `README.md` — boilerplate: exchanges between these two areas.
-   - `index.md` — empty index.
+
+   Don't create `index.md` — lint generates it (Rule 15).
 
 4. **Pick a slug and id.** Slug is a short kebab name; the id is `ex-YYYY-MM-DD-<slug>`. The file is `exchanges/<a>--<b>/<id>.md`.
 
@@ -62,8 +63,10 @@ Don't use `/exchange` for:
 
    ## Context
 
-   Area-prefixed wikilinks to the pages that motivated the question, e.g.
+   Area-prefixed wikilinks to the kb pages that motivated the question, e.g.
    [[<your-area>:concepts/c-...]], plus any commons pages that bear on it.
+   Anything outside kb/ — a spec, a manifest — is a relative markdown link;
+   a wikilink to one can never resolve, and lint will flag it.
 
    # Response
 
@@ -96,22 +99,18 @@ Don't use `/exchange` for:
 
    ## Context
 
-   Area-prefixed wikilinks to your pages that back the claim, e.g.
-   [[<your-area>:findings/f-...]].
+   Area-prefixed wikilinks to your kb pages that back the claim, e.g.
+   [[<your-area>:findings/f-...]]. Anything outside kb/ is a relative
+   markdown link.
 
    # Dispositions
 
    _(each targeted role records what it did on close)_
    ```
 
-6. **Append to the index.** In `exchanges/<a>--<b>/index.md`:
-   ```markdown
-   - [[<id>]] — <kind> from <from_role>@<from_area>, open, YYYY-MM-DD
-   ```
+6. **Verify.** Run `python _framework/tools/lint.py`; confirm the repo stays clean. This also regenerates `exchanges/<a>--<b>/index.md` — the index is derived from the exchange files' frontmatter, so there is nothing to append by hand. Lint checks the exchange's frontmatter (Rule 22) and resolves its links (Rules 2 and 5).
 
-7. **Verify.** Run `python _framework/tools/lint.py`; confirm the repo stays clean. (Exchange files aren't kb pages, so their wikilinks aren't lint-checked — still point them at real pages.)
-
-8. **Brief the user.**
+7. **Brief the user.**
    - Query: the question is open and the responder area is on the hook. Move on — exchanges don't block.
    - Brief: it's filed for `<to_roles>`; they'll pick it up at their next `/start`. Nothing is owed back to you.
 

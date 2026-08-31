@@ -454,6 +454,47 @@ Once satisfied, merge the branch.
   `[[data/manifests/…]]` reference from a kb page can never resolve — link a manifest with a
   relative markdown link, which Release 2026-08-31 made checkable. **Action:** run
   `python _framework/tools/lint.py`; fix any manifest links it reports.
+- **Exchange files are now linted, and `exchanges/*/index.md` is generated rather than
+  hand-written.** Exchanges were the last live surface no rule walked: `common.py` had no
+  exchange iterator, so Rules 1, 2 and 5 never saw them — while `/respond-exchange` told the
+  responder to run lint *because* the wikilinks in their answer must resolve. Three changes land
+  together:
+  - **Rules 2 and 5 walk `exchanges/*/ex-*.md`.** A `## Context` wikilink that resolves to
+    nothing, a wrong `area:` prefix, a broken relative markdown link, or a link to a
+    `superseded` page is now an error — the last one matters most here, since the asker may
+    preload what an answer cites.
+  - **New Rule 22 validates exchange frontmatter** (a different schema from a kb page's, which
+    is why Rule 1 was never pointed at it): `kind`, the per-kind status vocabulary, required
+    fields, `open_for ⊆ to_roles`, the protocol's `closed ⟺ open_for empty` invariant,
+    `id`/filename agreement, and that the file sits in its pair's canonical directory.
+  - **Rule 15 regenerates each `exchanges/<a>--<b>/index.md`**, grouped by status with open
+    first. `spec.md` has categorised that file `L` (lint-maintained) since the protocol shipped
+    while three skills appended to it by hand; this makes the category true. `/exchange`,
+    `/respond-exchange` and `/close-exchange` no longer touch the index.
+
+  **Action (one-time, only if you have `multi_area` on):** the index is now overwritten on every
+  lint run, so anything you added to one by hand is lost on your next `/check`. List them and
+  check before upgrading — the pair's `README.md` is where such notes belong:
+
+  ```bash
+  ls exchanges/*/index.md 2>/dev/null
+  ```
+
+  Then run `python _framework/tools/lint.py` and fix what Rules 2, 5 and 22 report. These are
+  pre-existing defects in files nothing has ever checked, so expect findings on a repo that has
+  been reporting `lint: clean`.
+
+- **Sub-area exchanges: the directory name flattens a slash to `-`.** `exchanges/<a>--<b>/` sorts
+  the two areas alphabetically, and every consumer globs exactly one level (`/start`,
+  `/kb-vitals`, `/respond-exchange`, `/close-exchange` all scan `exchanges/*/`). A sub-area id
+  carries a slash, so `to_area: research/optics` used to produce
+  `exchanges/engineering--research/optics/` — nested, and invisible to all four. It fails
+  silently: the exchange is filed, lint passes, and it never surfaces to the role that owes a
+  response. The name is now `exchanges/engineering--research-optics/`, and Rule 22 checks it.
+  **Action:** almost certainly none — this shape was unreachable in practice. If you *do* have a
+  nested exchange directory, `find exchanges -mindepth 2 -type d` lists them; move each file to
+  the flattened pair directory and re-run lint.
+
 - **`framework_check.py` rejects a future-dated release.** Versioning is date-based, and a
   release stamped ahead of today mis-gates every migration after it: a project upgrading today
   records tomorrow's date, so Step 5 ("apply those whose release is newer than your version")

@@ -50,6 +50,7 @@ INSPECTION_RULES = [
     "rule_18_id_uniqueness",
     "rule_20_commons_drift",         # warning; self-gates on warnings_visible
     "rule_21_commons_twin_links",    # warning; self-gates on warnings_visible
+    "rule_22_exchange_frontmatter",
 ]
 
 ALL_RULES = FIXUP_RULES + INSPECTION_RULES

@@ -51,9 +51,10 @@ Implemented (correctness errors):
 - Rule 6 — Type-specific completeness
 - Rule 7 — Pulse size
 - Rule 12 — Data manifest integrity
-- Rule 15 — Index maintenance (fixup; regenerates `areas-index.md` and `kb/index.md`)
+- Rule 15 — Index maintenance (fixup; regenerates `areas-index.md`, `kb/index.md`, and `exchanges/*/index.md`)
 - Rule 17 — Raw immutability
 - Rule 18 — Page ID uniqueness across the project
+- Rule 22 — Exchange frontmatter validity (a schema of its own, so Rule 1 doesn't apply)
 
 Deferred: configurable warnings (Rule 4, 8, 9, 10, 11, 13, 14, 16) and a maintenance-category rule (Rule 19 or later).
 

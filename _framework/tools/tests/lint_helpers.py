@@ -116,6 +116,87 @@ def write_kb_page(
     return page_path
 
 
+def write_exchange(
+    repo_root: Path,
+    slug: str,
+    *,
+    kind: str = "query",
+    from_area: str = "engineering",
+    from_role: str = "hardware-engineer",
+    to_area: str = "research",
+    status: str = "open",
+    created: str = "2026-05-08",
+    body: str | None = None,
+    dir_name: str | None = None,
+    filename: str | None = None,
+    overrides: dict | None = None,
+    drop: tuple[str, ...] = (),
+) -> Path:
+    """Create an exchange file under `exchanges/<a>--<b>/`.
+
+    The field set and body headings are copied from the templates in
+    `.claude/skills/exchange/SKILL.md` step 5 (and `exchange-protocol.md`), NOT
+    from what the rule module happens to read — an exchange file is written by a
+    skill, so its shape is a contract between two documents, and a fixture taken
+    from the implementation could only ever assert that the code still does what
+    it did. See `maintaining.md` → "Test fixtures come from the contract".
+
+    `overrides` sets or replaces frontmatter fields; `drop` removes them.
+    """
+    exchange_id = f"ex-{created}-{slug}"
+
+    fm: dict = {
+        "id": exchange_id,
+        "kind": kind,
+        "status": status,
+        "from_area": from_area,
+        "from_role": from_role,
+        "to_area": to_area,
+        "created": created,
+    }
+    if kind == "brief":
+        fm["to_roles"] = ["hardware-engineer", "firmware-engineer"]
+        fm["open_for"] = ["hardware-engineer", "firmware-engineer"]
+    fm["relevant_to"] = ["thermal budget"]
+
+    if overrides:
+        fm.update(overrides)
+    for key in drop:
+        fm.pop(key, None)
+
+    lines = ["---"]
+    for k, v in fm.items():
+        if isinstance(v, list):
+            lines.append(f"{k}: [{', '.join(str(i) for i in v)}]" if v else f"{k}: []")
+        elif v is None:
+            lines.append(f"{k}: ~")
+        else:
+            lines.append(f"{k}: {v}")
+    lines.append("---")
+    lines.append("")
+
+    if body is None:
+        if kind == "brief":
+            body = (
+                "# Brief\nThe drift model now predicts ~2x the responsivity swing at 85 C.\n\n"
+                "# Dispositions\n_(each targeted role records what it did on close)_\n"
+            )
+        else:
+            body = (
+                "# Question\nWhat's the temperature dependence of responsivity?\n\n"
+                "# Response\n_(filled in by responder)_\n"
+            )
+    lines.append(body)
+
+    if dir_name is None:
+        dir_name = "--".join(sorted(a.replace("/", "-") for a in (from_area, to_area)))
+    ex_dir = repo_root / "exchanges" / dir_name
+    ex_dir.mkdir(parents=True, exist_ok=True)
+    path = ex_dir / (filename or f"{exchange_id}.md")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
 def make_minimal_repo(tmp_path: Path) -> Path:
     """Create a minimal repo with _framework/config.yml so find_repo_root and load_config work."""
     framework = tmp_path / "_framework"

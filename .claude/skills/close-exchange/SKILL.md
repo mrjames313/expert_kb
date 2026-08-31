@@ -27,7 +27,7 @@ Disposition options are the same for both: **preload** the referenced page into 
 
 3. **(Query only) Decide on follow-up.**
    - **Satisfied** — the response answers it. Continue.
-   - **Follow-up needed** — fill the `# Follow-up` section, set `status: open`, update the index; the responder picks it up again. (Stop here — not yet closed.)
+   - **Follow-up needed** — fill the `# Follow-up` section and set `status: follow_up`; the responder picks it up again. (Stop here — not yet closed. The index tracks the new status on the next lint run.)
    - **Insufficient / abandoned** — close without incorporating; note the direction taken.
 
    Briefs have no follow-up path — proceed straight to disposition.
@@ -63,20 +63,16 @@ Disposition options are the same for both: **preload** the referenced page into 
    ```
    Then remove your role from `open_for`. If `open_for` is now empty, set `status: closed` and add `closed_on: YYYY-MM-DD`. If not, leave `status: open` — the brief stays surfaced for the remaining roles.
 
-6. **Update the index.** In `exchanges/<a>--<b>/index.md`:
-   - Query: change `answered` → `closed`.
-   - Brief: reflect the new status — `open` while `open_for` is non-empty, `closed` when empty.
-
-7. **Record in pulse.log** (your area):
+6. **Record in pulse.log** (your area):
    ```
    ## [YYYY-MM-DD HH:MM] decision <role>
    Disposed exchange <id> (<kind>): <what you did with it>.
    ```
    If you filed kb pages, also add the appropriate `finding`/`concept`/`decision` entries.
 
-8. **Verify.** Run `python _framework/tools/lint.py`. New kb pages need complete frontmatter; any preload edits should reference existing files.
+7. **Verify.** Run `python _framework/tools/lint.py`. New kb pages need complete frontmatter; any preload edits should reference existing files. Rule 22 checks the frontmatter you just changed — in particular that a brief is `closed` exactly when `open_for` is empty — and the run regenerates the pair's `index.md`, so there is no index line to update by hand.
 
-9. **Brief the user.** Summarize what you did with the information, and — for a brief — who (if anyone) still owes a disposition.
+8. **Brief the user.** Summarize what you did with the information, and — for a brief — who (if anyone) still owes a disposition.
 
 ## Notes
 

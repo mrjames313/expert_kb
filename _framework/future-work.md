@@ -175,61 +175,8 @@ The framework currently shows the user a context message during the review ("thi
 
 ## Lint coverage gaps (from the 2026-08-31 clause audit)
 
-### Ready to build: lint the exchange files
-
-**Observed during:** the requirement-clause audit (`clause-audit.md` G2). `common.py` has no
-exchange-file iterator at all, so Rules 1, 2 and 5 have never seen `exchanges/**`. Meanwhile
-`respond-exchange/SKILL.md:61` instructs the agent to run lint *because* "any `[[wikilinks]]` in
-your response must resolve" — a check that does not exist. Exchanges carry `## Context` sections
-of `[[area:…]]` links by protocol, so this is live surface, not a hypothetical.
-
-No good reason not to; the same shape as the spec-file coverage shipped 2026-08-30. But two
-constraints make it more than a three-line change, and both need deciding first.
-
-**Constraint 1 — exchange frontmatter is a different schema, so Rule 1 must not be applied as-is.**
-Exchanges carry `id, kind, status, from_area, from_role, to_area, created, relevant_to`
-(+ `to_roles`, `open_for` for briefs). Rule 1's `REQUIRED_FIELDS_ALL` is
-`{id, title, type, status, area, created, updated, summary}` — only three overlap. Running
-`_check_page` over an exchange emits five spurious "missing required field" errors on every file.
-
-**Constraint 2 — exchanges reference non-kb things by wikilink, which can never resolve.** Two
-instances, both authored by the protocol itself:
-- `exchange-protocol.md:35` specifies the index line as `- [[<id>]] — <kind> from …`, a wikilink
-  to another *exchange*. Exchange ids aren't in the wikilink index.
-- `exchange-protocol.md:56`'s own example Context section contains
-  `[[specs/2026-05-detector-thermal/brief]]` — a wikilink to a **spec file**, outside `kb/`, so
-  permanently unresolvable. The protocol is teaching a broken form.
-
-Turn Rule 2 on naively and every `index.md` line plus any copy of that example lights up.
-
-**Decision needed** on how exchanges reference non-kb targets:
-- *(a)* Skip `index.md` in the walk and fix `:56` to a relative markdown link. Keeps the rule
-  "wikilinks resolve to kb pages" with no special cases. Cheapest; leaves the index's `[[<id>]]`
-  form unlinted and inconsistent with `link-conventions.md`.
-- *(b)* Also convert the index line to a relative markdown link, making exchanges fully
-  consistent with link-conventions. Small protocol change, but a data migration for every
-  existing `index.md`.
-- *(c)* Add exchange ids to the wikilink index so `[[ex-…]]` resolves. Makes exchange↔exchange
-  references first-class, at the cost of "wikilinks are kb-only" no longer being true.
-
-Leaning **(a) now, (b) later** if exchange indexes ever get regenerated (see below).
-
-**Phasing:**
-1. `iter_exchange_files(repo_root)` in `common.py` — `exchanges/*/ex-*.md`, excluding `index.md`,
-   `README.md`, `OWNERS`. Pin the `ex-` prefix in a test; that naming contract has already broken
-   once (the `kb_vitals` scan, 2026-08-29).
-2. Walk it in Rules 2 and 5. `_check_page` is safe as-is for Rule 2 — exchanges have no
-   `type: source`, so the `raw_path` branch is skipped — so this really is a two-line change once
-   the iterator exists. Fix `exchange-protocol.md:56` in the same commit.
-3. Exchange frontmatter validation as its own rule (not Rule 1): required fields by `kind`,
-   the kind-specific status vocabularies (`open|answered|follow_up|closed` vs `open|closed`),
-   `open_for ⊆ to_roles`, and `status: closed ⟺ open_for` empty — which is currently asserted in
-   the protocol and checked nowhere.
-
-**Also found, same area:** `spec.md:189` categorises `exchanges/**/index.md` as `L`
-(lint-maintained), but no rule regenerates it — the `/exchange` skill appends to it by hand. Either
-Rule 15 should own it (and then option (b) above becomes free, since a generator can emit any link
-form) or the category is wrong. Worth settling alongside the above.
+The exchange-file gap (audit G2, with C4, C5 and C6) shipped 2026-08-31 — see
+`future-work-done.md`. What remains from the audit is below.
 
 ### Role files can re-enumerate the skill baseline undetected
 

@@ -12,8 +12,6 @@ Checks for every kb page and manifest:
 
 from __future__ import annotations
 
-import re
-from datetime import date
 from pathlib import Path
 
 import yaml
@@ -23,6 +21,7 @@ from common import (
     REQUIRED_FIELDS_ALL,
     VALID_STATUSES_BY_TYPE,
     VALID_TYPES,
+    is_iso_date,
     is_valid_id,
     iter_kb_pages,
     iter_manifest_files,
@@ -32,22 +31,6 @@ from common import (
 
 RULE_ID = "rule_01"
 SEVERITY = "error"
-
-_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-
-
-def _check_iso_date(value: object) -> bool:
-    """Accept either a date object (parsed by PyYAML) or a YYYY-MM-DD string."""
-    if isinstance(value, date):
-        return True
-    if isinstance(value, str) and _ISO_DATE_RE.match(value):
-        try:
-            from datetime import datetime
-            datetime.strptime(value, "%Y-%m-%d")
-            return True
-        except ValueError:
-            return False
-    return False
 
 
 def _check_page(path: Path, repo_root: Path) -> list[Finding]:
@@ -110,7 +93,7 @@ def _check_page(path: Path, repo_root: Path) -> list[Finding]:
     # ISO dates
     for date_field in ("created", "updated"):
         if date_field in fm:
-            if not _check_iso_date(fm[date_field]):
+            if not is_iso_date(fm[date_field]):
                 findings.append(
                     Finding(
                         RULE_ID,

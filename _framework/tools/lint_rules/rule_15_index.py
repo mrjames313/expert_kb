@@ -4,6 +4,8 @@ Rule 15 — Index maintenance (fixup).
 Regenerates:
 - areas-index.md at repo root: list of areas with summaries and roles
 - <area>/kb/index.md per kb directory: catalog of pages grouped by type/status
+- exchanges/<a>--<b>/index.md per exchange directory: the pair's exchanges
+  grouped by status
 
 This is a fixup rule — it writes files and produces findings only on write failures.
 A file is rewritten only when its generated content actually changed (the
@@ -23,6 +25,7 @@ import yaml
 from common import (
     Finding,
     iter_areas,
+    iter_exchange_files,
     iter_kb_pages,
     iter_role_files,
     parse_frontmatter,
@@ -230,6 +233,117 @@ def _generate_kb_index(kb_dir: Path, repo_root: Path) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+_EXCHANGE_HEADING_RE = re.compile(r"^#+\s*(Question|Brief)\s*$", re.MULTILINE)
+
+
+def _exchange_gist(body: str) -> str:
+    """The first prose line under an exchange's `# Question` / `# Brief` heading.
+
+    Exchange frontmatter has no `summary`, so the one line that says what an
+    exchange is *about* only exists in the body. This couples the generator to
+    the heading the `/exchange` templates write — a contract between a tool and
+    a SKILL.md with nothing mechanical holding it together, which is the class
+    of bug that produced the dead `q-*` glob. Hence the fallback: if the heading
+    isn't found, take the first prose line of the body anyway, so a template
+    that drifts degrades to a worse gist rather than to a blank index.
+    """
+    match = _EXCHANGE_HEADING_RE.search(body)
+    rest = body[match.end():] if match else body
+    for line in rest.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.startswith("_") and stripped.endswith("_"):
+            continue  # italicized placeholder, e.g. _(filled in by responder)_
+        return stripped if len(stripped) <= 160 else stripped[:157] + "..."
+    return ""
+
+
+def _generate_exchange_index(ex_dir: Path, repo_root: Path) -> str:
+    """Build the content for a single exchanges/<a>--<b>/index.md.
+
+    Derived from the exchange files' frontmatter, which is what every consumer
+    already treats as the truth (`kb_vitals.exchange_counts` reads it and never
+    opens this file). The index used to be appended by hand at the end of
+    `/exchange`, `/respond-exchange` and `/close-exchange` — three copies of a
+    status that the file itself already carried.
+
+    Entries are relative markdown links, not wikilinks: only kb pages are in the
+    wikilink index, so the `[[<id>]]` form the protocol used to specify could
+    never resolve.
+    """
+    entries: list[tuple[str, dict, str]] = []
+    for path in sorted(ex_dir.glob("ex-*.md")):
+        try:
+            text = path.read_text(encoding="utf-8")
+            fm, body = parse_frontmatter(text)
+        except (OSError, yaml.YAMLError):
+            continue
+        if not fm:
+            continue
+        entries.append((path.name, fm, _exchange_gist(body)))
+
+    lines = [
+        f"# {ex_dir.name} exchanges",
+        "",
+        "_Auto-generated; do not edit by hand._",
+        f"_Last regenerated: {_effective_stamp(ex_dir / 'index.md')}_",
+        "",
+    ]
+
+    # Open first — it is the only group anyone owes anything on.
+    section_order = [
+        ("open", "Open"),
+        ("answered", "Answered"),
+        ("follow_up", "Follow-up"),
+        ("closed", "Closed"),
+    ]
+    known = {key for key, _ in section_order}
+    grouped: dict[str, list[tuple[str, dict, str]]] = defaultdict(list)
+    for entry in entries:
+        status = str(entry[1].get("status", "")).strip()
+        grouped[status if status in known else "other"].append(entry)
+
+    for key, header in [*section_order, ("other", "Other")]:
+        items = grouped.get(key, [])
+        if not items:
+            continue
+        # Newest first, by created then id.
+        items.sort(key=lambda e: (str(e[1].get("created", "")), str(e[1].get("id", ""))), reverse=True)
+        lines.append(f"## {header} ({len(items)})")
+        lines.append("")
+        for filename, fm, gist in items:
+            lines.extend(_format_exchange_entry(filename, fm, gist))
+            lines.append("")
+
+    if not entries:
+        lines.extend(["_No exchanges filed yet._", ""])
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _format_exchange_entry(filename: str, fm: dict, gist: str) -> list[str]:
+    """One index entry: link, kind, direction, date — plus who still owes a
+    disposition, which is the actionable part of an open brief."""
+    exchange_id = str(fm.get("id", Path(filename).stem))
+    kind = str(fm.get("kind", "")).strip()
+    from_role = str(fm.get("from_role", "")).strip()
+    from_area = str(fm.get("from_area", "")).strip()
+    to_area = str(fm.get("to_area", "")).strip()
+    created = str(fm.get("created", "")).strip()
+
+    origin = f"{from_role}@{from_area}" if from_role and from_area else from_area
+    parts = [p for p in (kind, f"{origin} → {to_area}" if to_area else origin, created) if p]
+    lines = [f"- [{exchange_id}]({filename})" + (" · " + " · ".join(parts) if parts else "")]
+    if gist:
+        lines.append(f"  {gist}")
+    if kind == "brief":
+        open_for = fm.get("open_for") or []
+        if isinstance(open_for, list) and open_for:
+            lines.append(f"  _awaiting:_ {', '.join(str(r) for r in open_for)}")
+    return lines
+
+
 def _format_entry(fm: dict) -> list[str]:
     """Format a single index entry from frontmatter."""
     page_id = fm.get("id", "?")
@@ -290,6 +404,30 @@ def check(repo_root: Path, config: dict) -> list[Finding]:
         index_path = kb_dir / "index.md"
         try:
             content = _generate_kb_index(kb_dir, repo_root)
+            _write_if_changed(index_path, content)
+        except OSError as e:
+            findings.append(
+                Finding(
+                    RULE_ID,
+                    SEVERITY,
+                    str(index_path.relative_to(repo_root)),
+                    f"could not write index: {e}",
+                )
+            )
+
+    # Exchange indices. `spec.md` has categorised these `L` (lint-maintained)
+    # since the protocol shipped while three skills appended to them by hand;
+    # this is the rule that makes the category true.
+    #
+    # Deliberately not gated on the `multi_area` capability. Exchange
+    # directories survive `/framework disable multi_area` by design, and an
+    # index that silently stops tracking the files beside it is worse than one
+    # kept honest for a capability that happens to be off. No exchanges
+    # directory means no work.
+    for ex_dir in sorted({path.parent for path in iter_exchange_files(repo_root)}):
+        index_path = ex_dir / "index.md"
+        try:
+            content = _generate_exchange_index(ex_dir, repo_root)
             _write_if_changed(index_path, content)
         except OSError as e:
             findings.append(

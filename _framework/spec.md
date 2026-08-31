@@ -182,14 +182,23 @@ Mapping:
 | `areas/**/kb/**/*.md` | A |
 | `areas/**/data/manifests/**` | A |
 | `areas/**/specs/**` | A |
-| `exchanges/**/q-*.md` | A |
+| `exchanges/**/ex-*.md` | A |
 | `**/raw/**` | H (immutable; treated as if human-authored) |
 | `areas-index.md` | L |
 | `**/kb/index.md` | L |
 | `exchanges/**/index.md` | L |
 | `**/*.links.json` (backlink sidecars) | L |
 
-Lint enforces category boundaries.
+These categories are a **convention agents uphold, not a boundary lint enforces** — no rule reads
+this table, and a write outside it is silent. The model holds because agents follow it, and the
+table is here to say who *should* write what, not to describe a check. Two entries are backed by
+real machinery: `**/raw/**` by Rule 17 (raw immutability), and the `L` rows by regeneration —
+lint rewrites them, so a hand edit is simply overwritten rather than flagged.
+
+Where a case genuinely warrants writing outside your category, raise it in conversation and leave
+a visible trace (`CHANGELOG.md`, an INBOX heads-up) instead of writing silently. Mechanical
+enforcement of the `A`/`H` split is the deferred Rule 19, which needs git author signals to tell
+an agent write from a human one.
 
 ---
 
@@ -480,8 +489,8 @@ Optional individual additions:
 
 - Writes allowed: /areas/research/optics/** EXCEPT /areas/research/optics/raw/**.
 - Raw materials anywhere are read-only; existing files immutable. New raw materials added through /ingest.
-- Writes to /commons/: forbidden; use /propose-promotion.
-- Writes to other areas: forbidden.
+- Writes to /commons/: not directly. New content via /propose-promotion; corrections to an existing commons page via /amend-commons (light gate).
+- Writes to other areas: avoid — use /exchange to hand work across. The `commons_twin` back-pointer is the one sanctioned exception.
 - Reads allowed: full repo; occasional cross-area reads are fine, but prefer /exchange (when available) over repeated deep reads into other areas' kb.
 
 ## Allowed skills
@@ -867,7 +876,7 @@ Each skill is a Claude Code Agent Skill with a `SKILL.md`. Skills can be invoked
 
 ## 16. Promotion-review protocol
 
-The always-on protection: any change to `commons/` goes through `commons/_proposed/` first, with a human gate before promotion.
+The always-on protection is a human gate on every commons change, in one of two forms: **new content** enters through `commons/_proposed/` and `/promote`; an **existing commons page** is corrected in place through `/amend-commons`, under a lighter gate (human confirmation in conversation plus a `CHANGELOG.md` entry). Neither path is a silent write.
 
 **Without `formal_review`.** Filing happens via `/propose-promotion`. The human reads the proposal (often in conversation, or via INBOX). The human approves or rejects. On approval, `/promote` applies the change.
 
@@ -931,7 +940,7 @@ These are the source of truth at any given moment. The framework's job is to mak
 }
 ```
 
-The `pages_cited` list is populated by scanning agent outputs for `[[wikilink]]` references. The `bodies_loaded_beyond_preload` list comes from tracking file-read tool invocations during the session — files in the preload don't count (they were always going to be loaded); files read in service of the work do.
+The `pages_cited` and `bodies_loaded_beyond_preload` lists are **reported by the agent** at `/wrap-up`, which passes them to `telemetry.py session-end` as `--cited` and `--loaded`. They are best-effort recollection, not instrumentation: nothing scans outputs or hooks file-read tool calls, and the `wrap-up` skill says so explicitly. Read the data as a trend signal — which preloads go unused across many sessions — never as an exact per-session count.
 
 The telemetry directory is git-ignored — entries are local to each clone.
 

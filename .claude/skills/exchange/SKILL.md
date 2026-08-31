@@ -121,6 +121,6 @@ Don't use `/exchange` for:
 - Keep it scoped — one question or one conclusion per exchange.
 - A query's responder may push back ("malformed — can you clarify?" / "not our area; try X"). That's normal — close and refile if needed.
 - A brief expects no response. If you find yourself wanting an answer back, file a query instead.
-- Don't bypass an exchange by writing into the other area's kb or role files directly — write boundaries hold. `/exchange` is the channel.
+- Don't bypass an exchange by writing into the other area's kb or role files directly. Nothing stops you mechanically — ownership is a convention, not a checked boundary — which is exactly why the discipline matters here. `/exchange` is the channel.
 - Filing an exchange does **not** get a pulse `question` event — it's tracked by its own index and `status`. (A `question` event would duplicate it into your pulse "Open questions" and, since closing an exchange emits no `question-closed`, never clear.) Reserve `question` events for open questions you're *not* routing through an exchange.
 - The full protocol lives at `_framework/schema/exchange-protocol.md` if anything here is ambiguous.

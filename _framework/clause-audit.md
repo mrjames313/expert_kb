@@ -16,7 +16,9 @@ starts from.
 roughly a third are definitions or descriptions rather than requirements, leaving ~65 real
 clauses. Each was resolved against the code by reading the relevant rule module or tool.
 
-**Audited at:** framework_version 2026-08-31.
+**Audited at:** framework_version 2026-08-31. G1 resolved by rewording; C1, C2 and C3 fixed the
+same day; G2 and G3 are planned in `future-work.md`; C4 and C5 were found while planning G2 and
+remain open.
 
 **How to keep it true.** Clause anchors below are quoted verbatim so a grep can verify the
 clause still exists as written — an edited or deleted clause self-reports. Only genuinely *new*
@@ -56,8 +58,16 @@ the model still *works* in practice — agents follow it — but a violation is 
 `/propose-promotion` step-4 defect (an illegal cross-area `pulse.log` write) is a case where one
 shipped and was caught by review, not by lint.
 
-**Minimum honest fix:** delete or qualify `spec.md:192`. It is the sentence that makes a reader
-stop looking for a checker. Implementing Rule 19 is the real fix and is a much larger job.
+**Resolved 2026-08-31 by rewording, not by enforcement.** The decision was that ownership is a
+guideline admitting reasonable exceptions, not a sealed boundary — so every site now says that
+plainly: `CLAUDE.md:24`, `spec.md` (the table's closing paragraph), `role-template.md:69-70`,
+the `multi_area` snippet, and `exchange`/`implement` SKILL.md. The routes stay the default and a
+genuine exception is expected to be raised in conversation with a visible trace, rather than
+written silently. `raw/` immutability is called out as the one mechanically-enforced member
+(Rule 17), and the `L` rows as enforced-by-regeneration.
+
+**Still open:** mechanical enforcement of the `A`/`H` split is the deferred Rule 19, which needs
+git author signals. That is now an honest gap rather than a false claim.
 
 ### G2. Exchange files are entirely unlinted, and a skill says otherwise
 
@@ -110,9 +120,10 @@ Both statements can't hold. Under the schema-is-normative rule, an agent followi
 failure mode that rule exists to prevent, inverted. The schema doc was never updated when the
 skill landed.
 
-**Fix:** `promotion-protocol.md:3` and `spec.md:870` should say that *promotion* goes through
-`_proposed/` with a human gate, and that amendment of an already-promoted page goes through
-`/amend-commons` under a light gate.
+**Fixed 2026-08-31.** Both sites now describe the human gate as taking one of two forms — new
+content through `_proposed/` + `/promote`, corrections to an existing page through
+`/amend-commons` under a lighter gate — and state that there is no third path. `CLAUDE.md:20,41`
+gained the same routing.
 
 ### C2. `spec.md` describes telemetry instrumentation that doesn't exist
 
@@ -129,12 +140,46 @@ The skill is right and the spec is wrong. This matters beyond tidiness: `/budget
 preload-prune analysis consume this data, and a reader of `spec.md` would take it for
 instrumented measurement rather than agent self-report.
 
+**Fixed 2026-08-31 by correcting the doc, not by building the automation.** The spec now says the
+lists are agent-reported and best-effort, and should be read as a trend signal rather than an
+exact count. Building it was considered and rejected for now: `session_state.py` already locates
+and parses the session transcript, so scanning it for `Read` calls and wikilinks is feasible —
+but the transcript is a Claude Code internal that the tools already treat as optional, and
+telemetry is meant to work regardless of client. Documenting behaviour that silently doesn't
+happen without a transcript would re-create this very class in a new form. Logged as an optional
+enrichment, never as the documented mechanism.
+
 ### C3. The write-permission table still uses the dead `q-` exchange prefix
 
 `spec.md:185` lists `exchanges/**/q-*.md` as an `A`-category path. Nothing `/exchange` writes has
 ever been named `q-*` — ids are `ex-<date>-<slug>`. This is the same stale prefix that made
 `kb_vitals`' exchange scan return zero for every project (fixed 2026-08-29); it survives here in
 the normative spec. Harmless today because nothing reads the table, which is G1's point.
+
+**Fixed 2026-08-31** — the row now reads `exchanges/**/ex-*.md`.
+
+### C4. The exchange protocol teaches two unresolvable wikilink forms
+
+Found while planning G2's fix. `link-conventions.md` says references to files outside `kb/` are
+relative markdown links, and only kb pages are in the wikilink index. The exchange protocol
+authors two references that violate this:
+
+- `exchange-protocol.md:35` specifies the index line as `- [[<id>]] — <kind> from …` — a wikilink
+  to another exchange file.
+- `exchange-protocol.md:56`'s own example `## Context` contains
+  `[[specs/2026-05-detector-thermal/brief]]` — a wikilink to a spec file.
+
+Neither can ever resolve. The second is the worse one: it is the example an agent copies. Both
+are blocking G2 (turning Rule 2 on for exchanges would flag every index line), and the options
+are laid out in the future-work plan.
+
+### C5. `exchanges/**/index.md` is categorised lint-maintained, and no lint maintains it
+
+`spec.md:189` puts it in the `L` category — regenerated by lint, never hand-edited. Rule 15
+regenerates `areas-index.md` and each `kb/index.md`, and nothing else. The `/exchange` skill
+appends to the exchange index by hand, which is an `A`-category behaviour. Either Rule 15 should
+own the file or the category is wrong; settling it also settles C4's index half, since a
+generator can emit whichever link form is decided on.
 
 ---
 

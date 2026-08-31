@@ -17,9 +17,11 @@ Two layers:
 Knowledge pages in `kb/` come in four types: `source`, `concept`, `finding`, `decision`. See `_framework/schema/frontmatter.md` for type details, status lifecycles, and required fields.
 
 **Path-based ownership.** Every file's location says who owns it:
-- `commons/` is jointly stewarded; direct writes are forbidden; use `/propose-promotion`.
+- `commons/` is jointly stewarded. New content arrives by proposal (`/propose-promotion`, then `/promote`); an existing commons page is corrected in place through `/amend-commons`, which carries its own light gate.
 - `areas/<area>/` is owned by that area's roles.
 - `areas/<a>/<sub>/` is owned by the sub-area; sub-areas explicitly inherit parent context via role preload lists (no implicit inheritance).
+
+**Ownership is a convention you uphold, not a boundary lint enforces.** No rule detects a write outside it — the model works because agents follow it. So treat the routes above as the default and use them; where a case genuinely warrants an exception, raise it in conversation and leave a visible trace (a `CHANGELOG.md` entry, an INBOX heads-up) rather than writing silently. The point is that a deviation is deliberate and legible, not that the paths are sealed. One rule here *is* mechanical: `raw/` immutability, enforced by lint Rule 17.
 
 ## How to start a session
 
@@ -38,8 +40,8 @@ INBOX.md is supplementary — items that arose outside a conversation, items the
 
 - Findings, decisions, concepts within your area: write directly to area `kb/`.
 - Same content that's project-wide: write to your area's `kb/`, then `/propose-promotion`.
-- Never write directly to `commons/` — proposals only.
-- Never modify files in any `raw/` directory — raw materials are immutable. New raw materials are added through `/ingest`.
+- Don't write into `commons/` directly. New content goes through `/propose-promotion`; a correction to an existing commons page goes through `/amend-commons` (light gate: human confirmation in conversation plus a `CHANGELOG.md` entry).
+- Never modify files in any `raw/` directory — raw materials are immutable, and lint Rule 17 enforces it. New raw materials are added through `/ingest`.
 - **One sanctioned cross-area write:** any role may set or update the `commons_twin` back-pointer field on an area page as part of promotion — it's a framework-maintained metadata link between a page and its commons twin, not content.
 
 ## How to interpret types

@@ -25,7 +25,7 @@ If `tasks.md` doesn't exist, run `/plan` first. If the task implicates other are
    - **Data manifests** — write to `areas/<area>/data/manifests/`.
    - **New kb pages** — write to `areas/<area>/kb/{findings,decisions,concepts}/`. Use the type templates in `_framework/schema/`. Consider whether the page warrants a `when_to_load` field — fill it in only when there's a useful "don't load" signal (e.g., the page has a cheaper alternative for the common case, or its scope might not be obvious from `summary` + `relevant_to`). Skip the field otherwise; missing is fine.
 
-   Stay within the role's write boundaries (see the role file's "Operating boundaries" section). Never modify `raw/` files — they're immutable. Never modify pages outside your area unless `multi_area` is enabled and you're using `/exchange`.
+   Stay within the role's write boundaries (see the role file's "Operating boundaries" section) — lint does not check them, so they hold only if you keep them; a case that genuinely needs an exception goes to the user first. Never modify `raw/` files — they're immutable. Never modify pages outside your area unless `multi_area` is enabled and you're using `/exchange`.
 
 4. **For each new finding, decision, or concept page**, journal it in `_journal/pulse.log`:
    ```

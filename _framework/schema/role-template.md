@@ -66,8 +66,8 @@ Optional individual additions (for parent-area context if sub-area):
 
 - Writes allowed: /areas/<area-path>/** EXCEPT /areas/<area-path>/raw/**.
 - Raw materials anywhere are read-only; existing files immutable. New raw materials are added through `/ingest`.
-- Writes to /commons/: forbidden; use /propose-promotion.
-- Writes to other areas: forbidden.
+- Writes to /commons/: not directly. New content via /propose-promotion; corrections to an existing commons page via /amend-commons (light gate).
+- Writes to other areas: avoid — use /exchange. The `commons_twin` back-pointer is the one sanctioned exception.
 # capability: multi_area
 - Cross-area knowledge: occasional reads are fine; prefer /exchange over repeated deep reads into other areas' kb.
 # end capability: multi_area

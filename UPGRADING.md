@@ -458,6 +458,33 @@ Once satisfied, merge the branch.
   records tomorrow's date, so Step 5 ("apply those whose release is newer than your version")
   silently skips tomorrow's real release. Same-day pushes append to that day's block rather than
   inventing the next day's. Caught by making the mistake. Code-only; takes effect on pull.
+- **Ownership is now stated as a convention, not an enforced boundary.** `spec.md` claimed flatly
+  that "Lint enforces category boundaries." It never has — no rule reads the write-permission
+  table, and a write outside a role's category is silent. Rather than weaken the model, the docs
+  now say what is true: the routes are the default, `raw/` immutability is the one mechanically
+  enforced member (Rule 17), the `L` rows are enforced by regeneration, and a case that genuinely
+  warrants an exception should be raised in conversation with a visible trace instead of written
+  silently. Reworded in `CLAUDE.md`, `spec.md`, `role-template.md`, the `multi_area` snippet, and
+  the `exchange` / `implement` skills. **Action:** none required. If your role files carry the old
+  "Writes to /commons/: forbidden; use /propose-promotion" line, `/framework resync` does not touch
+  `## Operating boundaries`, so update them by hand if you want the softer wording — the behaviour
+  is unchanged either way.
+- **Commons is documented as having two gated paths, not one.** `promotion-protocol.md` and
+  `spec.md` both said "any change to `commons/` goes through `commons/_proposed/` first" — written
+  before `/amend-commons` shipped (2026-08-15) and never updated. Since `CLAUDE.md` tells agents the
+  schema is normative and a conflicting skill is a bug, an agent reading the protocol should have
+  concluded `/amend-commons` was broken and refused to use it. Both now describe the human gate as
+  taking one of two forms: new content through `_proposed/` + `/promote`, corrections to an existing
+  page through `/amend-commons` under a lighter gate. No behaviour change; the skill was always
+  right. **Action:** none.
+- **`spec.md` no longer claims telemetry is instrumented.** It described `pages_cited` as "populated
+  by scanning agent outputs" and `bodies_loaded_beyond_preload` as coming "from tracking file-read
+  tool invocations." Both are agent-reported at `/wrap-up` via `--cited` / `--loaded`, best-effort,
+  as the skill has always said. Matters because `/budget` and preload pruning consume this: read it
+  as a trend signal across many sessions, not an exact per-session count. **Action:** none.
+- **`spec.md`'s write-permission table listed `exchanges/**/q-*.md`.** Corrected to `ex-*.md`. The
+  same dead prefix made `/kb-vitals` report zero exchanges (fixed in Release 2026-08-29); this was
+  the last copy of it. **Action:** none.
 
 ---
 

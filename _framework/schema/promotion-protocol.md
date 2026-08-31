@@ -1,6 +1,6 @@
 # Promotion Protocol
 
-How content moves from an area's `kb/` into `commons/kb/`. The always-on protection: any change to `commons/` goes through `commons/_proposed/` first, with a human gate before promotion.
+How content moves from an area's `kb/` into `commons/kb/`. The always-on protection is a human gate on every commons change, in one of two forms: **new content** enters through `commons/_proposed/` and `/promote` (this document); an **existing commons page** is corrected in place through `/amend-commons`, under a lighter gate — human confirmation in conversation plus a `CHANGELOG.md` entry — since a correction is lower-stakes than a promotion. Neither path is a silent write, and there is no third one.
 
 When `formal_review` is enabled, the protocol adds per-area reviewer subagents that produce structured verdicts.
 

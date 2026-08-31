@@ -62,8 +62,8 @@ git checkout framework/main -- \
 **Do not** pull these — they are per-project state or content:
 `_framework/config.yml`, `commons/`, `areas/`, `exchanges/`, `INBOX.md`, `areas-index.md`,
 any `kb/index.md`, `_journal/`, and role files. Author/template-only files
-(`SETUP.md`, `UPGRADING.md`, `_framework/future-work.md`, `_framework/maintaining.md`,
-`_framework/clause-audit.md`) are
+(`SETUP.md`, `UPGRADING.md`, `_framework/future-work.md`,
+`_framework/future-work-done.md`, `_framework/maintaining.md`, `_framework/clause-audit.md`) are
 not part of a live project and this pull does not add them; in the normal case none are
 present. Step 5's cleanup migration removes any stale leftovers from a pre-cleanup bootstrap.
 
@@ -118,7 +118,8 @@ whose release is newer than your version.
   exact pages.
 - **Post-bootstrap cleanup.** Remove any template/author-only files a pre-cleanup bootstrap
   left behind (none in the normal case): `rm -f SETUP.md UPGRADING.md
-  _framework/future-work.md _framework/maintaining.md _framework/clause-audit.md`. If your top-level `README.md` still
+  _framework/future-work.md _framework/future-work-done.md _framework/maintaining.md
+  _framework/clause-audit.md`. If your top-level `README.md` still
   describes the *framework* rather than your project, replace it.
 - **Un-supersede promoted sources.** If any area page was marked `superseded` pointing at a
   commons copy (the old, incorrect `/promote` advice), revert it — promotion coexists, it
@@ -485,6 +486,12 @@ Once satisfied, merge the branch.
 - **`spec.md`'s write-permission table listed `exchanges/**/q-*.md`.** Corrected to `ex-*.md`. The
   same dead prefix made `/kb-vitals` report zero exchanges (fixed in Release 2026-08-29); this was
   the last copy of it. **Action:** none.
+- **`framework_check.py` verifies the maintainer-only file set is enumerated consistently.** That
+  set (deleted at bootstrap, never pulled) is listed in three places — `_MAINTAINER_ONLY` in the
+  tool, `SETUP.md`'s bootstrap `rm`, and `UPGRADING.md`'s cleanup step — with nothing keeping them
+  in agreement, which is the enumerated-list drift shape `framework_check` exists to catch. Adding
+  a file to the tool but not the `rm` line ships it into every bootstrapped project. The check
+  found a missed site on its first run. Code-only; takes effect on pull.
 
 ---
 

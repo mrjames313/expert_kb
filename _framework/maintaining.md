@@ -63,11 +63,23 @@ release.
    no-action one, so the list is a complete ledger.
 3. **Sync the docs** per the two sections above (spec.md; schema docs; skills). Already
    required, restated here so "done" means all of it.
-4. **Run the hard-edge checks:** `python _framework/tools/framework_check.py`. It mechanically
+4. **Reconcile the backlog.** For each open entry in `future-work.md` that this change touches:
+   if it shipped, move it to `future-work-done.md` (same commit that closes it); if it shipped
+   *partially*, or shipped in a different shape than the entry proposes, annotate the entry
+   saying so. An entry that describes shipped machinery as unbuilt is worse than no entry — it
+   sends the next reader to re-solve a solved problem, or to build on a design that was
+   superseded. This has already happened once: the session-lifecycle entry proposed a
+   session-state marker for months after one shipped under a different name and shape.
+
+   Cheap because it is scoped to what you just changed, not to the file. If you didn't touch a
+   subject, you don't read its entry.
+
+5. **Run the hard-edge checks:** `python _framework/tools/framework_check.py`. It mechanically
    verifies the derived-vs-source invariants that kept drifting — config `warnings_visible` ==
    shipped warning rules, no pulled doc references a maintainer-only file, and
-   `framework_version` == the latest `UPGRADING.md` release. Fix anything it flags before
-   pushing. (Not exhaustive — it covers the *checkable* edges; see the doc-dependency-graph
+   `framework_version` == the latest `UPGRADING.md` release (and not dated in the future), and
+   the maintainer-only set enumerated consistently across `SETUP.md`, `UPGRADING.md` and
+   `_MAINTAINER_ONLY`. Fix anything it flags before pushing. (Not exhaustive — it covers the *checkable* edges; see the doc-dependency-graph
    item in `future-work.md` for the rest.)
 
 Rule of thumb: **pulled machinery changed → the change isn't done until `config.yml` and

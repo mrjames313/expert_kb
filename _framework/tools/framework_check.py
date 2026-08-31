@@ -11,9 +11,11 @@ bootstrap deletes) is skipped, not failed.
 
 Checks:
   1. config `warnings_visible` keys == the shipped warning-rule `CONFIG_KEY`s.
-  2. no pulled doc references a maintainer-only file (`future-work.md`,
-     `maintaining.md`, `clause-audit.md`) by name — those are deleted at
-     bootstrap, so a reference dangles in every live project.
+  2. no pulled doc references a maintainer-only file by name — those are
+     deleted at bootstrap, so a reference dangles in every live project.
+  4. the prose that enumerates the maintainer-only set (SETUP.md's bootstrap
+     `rm`, UPGRADING.md's cleanup step) lists exactly `_MAINTAINER_ONLY` — an
+     enumerated list in three places is the drift shape this file exists for.
   3. `framework_version` == the latest `**Release <date>**` in `UPGRADING.md`,
      the release dates are in ascending order, and the latest is not in the
      future (a future stamp mis-gates the next real release).
@@ -38,7 +40,12 @@ from framework import _discover_configurable_lint_rules  # noqa: E402
 # Maintainer-only files: deleted at bootstrap, never pulled — a pulled doc must
 # not reference them by name (see maintaining.md "Don't reference template-only
 # files from pulled docs").
-_MAINTAINER_ONLY = ("future-work.md", "maintaining.md", "clause-audit.md")
+_MAINTAINER_ONLY = (
+    "future-work.md",
+    "future-work-done.md",
+    "maintaining.md",
+    "clause-audit.md",
+)
 
 # Docs pulled into a live project on upgrade (UPGRADING.md Step 3–4). Kept in sync
 # with that step; a reference to a maintainer-only file from any of these dangles.
@@ -154,9 +161,44 @@ def check_version_matches_latest_release(repo_root: Path) -> list[str]:
     return problems
 
 
+def check_maintainer_only_enumerations_agree(repo_root: Path) -> list[str]:
+    """The maintainer-only set is enumerated in prose too — SETUP.md's bootstrap
+    `rm` line and UPGRADING.md's cleanup step. Adding a file to `_MAINTAINER_ONLY`
+    without updating those leaves it shipped into every bootstrapped project.
+
+    Anchored on the *path* form (`_framework/future-work.md`), not the bare
+    filename: an enumeration of the set spells out real paths, while ordinary
+    prose — a release note recalling an old fix — names the file bare. That
+    distinction keeps historical mentions from tripping the check.
+    """
+    problems: list[str] = []
+    for rel in ("SETUP.md", "UPGRADING.md"):
+        path = repo_root / rel
+        if not path.is_file():
+            continue  # bootstrap removes both — nothing to check downstream
+        try:
+            text = " ".join(path.read_text(encoding="utf-8").split())
+        except OSError:
+            continue
+        anchor = "_framework/future-work.md"
+        start = 0
+        while (i := text.find(anchor, start)) != -1:
+            window = text[max(0, i - 250): i + 250]
+            missing = [n for n in _MAINTAINER_ONLY if n not in window]
+            if missing:
+                problems.append(
+                    f"{rel}: the maintainer-only list near offset {i} omits "
+                    f"{', '.join(missing)} — add them, or they ship into every "
+                    f"bootstrapped project."
+                )
+            start = i + 1
+    return problems
+
+
 _CHECKS = (
     check_config_matches_rules,
     check_no_dangling_maintainer_refs,
+    check_maintainer_only_enumerations_agree,
     check_version_matches_latest_release,
 )
 

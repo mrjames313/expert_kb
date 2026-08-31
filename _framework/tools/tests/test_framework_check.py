@@ -10,7 +10,9 @@ from pathlib import Path
 from common import find_repo_root
 from framework import _discover_configurable_lint_rules
 from framework_check import (
+    _MAINTAINER_ONLY,
     check_config_matches_rules,
+    check_maintainer_only_enumerations_agree,
     check_no_dangling_maintainer_refs,
     check_version_matches_latest_release,
     run_all,
@@ -109,6 +111,34 @@ class TestVersionMatchesLatestRelease:
     def test_skips_when_no_upgrading(self, tmp_path: Path) -> None:
         _write_config(tmp_path, [], version="2026-08-25")  # no UPGRADING.md (bootstrapped project)
         assert check_version_matches_latest_release(tmp_path) == []
+
+
+class TestMaintainerOnlyEnumerationsAgree:
+    def test_flags_an_omitted_file(self, tmp_path: Path) -> None:
+        """The failure this prevents: a new maintainer-only file is added to
+        _MAINTAINER_ONLY but not to the bootstrap `rm`, so it ships into every
+        bootstrapped project. Caught on this check's first run, which found a
+        third UPGRADING.md site the author had missed."""
+        (tmp_path / "SETUP.md").write_text(
+            "rm SETUP.md _framework/future-work.md _framework/maintaining.md\n")
+        problems = check_maintainer_only_enumerations_agree(tmp_path)
+        assert any("omits" in p for p in problems)
+
+    def test_clean_when_all_listed(self, tmp_path: Path) -> None:
+        names = " ".join(f"_framework/{n}" for n in _MAINTAINER_ONLY)
+        (tmp_path / "SETUP.md").write_text(f"rm SETUP.md {names}\n")
+        assert check_maintainer_only_enumerations_agree(tmp_path) == []
+
+    def test_bare_filename_in_prose_is_not_an_enumeration(self, tmp_path: Path) -> None:
+        """A release note recalling an old fix names files bare; only a real
+        enumeration spells out `_framework/`-prefixed paths. Without this
+        distinction the check fires on its own changelog."""
+        (tmp_path / "UPGRADING.md").write_text(
+            "- Pulled docs referenced `future-work.md`/`maintaining.md` by local path.\n")
+        assert check_maintainer_only_enumerations_agree(tmp_path) == []
+
+    def test_skips_when_files_absent(self, tmp_path: Path) -> None:
+        assert check_maintainer_only_enumerations_agree(tmp_path) == []
 
 
 def test_real_repo_is_self_consistent() -> None:

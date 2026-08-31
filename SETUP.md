@@ -161,7 +161,7 @@ Built on the Expert Coordination framework. See `CLAUDE.md` for how this project
 Show it to the user for confirmation, then remove the bootstrap runbook and the framework-authoring docs — none of these belong in a live project:
 
 ```bash
-rm SETUP.md UPGRADING.md _framework/future-work.md _framework/maintaining.md _framework/clause-audit.md
+rm SETUP.md UPGRADING.md _framework/future-work.md _framework/future-work-done.md _framework/maintaining.md _framework/clause-audit.md
 ```
 
 Ask the user about the license:

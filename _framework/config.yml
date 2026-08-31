@@ -1,4 +1,4 @@
-framework_version: 2026-08-30   # bumped by upgrades; see UPGRADING.md
+framework_version: 2026-08-31   # bumped by upgrades; see UPGRADING.md
 capabilities:
   multi_area: false
   por: false

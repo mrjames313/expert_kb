@@ -392,6 +392,25 @@ Once satisfied, merge the branch.
   carry the old placeholders will be flagged — replace them with real citations or delete the
   line. Code and template arrive on pull.
 
+**Release 2026-08-31**
+
+- **Lint now resolves relative markdown links (Rule 2). Expect more new errors on your first
+  `/check`.** `lint-rules.md` has claimed since the rule was written that "every relative
+  markdown link to a repo path resolves to an existing file" — no code ever did it. So the
+  non-wikilink half of the link story was unenforced: `link-conventions.md` directs every
+  reference to a file *outside* `kb/` (code, manifests, raw materials, another spec's
+  `outcome.md`) to be a relative markdown link, and none of them were resolved. This lands
+  together with yesterday's spec-file coverage and matters more because of it — Release
+  2026-08-30 moved `/plan`'s spec-to-spec citations from wikilinks into exactly this form.
+  A leading `/` reads as repo-root-relative, and a link resolving outside the repository is an
+  error. Skipped as not-repo-paths: URL schemes (`https:`, `mailto:`, …), protocol-relative
+  `//`, bare `#anchor` targets, and angle-bracket placeholders like `../<spec>/outcome.md`.
+  Fenced code blocks and inline code spans are skipped too, so a page documenting link syntax
+  is not flagged for its own examples.
+  **Action:** same as the previous release — run `python _framework/tools/lint.py` and fix what
+  it reports, outside a `/wrap-up`. Findings carry a line number. If you upgrade past both
+  releases at once, do the two together; they surface the same class of pre-existing breakage.
+
 ---
 
 ## Notes for the agent

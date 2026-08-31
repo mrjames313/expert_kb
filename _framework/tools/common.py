@@ -12,6 +12,7 @@ Provides:
 from __future__ import annotations
 
 import re
+from urllib.parse import unquote
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
@@ -405,6 +406,61 @@ _WIKILINK_RE = re.compile(r"\[\[([^\]|]+?)(?:\|[^\]]+)?\]\]")
 def extract_wikilinks(text: str) -> list[str]:
     """Return all wikilink targets (no alias, no extension) from markdown text."""
     return [m.group(1).strip() for m in _WIKILINK_RE.finditer(text)]
+
+
+_MD_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]*)\)")
+_CODE_SPAN_RE = re.compile(r"`[^`\n]*`")
+_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]*:")
+_MD_TITLE_RE = re.compile(r"""^(\S+)(?:\s+["'(].*)?$""", re.DOTALL)
+
+
+def extract_markdown_links(text: str) -> list[tuple[str, int]]:
+    """Return ``(destination, line_number)`` for every inline markdown link in
+    `text` that points at a repo path, 1-indexed on `text`.
+
+    Skipped, because they are not repo paths (or not links at all): anything
+    with a URL scheme (``https:``, ``mailto:``, …) or protocol-relative ``//``;
+    pure ``#anchor`` targets; empty destinations; fenced code blocks and inline
+    code spans; and destinations still carrying an angle-bracket placeholder
+    like ``../<spec>/outcome.md``, which is documentation, not a link.
+
+    A destination is returned cleaned: a CommonMark ``<…>`` wrap removed, a
+    trailing ``"title"`` dropped, ``#fragment`` and ``?query`` stripped, and
+    percent-escapes decoded.
+    """
+    found: list[tuple[str, int]] = []
+    in_fence = False
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        if _FENCE_RE.match(line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        # Blank out inline code spans so `[x](y)` shown as an example isn't a link.
+        line = _CODE_SPAN_RE.sub(lambda m: " " * len(m.group(0)), line)
+        for m in _MD_LINK_RE.finditer(line):
+            dest = m.group(1).strip()
+            if dest.startswith("<"):
+                # CommonMark angle destination: the only form that may hold raw
+                # spaces. Anything after the closing `>` is a title.
+                close = dest.find(">")
+                if close == -1:
+                    continue
+                dest = dest[1:close].strip()
+            else:
+                # Bare destination: no raw spaces allowed, so the first
+                # whitespace begins an optional "title".
+                title = _MD_TITLE_RE.match(dest)
+                dest = title.group(1) if title else dest.split()[0]
+            if not dest or dest.startswith("#") or dest.startswith("//"):
+                continue
+            if _SCHEME_RE.match(dest) or "<" in dest or ">" in dest:
+                continue
+            dest = dest.split("#", 1)[0].split("?", 1)[0]
+            if not dest:
+                continue
+            found.append((unquote(dest), lineno))
+    return found
 
 
 def split_wikilink(raw: str) -> tuple[str | None, str]:

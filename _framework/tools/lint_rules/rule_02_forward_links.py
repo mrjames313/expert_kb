@@ -9,6 +9,8 @@ Rule 2 — Forward-link integrity.
   corrupt them silently.
 - A present area prefix (`[[area:target]]`) must name the target's real area.
 - Every source page's provenance.raw_path resolves to an existing file.
+- Every relative markdown link to a repo path resolves to an existing file
+  (the non-wikilink half: code, manifests, raw materials, other specs).
 
 Builds an index of available wikilink targets first, then validates each
 forward link from every kb page against it.
@@ -23,6 +25,7 @@ import yaml
 from common import (
     Finding,
     build_wikilink_index,
+    extract_markdown_links,
     extract_wikilinks,
     iter_kb_pages,
     iter_spec_files,
@@ -83,6 +86,50 @@ def _check_wikilink(
     return []
 
 
+def _check_markdown_links(
+    path: Path, repo_root: Path, body: str, line_offset: int
+) -> list[Finding]:
+    """Every relative markdown link to a repo path resolves to an existing file.
+
+    This is the non-wikilink half of the link story: `link-conventions.md`
+    directs every reference to a file *outside* `kb/` — code, manifests, raw
+    materials, another spec's `outcome.md` — to be a relative markdown link, and
+    nothing resolved them until now. Destinations that aren't repo paths (URLs,
+    anchors, placeholders, code samples) are filtered out by the extractor.
+    """
+    findings: list[Finding] = []
+    rel = str(path.relative_to(repo_root))
+    for dest, lineno in extract_markdown_links(body):
+        base = repo_root if dest.startswith("/") else path.parent
+        target = (base / dest.lstrip("/")).resolve()
+        line = line_offset + lineno
+        try:
+            target.relative_to(repo_root.resolve())
+        except ValueError:
+            findings.append(
+                Finding(
+                    RULE_ID,
+                    SEVERITY,
+                    rel,
+                    f"markdown link ({dest}) points outside the repository",
+                    line=line,
+                )
+            )
+            continue
+        if not target.exists():
+            findings.append(
+                Finding(
+                    RULE_ID,
+                    SEVERITY,
+                    rel,
+                    f"markdown link ({dest}) does not resolve to an existing file",
+                    line=line,
+                    suggestion="fix the path, or use a [[wikilink]] if the target is a kb page",
+                )
+            )
+    return findings
+
+
 def _check_page(
     path: Path, repo_root: Path, wikilink_index: dict[str, Path]
 ) -> list[Finding]:
@@ -102,6 +149,11 @@ def _check_page(
     # Wikilinks in the body
     for raw in extract_wikilinks(body):
         findings.extend(_check_wikilink(raw, rel, repo_root, wikilink_index, ""))
+
+    # Relative markdown links in the body. Line numbers come from the body, so
+    # shift them past the frontmatter block to land on the real file line.
+    line_offset = len(text.splitlines()) - len(body.splitlines())
+    findings.extend(_check_markdown_links(path, repo_root, body, line_offset))
 
     # Wikilinks in frontmatter values (evidence, provenance.ref, etc.)
     if fm:

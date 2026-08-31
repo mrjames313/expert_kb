@@ -22,7 +22,7 @@ A link may carry an area prefix (`[[area:target]]`, e.g. `[[research:findings/f-
 
 Source pages: `provenance.raw_path` must resolve to an existing file in `raw/` (when populated).
 
-*Not yet implemented:* checking that relative markdown links to repo paths resolve. The clause was documented here ahead of the code.
+Every relative markdown link to a repo path resolves to an existing file — the non-wikilink half of the link story, since `link-conventions.md` directs every reference to a file *outside* `kb/` (code, manifests, raw materials, another spec's `outcome.md`) to be a relative markdown link. A leading `/` is read as repo-root-relative; a link resolving outside the repository is an error. Not treated as repo paths, and so not checked: anything with a URL scheme (`https:`, `mailto:`, …) or a protocol-relative `//`, bare `#anchor` targets, and angle-bracket placeholders like `../<spec>/outcome.md`. Fenced code blocks and inline code spans are skipped, so a page that *documents* link syntax isn't flagged for its own examples.
 
 ### Rule 3 — Backlink synchronization
 

@@ -403,6 +403,101 @@ class TestRule03Backlinks:
 
 
 
+class TestRule02MarkdownLinks:
+    """The non-wikilink half of the link story. link-conventions.md directs every
+    reference to a file outside kb/ to be a relative markdown link, and Rule 2
+    documented resolving them long before any code did."""
+
+    def _page(self, repo: Path, body: str) -> Path:
+        return write_kb_page(repo, "areas/research", "finding", "linker", body=body)
+
+    def test_broken_relative_link_is_an_error(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        self._page(tmp_path, "See [the data](../../data/missing.csv).")
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert any("does not resolve to an existing file" in f.message for f in findings)
+
+    def test_resolving_relative_link_is_clean(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        raw = tmp_path / "areas" / "research" / "raw" / "papers"
+        raw.mkdir(parents=True)
+        (raw / "paper.pdf").write_bytes(b"%PDF-")
+        self._page(tmp_path, "See [the paper](../../raw/papers/paper.pdf).")
+        assert rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG) == []
+
+    def test_repo_root_relative_link(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        (tmp_path / "INBOX.md").write_text("# Inbox\n")
+        self._page(tmp_path, "See [the inbox](/INBOX.md) and [nope](/nothing.md).")
+        msgs = [f.message for f in rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)]
+        assert any("/nothing.md" in m for m in msgs)
+        assert not any("/INBOX.md" in m for m in msgs)
+
+    def test_link_escaping_the_repo_is_an_error(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        self._page(tmp_path, "See [outside](../../../../../../etc/hosts).")
+        assert any("points outside the repository" in f.message
+                   for f in rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG))
+
+    def test_urls_anchors_and_placeholders_are_ignored(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        self._page(tmp_path, (
+            "[web](https://example.com) [mail](mailto:a@b.c) [anchor](#section) "
+            "[proto](//cdn.example.com/x.js) [placeholder](../<spec>/outcome.md)"
+        ))
+        assert rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG) == []
+
+    def test_code_samples_are_not_links(self, tmp_path: Path) -> None:
+        """Docs and pages show example link syntax; flagging it would make the
+        rule unusable on any page that explains linking."""
+        make_minimal_repo(tmp_path)
+        self._page(tmp_path, (
+            "Inline `[x](nope-inline.md)` is a sample.\n\n"
+            "```markdown\n[y](nope-fenced.md)\n```\n"
+        ))
+        assert rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG) == []
+
+    def test_fragment_title_and_escapes_are_stripped(self, tmp_path: Path) -> None:
+        """A bare destination may carry a #fragment or a "title"; a path with
+        real spaces has to be percent-escaped or angle-wrapped (CommonMark)."""
+        make_minimal_repo(tmp_path)
+        kb = tmp_path / "areas" / "research" / "kb"
+        kb.mkdir(parents=True)
+        (kb / "plain.md").write_text("x")
+        (kb / "a b.md").write_text("x")
+        self._page(tmp_path, (
+            '[frag](../plain.md#section) [title](../plain.md "A title") '
+            '[esc](../a%20b.md) [angled](<../a b.md>) '
+            '[both](<../a b.md> "A title")'
+        ))
+        assert rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG) == []
+
+    def test_reports_the_line_in_the_file_not_the_body(self, tmp_path: Path) -> None:
+        """Body line numbers are offset by the frontmatter block, or every
+        finding points a reader at the wrong line."""
+        make_minimal_repo(tmp_path)
+        page = self._page(tmp_path, "para one\n\n[broken](./nope.md)\n")
+        finding = next(f for f in rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+                       if "does not resolve to an existing file" in f.message)
+        lines = page.read_text().splitlines()
+        assert "[broken](./nope.md)" in lines[finding.line - 1]
+
+    def test_links_in_spec_files_are_checked_too(self, tmp_path: Path) -> None:
+        """The case that motivated this: /plan now emits relative links to a
+        prior spec's outcome.md, moving that citation into this rule's lane."""
+        make_minimal_repo(tmp_path)
+        spec = tmp_path / "areas" / "research" / "specs" / "b"
+        spec.mkdir(parents=True)
+        (spec / "plan.md").write_text("# Plan\n\nFollows [a](../a/outcome.md).\n")
+        assert any("plan.md" in f.file_path and "does not resolve" in f.message
+                   for f in rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG))
+        prior = tmp_path / "areas" / "research" / "specs" / "a"
+        prior.mkdir(parents=True)
+        (prior / "outcome.md").write_text("# Outcome\n")
+        assert [f for f in rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+                if "/specs/" in f.file_path] == []
+
+
 class TestRule02SpecFiles:
     """Spec planning files cite kb pages by wikilink (see /plan, /replan and the
     brief template) and were never checked — the links could rot silently."""

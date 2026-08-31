@@ -6,6 +6,9 @@ Regenerates:
 - <area>/kb/index.md per kb directory: catalog of pages grouped by type/status
 
 This is a fixup rule — it writes files and produces findings only on write failures.
+A file is rewritten only when its generated content actually changed (the
+`_Last regenerated:_` stamp is masked out of the comparison), so a no-op run
+leaves the tree clean.
 """
 
 from __future__ import annotations
@@ -46,6 +49,32 @@ def _effective_stamp(existing_path: Path) -> str:
     except (OSError, ValueError):
         pass
     return today.isoformat()
+
+
+def _write_if_changed(path: Path, content: str) -> None:
+    """Write `content` only if it differs from what's on disk, ignoring the
+    `_Last regenerated:_` line.
+
+    Without this, the first lint run on any new day rewrites every index with
+    nothing but a date bump. That dirties the tree for a change you didn't make,
+    so `/check` before a commit produces a spurious diff; `git status
+    --porcelain` stops being a clean signal — which `UPGRADING.md` Step 1
+    depends on, so an upgrade can be blocked by lint's own churn; and the noise
+    trains you to `git checkout --` reflexively, which is how a real
+    regeneration eventually gets discarded by accident.
+
+    Comparing with the stamp masked also makes the stamp mean "last time this
+    index actually changed", which is the more useful reading. Same principle as
+    `_effective_stamp`, one step further: don't produce diffs you didn't earn.
+    """
+    try:
+        existing = path.read_text(encoding="utf-8")
+    except OSError:
+        path.write_text(content, encoding="utf-8")  # absent or unreadable — write
+        return
+    if _STAMP_RE.sub("", existing) == _STAMP_RE.sub("", content):
+        return
+    path.write_text(content, encoding="utf-8")
 
 
 def _read_brief_summary(brief_path: Path) -> str:
@@ -235,7 +264,7 @@ def check(repo_root: Path, config: dict) -> list[Finding]:
     areas_index_path = repo_root / "areas-index.md"
     try:
         content = _generate_areas_index(repo_root)
-        areas_index_path.write_text(content, encoding="utf-8")
+        _write_if_changed(areas_index_path, content)
     except OSError as e:
         findings.append(
             Finding(RULE_ID, SEVERITY, "areas-index.md", f"could not write: {e}")
@@ -261,7 +290,7 @@ def check(repo_root: Path, config: dict) -> list[Finding]:
         index_path = kb_dir / "index.md"
         try:
             content = _generate_kb_index(kb_dir, repo_root)
-            index_path.write_text(content, encoding="utf-8")
+            _write_if_changed(index_path, content)
         except OSError as e:
             findings.append(
                 Finding(

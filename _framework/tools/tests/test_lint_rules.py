@@ -840,6 +840,74 @@ class TestRule15Index:
         assert "### areas/research/" in content
         assert "#### areas/research/" not in content
 
+    def test_no_op_run_leaves_the_file_untouched(self, tmp_path: Path) -> None:
+        """The churn bug: the first run on any new day rewrote every index with
+        nothing but a date bump, dirtying the tree for a change you didn't make
+        and breaking `git status --porcelain` as a clean signal — which
+        UPGRADING.md Step 1 depends on."""
+        make_minimal_repo(tmp_path)
+        area = tmp_path / "areas" / "research"
+        area.mkdir(parents=True)
+        (area / "brief.md").write_text("# Research\n\nWe investigate optical noise.\n")
+        rule_15_index.check(tmp_path, DEFAULT_CONFIG)
+
+        idx = tmp_path / "areas-index.md"
+        # Backdate the stamp the way a run on a later day would find it.
+        idx.write_text(idx.read_text().replace(
+            f"_Last regenerated: {date.today().isoformat()}_",
+            "_Last regenerated: 2026-01-01_"))
+        before_mtime = idx.stat().st_mtime_ns
+        before_text = idx.read_text()
+
+        rule_15_index.check(tmp_path, DEFAULT_CONFIG)
+
+        assert idx.stat().st_mtime_ns == before_mtime, "no-op run rewrote the file"
+        assert idx.read_text() == before_text
+        assert "2026-01-01" in idx.read_text(), "stamp should survive a no-op run"
+
+    def test_changed_content_rewrites_and_restamps(self, tmp_path: Path) -> None:
+        """The other half: a real change must still regenerate, and the stamp
+        must move — otherwise the fix would freeze the index."""
+        make_minimal_repo(tmp_path)
+        area = tmp_path / "areas" / "research"
+        area.mkdir(parents=True)
+        (area / "brief.md").write_text("# Research\n\nWe investigate optical noise.\n")
+        rule_15_index.check(tmp_path, DEFAULT_CONFIG)
+
+        idx = tmp_path / "areas-index.md"
+        idx.write_text(idx.read_text().replace(
+            f"_Last regenerated: {date.today().isoformat()}_",
+            "_Last regenerated: 2026-01-01_"))
+
+        # A genuine change: a second area appears.
+        other = tmp_path / "areas" / "engineering"
+        other.mkdir(parents=True)
+        (other / "brief.md").write_text("# Engineering\n\nWe build the rig.\n")
+
+        rule_15_index.check(tmp_path, DEFAULT_CONFIG)
+        content = idx.read_text()
+        assert "engineering" in content
+        assert f"_Last regenerated: {date.today().isoformat()}_" in content
+        assert "2026-01-01" not in content
+
+    def test_absent_index_is_created(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        area = tmp_path / "areas" / "research"
+        area.mkdir(parents=True)
+        (area / "brief.md").write_text("# Research\n\nProse.\n")
+        assert not (tmp_path / "areas-index.md").exists()
+        rule_15_index.check(tmp_path, DEFAULT_CONFIG)
+        assert (tmp_path / "areas-index.md").is_file()
+
+    def test_kb_index_also_skips_no_op_writes(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/research", "finding", "one")
+        rule_15_index.check(tmp_path, DEFAULT_CONFIG)
+        idx = tmp_path / "areas" / "research" / "kb" / "index.md"
+        before = idx.stat().st_mtime_ns
+        rule_15_index.check(tmp_path, DEFAULT_CONFIG)
+        assert idx.stat().st_mtime_ns == before
+
     def test_sub_area_renders_one_level_deeper(self, tmp_path: Path) -> None:
         make_minimal_repo(tmp_path)
         sub = tmp_path / "areas" / "research" / "optics"

@@ -337,18 +337,6 @@ This is now the standing backstop we said we'd add if the discipline slipped aga
 
 **Revisit when:** the drift class recurs despite the discipline (it has, repeatedly), or when a CI pipeline gets set up — build the hard-edge checks first.
 
-### Rule 15 rewrites index timestamps when nothing changed
-
-**Observed during:** the per-session-state / status-line work (2026-08-27) — every `lint.py` run dirtied `areas-index.md` and `commons/kb/index.md` with nothing but a `_Last regenerated:` bump, and each had to be reverted by hand to keep the churn out of an unrelated commit.
-
-`rule_15_index.check()` unconditionally `write_text`s both the areas index and every `kb/index.md`, stamping `_Last regenerated: <today>`. So the first lint run on any new day dirties the tree even when the generated content is byte-identical. Consequences: `/check` before a commit produces a diff you didn't make; `git status --porcelain` is no longer a clean signal — which **`UPGRADING.md` Step 1 depends on** ("if that prints anything, stop"), so an upgrade can be blocked by lint's own churn; and the noise trains you to `git checkout --` reflexively, which is how a real regeneration gets discarded by accident.
-
-Note `_effective_stamp` already guards the neighbouring case (a trailing clock rolling the stamp *backwards*), so the "don't produce spurious diffs" principle is established here — this is the same class, one step further.
-
-**What addressing it would look like:** generate as now, then compare against the file on disk with the stamp line masked out; if the remainder is identical, leave the file alone (keeping its existing stamp). Write only when the content genuinely changed. Cheap — one read and one comparison per index — and it makes the stamp mean "last time this index actually changed", which is the more useful reading anyway. Tests: unchanged content leaves mtime and stamp untouched; changed content rewrites and re-stamps.
-
-**Revisit when:** next touching Rule 15, or sooner if the churn causes a real mishap (a discarded regeneration, or an upgrade blocked at Step 1).
-
 ### Real tokenizer for `token_estimate.py`
 
 **Observed during:** Token-budget infrastructure work.

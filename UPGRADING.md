@@ -514,6 +514,17 @@ Once satisfied, merge the branch.
   `adoption-guide.md` also promised that PreCompact/SessionEnd "run wrap-up as a safety net"
   without qualifying that this needs active hooks, and now names the setup session as distinct from
   your working session. **Action:** none.
+- **Lint no longer rewrites indexes that didn't change.** Rule 15 regenerated `areas-index.md` and
+  every `kb/index.md` unconditionally, so the first run on any new day dirtied the tree with nothing
+  but a `_Last regenerated:_` bump. Consequences worth naming: `/check` before a commit produced a
+  diff you didn't make; `git status --porcelain` stopped being a clean signal — which **Step 1 of
+  this document depends on**, so an upgrade could be blocked by lint's own churn; and the noise
+  trains you to `git checkout --` reflexively, which is how a real regeneration eventually gets
+  discarded by accident. Generated content is now compared against what's on disk with the stamp
+  line masked out, and written only if the rest differs. The stamp consequently means "last time
+  this index actually changed", which is the more useful reading. Code-only; takes effect on pull.
+  **Action:** none. On your first run after upgrading you may see one last regeneration if an index
+  was genuinely stale; after that, no-op runs leave the tree clean.
 
 ---
 

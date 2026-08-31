@@ -253,8 +253,16 @@ def human_vitals(repo_root: Path) -> list[Vital]:
 # --- ROLE vitals (current adopted area) ---
 
 def _context_vital(repo_root: Path, config: dict) -> Vital | None:
-    """Restart nudge when the live session context is large. Session-scoped — it's
-    about the conversation, so it fires whether or not a role is adopted."""
+    """Fresh-context nudge when the live session context is large. Session-scoped
+    — it's about the conversation, so it fires whether or not a role is adopted.
+
+    `/clear` is the right tool here: it drops the conversation, which is the whole
+    point, and Claude Code fires SessionStart on clear so hooks re-run. A full
+    quit-and-relaunch is only needed when hooks aren't firing at all, which
+    `_hooks_inactive_vital` reports separately. Those were once the same advice —
+    before `/start` became self-sufficient, a `/clear` left you with no
+    orientation — and they are not any more.
+    """
     threshold = config.get("kb_vitals", {}).get(
         "context_restart_threshold_tokens", _DEFAULT_CONTEXT_THRESHOLD
     )
@@ -265,7 +273,7 @@ def _context_vital(repo_root: Path, config: dict) -> Vital | None:
         return Vital(
             "role",
             f"context ~{tokens // 1000}k tokens (over {threshold // 1000}k) — a fresh context would help",
-            "/wrap-up, then restart (quit + relaunch, not just /clear)",
+            "/wrap-up, then /clear, then /start <role> to reload preload",
         )
     return None
 

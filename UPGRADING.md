@@ -529,7 +529,9 @@ Once satisfied, merge the branch.
   role, or done?" — then routes: continuing needs **nothing** (wrap-up doesn't un-adopt the role,
   so the preload stays loaded and `/start` is not required); switching is `/clear` then
   `/start <new-role>`, where the `/clear` is the load-bearing step and the one that gets skipped;
-  done suggests a commit. Added because an agent, having run `/wrap-up`, told its user it had to
+  done suggests a commit. The continuing branch also prompts a context check: right after a
+  wrap-up is the safest moment in the cycle to `/clear`, because everything is journaled and
+  nothing in the conversation is missing from disk. Added because an agent, having run `/wrap-up`, told its user it had to
   re-adopt its role before continuing — it didn't, and nothing in the flow said so at the moment it
   mattered. The skill's "When to use" section also now spells out the full role-switch sequence
   including `/clear`, which it previously omitted. **Action:** none; arrives on pull.
@@ -537,6 +539,13 @@ Once satisfied, merge the branch.
   "invoke wrap-up as safety net" without noting that this holds only where hooks are active. Last
   of the unqualified safety-net claims — `adoption-guide.md`'s was corrected earlier in this
   release. **Action:** none.
+- **The large-context nudge now says `/clear`, not "quit and relaunch."** `/kb-vitals` recommended
+  a full restart for a bloated context, on the reasoning that `/clear` reuses the process and
+  therefore the stale hook snapshot. That reasoning stopped holding earlier in this release:
+  `/start` is now self-sufficient for orientation, and Claude Code fires SessionStart on `/clear`
+  anyway, so a clear is both sufficient and cheaper. A quit-and-relaunch is the fix for hooks that
+  never fired — a different problem, which now has its own vital. The sequence is `/wrap-up`, then
+  `/clear`, then `/start <role>` to reload the preload. **Action:** none; arrives on pull.
 
 ---
 

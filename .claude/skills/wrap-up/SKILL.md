@@ -75,10 +75,23 @@ If a session ends without `/wrap-up`, pulse.log will be non-empty when the next 
 7. **Ask what's next, in one line.** End with: *"Continuing in this role, switching role, or
    done?"* Then follow their answer:
 
-   - **Continuing** — nothing is required. Keep working in the same role; new pulse entries
-     accumulate in the freshly-truncated log. Do **not** tell them to re-run `/start`: wrap-up
-     didn't un-adopt anything (see the note below). If the session has been running a long time,
-     `/kb-vitals` will say so on its own — don't pre-empt it here.
+   - **Continuing** — nothing is required *for the role*: wrap-up didn't un-adopt anything (see
+     the note below), so the preload is still loaded and re-running `/start` would be busywork.
+
+     But check the context size before saying "just keep going." **Right after a wrap-up is the
+     safest moment in the whole cycle to `/clear`** — the journal is compacted, specs are
+     finalized, lint is clean, so there is nothing in the conversation that isn't also on disk.
+     If the context is large, say so and offer the sequence: `/clear`, then `/start <role>` to
+     reload the preload. Waiting until it's larger only makes the same clear more expensive.
+
+     How to judge it: the status line shows `ctx <N>k` and marks it `!` past the configured
+     threshold (`kb_vitals.context_restart_threshold_tokens`, default 400k), and `/kb-vitals`
+     reports it in words. Treat the threshold as a prompt, not a rule — a session well under it
+     that has churned through a lot of unrelated material is still a good candidate, and a long
+     session in the middle of one focused task may be worth keeping intact.
+
+     `/clear` is the right tool here, not a quit-and-relaunch. A full restart is the fix for hooks
+     that never fired, which is a different problem with its own `/kb-vitals` vital.
    - **Switching role** — `/clear`, then `/start <new-role>`. The `/clear` is the load-bearing
      step and the one that gets forgotten: without it the new role starts with the old role's
      context still loaded, which is the failure this prompt exists to catch.

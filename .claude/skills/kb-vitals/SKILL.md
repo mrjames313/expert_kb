@@ -27,7 +27,7 @@ Scans state and surfaces the next actions to keep the workflow healthy — each 
 ## Notes
 
 - **No role adopted?** The role block will say so — run `/start` first for the role-scoped checks. Human vitals still show.
-- **Restart nudge.** When it reports the context is large, recommend a **full restart (quit + relaunch)**, not just `/clear` — `/clear` reuses the same process (and, until the hooks fix lands, the same stale hook snapshot). The token figure is read live from the session transcript.
+- **Large-context nudge.** When it reports the context is large, the sequence is `/wrap-up`, then `/clear`, then `/start <role>` — wrap-up first so nothing unjournaled is lost, and `/start` after because `/clear` drops the preload along with everything else. `/clear` is the right tool: it discards the conversation, which is the point, and Claude Code fires SessionStart on clear so hooks re-run. Don't recommend a full quit-and-relaunch for this — that's the fix for hooks that never fired, which is the separate vital below.
 - **Hooks-didn't-fire nudge.** If it reports that hooks are configured but didn't fire, the
   framework was installed into an already-running Claude Code process — hook config is read once,
   at process start. Recommend a **quit and relaunch**, not `/clear` (same process, same stale

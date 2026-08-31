@@ -77,11 +77,15 @@ block exists), treat it as a bug and backfill both — as we did on 2026-08-15.
 
 ## Every requirement clause needs an enforcer or a backfill
 
-A schema clause that *adds a requirement* ("promotion files an INBOX ack", "commons pages are curated for a commons reader", "roles reference the baseline skill set") is inert unless something detects its violation. The recurring bug this session — six instances — was a documented behaviour with no implementation: the clause reads as done, but nothing catches a page that doesn't satisfy it, so `lint: clean` asserts nothing about it and the gap accumulates silently.
+A schema clause that *adds a requirement* ("promotion files an INBOX ack", "commons pages are curated for a commons reader", "roles reference the baseline skill set") is inert unless something detects its violation. This is the most-repeated bug in the project's history — a documented behaviour with no implementation: the clause reads as done, but nothing catches a page that doesn't satisfy it, so `lint: clean` asserts nothing about it and the gap accumulates silently. (Deliberately not counted here; a running tally in prose is itself the drift class this file exists to fight.)
 
-Rule: **when you add or change a requirement clause, name — in the same change — either (a) the tool/lint rule that enforces it, or (b) the manual backfill item** (an `UPGRADING.md` release entry telling existing projects what to fix). If it can be neither enforced nor backfilled (e.g. a judgment-based content requirement like "strip resolved-deliberation cruft"), say so explicitly in the clause, so a reader knows it's advisory rather than assuming a checker exists. A documented backstop that doesn't exist is worse than none — it's the stated reason the primary mechanism "isn't critical."
+Rule: **when you add or change a requirement clause, name — in the same change — both (a) how a *new* violation is caught, and (b) how *existing* violations are found.** New violations are usually a lint rule. Existing ones are an `UPGRADING.md` release entry — and it must give the reader a way to *produce the list*, not just describe the requirement. A migration that says "review your commons pages for curation" is not a backfill; "your commons pages with `promoted_on` earlier than YYYY-MM-DD are the candidates" is.
 
-This generalizes the release discipline above: the version bump makes machinery *arrive*; this makes a new requirement *observable*.
+**Un-lintable is not un-backfillable — do not confuse them.** This distinction is load-bearing, and collapsing it is how the 2026-08-15 curation requirement shipped with no migration at all. Lint is deterministic Python with no model in the loop, so it cannot judge whether prose has been curated for a commons audience. It can still *enumerate the candidates* perfectly well — a date comparison over frontmatter. Split the work the way Rule 20's "cannot check for drift" findings already do: **the tool produces the worklist, the human makes the judgement.** Reach for "this is advisory, no checker exists" only when you cannot even name the affected set — which is rarer than it looks, and was not true in that case.
+
+A documented backstop that doesn't exist is worse than none — it's the stated reason the primary mechanism "isn't critical."
+
+This generalizes the release discipline above: the version bump makes machinery *arrive*; this makes a new requirement *observable*, on old pages as well as new ones.
 
 ## Test fixtures come from the contract, not from the code
 

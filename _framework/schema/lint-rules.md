@@ -18,7 +18,7 @@ Every `[[wikilink]]` resolves to an existing page — in the page **body and in 
 
 A link may carry an area prefix (`[[area:target]]`, e.g. `[[research:findings/f-…]]`). When present, the prefix must name the target's actual area, or it's an error. See `link-conventions.md`.
 
-**Scope: kb pages and spec planning files.** `/plan`, `/replan` and the brief template all tell agents to cite kb pages by wikilink from a `brief.md`, `plan.md`, `tasks.md`, `revisions.md` or `outcome.md`, so those files are checked on the same terms — a citation that resolves to nothing is the same defect wherever it is written. Specs are still exempt from *frontmatter* requirements (Rule 1 checks well-formedness only). Note that a reference from a spec to another non-kb file — another spec's `outcome.md`, a code file — is a relative markdown link, not a wikilink, so this rule never sees it.
+**Scope: kb pages, spec planning files, and data manifests.** `/plan`, `/replan` and the brief template all tell agents to cite kb pages by wikilink from a `brief.md`, `plan.md`, `tasks.md`, `revisions.md` or `outcome.md`, so those files are checked on the same terms — a citation that resolves to nothing is the same defect wherever it is written. Specs are still exempt from *frontmatter* requirements (Rule 1 checks well-formedness only). Note that a reference from a spec to another non-kb file — another spec's `outcome.md`, a code file — is a relative markdown link, not a wikilink, so this rule never sees it.
 
 Source pages: `provenance.raw_path` must resolve to an existing file in `raw/` (when populated).
 
@@ -46,7 +46,9 @@ Forward links to pages with `status: superseded` are errors; the linter suggests
 
 ### Rule 12 — Data manifest integrity
 
-Each manifest in `data/manifests/` has `provenance`, `storage_uri`, and a `context_pages` link list pointing into `kb/`.
+Each manifest in `data/manifests/` has `provenance`, `storage_uri`, and a non-empty `context_pages` link list pointing into `kb/`. Rule 12 checks the fields are present; **Rule 2 resolves the `context_pages` wikilinks**, since a list of links to nowhere satisfies "non-empty" but not the intent.
+
+A manifest is otherwise an ordinary `type: source` page — same eight required fields, same `s-` id prefix, checked by Rule 1 in full. See `frontmatter.md` → "Data manifests".
 
 ### Rule 15 — Index maintenance
 

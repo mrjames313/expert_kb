@@ -1,8 +1,9 @@
 """
 Rule 2 — Forward-link integrity.
 
-- Every [[wikilink]] in a kb page *or spec planning file* body resolves to an
-  existing kb page.
+- Every [[wikilink]] in a kb page, spec planning file, or data manifest resolves
+  to an existing kb page (body and frontmatter alike — a manifest's links live
+  entirely in its `context_pages` frontmatter list).
 - Every [[wikilink]] in a frontmatter value (e.g. `evidence`, `provenance.ref`,
   `alternatives_considered`, `superseded_by`) resolves too. Frontmatter links
   used to be invisible to lint, which let tools that re-serialize frontmatter
@@ -28,6 +29,7 @@ from common import (
     extract_markdown_links,
     extract_wikilinks,
     iter_kb_pages,
+    iter_manifest_files,
     iter_spec_files,
     page_area,
     parse_frontmatter,
@@ -195,5 +197,10 @@ def check(repo_root: Path, config: dict) -> list[Finding]:
     # a code file — are relative markdown links per link-conventions.md, so they
     # are not wikilinks and nothing here looks at them.
     for path in iter_spec_files(repo_root):
+        findings.extend(_check_page(path, repo_root, index))
+    # Manifests carry `context_pages` — wikilinks into kb naming what gives the
+    # data meaning. Rule 12 requires the list be non-empty but never resolved it,
+    # so a manifest could point at pages that don't exist.
+    for path in iter_manifest_files(repo_root):
         findings.extend(_check_page(path, repo_root, index))
     return findings

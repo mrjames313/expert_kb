@@ -21,7 +21,7 @@ The prefix is a **readability** aid — resolution still works without it, since
 
 ## Markdown links for everything else
 
-For files outside `kb/` (code, manifests, specs, raw materials, exchange files), use relative markdown links with explicit paths:
+For files outside `kb/` (code, manifests, specs, raw materials, exchange files), use relative markdown links with explicit paths. Only `kb/` pages are in the wikilink index, so a `[[wikilink]]` to any of these can never resolve — a data manifest is the easy one to get wrong, since it carries kb-style frontmatter but does not live in `kb/`. Rule 2 resolves relative links too, so both forms are checked:
 
 ```
 See the measurement procedure at

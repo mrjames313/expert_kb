@@ -44,10 +44,12 @@ relevant_to:                            # topical hints; omit for commons pages
 
 ### ID prefixes by type
 
-- `s-` — source
+- `s-` — source (including data manifests — see "Data manifests" below)
 - `c-` — concept
 - `f-` — finding
 - `d-` — decision
+
+POR files are the one exception: `type: por` has no id convention.
 
 ### `area`
 
@@ -223,6 +225,35 @@ phase: detector characterization (2 of 4)
 last_updated: 2026-05-08
 ---
 ```
+
+## Data manifests
+
+A manifest under `data/manifests/` is **`type: source`, with an `s-` prefix** and the same eight required fields as any kb page. There is no `manifest` type: a manifest *is* a source — of data rather than of text — and `provenance.kind: internal-experiment` describes it exactly. Filing one as `type: manifest` with an `m-` id fails Rule 1 twice (invalid type, then id-prefix mismatch), which is a confusing way to learn an undocumented convention.
+
+On top of the common fields, Rule 12 requires three more:
+
+```yaml
+---
+id: s-2026-08-27-detector-noise-runs
+title: Detector noise runs, Aug 2026
+type: source
+status: active
+area: research/optics
+created: 2026-08-27
+updated: 2026-08-27
+summary: Raw ADC captures from the 2026-08 noise-floor sweep.
+provenance:
+  kind: internal-experiment
+  retrieved: 2026-08-27
+storage_uri: s3://lab-data/detector-noise/2026-08/
+context_pages:
+  - "[[findings/f-2026-08-noise-floor]]"
+---
+```
+
+`context_pages` are wikilinks into `kb/` and are resolved by Rule 2 like any other frontmatter link — they name the pages that give the data meaning.
+
+**Linking to a manifest goes the other way.** Manifests live outside `kb/`, so they are not in the wikilink index and `[[data/manifests/…]]` can never resolve. Reference one with a relative markdown link, per `link-conventions.md` — Rule 2 resolves those too.
 
 ## Wikilinks in frontmatter
 

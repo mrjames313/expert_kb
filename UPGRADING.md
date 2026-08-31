@@ -411,6 +411,49 @@ Once satisfied, merge the branch.
   it reports, outside a `/wrap-up`. Findings carry a line number. If you upgrade past both
   releases at once, do the two together; they surface the same class of pre-existing breakage.
 
+**Release 2026-09-01**
+
+- **Backfill missed since Release 2026-08-15: commons pages promoted before the curation
+  requirement.** That release added a content requirement to `promotion-protocol.md` step 4 —
+  a commons page is edited *for a commons reader*: strip resolved-deliberation cruft (resolved
+  question sections, superseded sections, closed "left open" lists). The link half of that same
+  step got a migration and a lint rule (Rule 21); **the prose half shipped with neither**, so
+  pages promoted earlier were never brought into compliance and nothing has surfaced them
+  since. Rule 20 sees no drift (their `aligned_on` isn't older than any source `updated`) and
+  Rule 21 is clean, so `lint: clean` has been asserting nothing at all about step-4 compliance.
+  **Action (one-time, manual — lint cannot judge prose, but it can name the candidates):**
+
+  ```bash
+  grep -rl "^promoted_on:" commons/kb --include='*.md' | while read -r f; do
+    d=$(sed -n 's/^promoted_on: *//p' "$f" | head -1)
+    if [ -n "$d" ] && [ "$(printf '%s\n' "$d" "2026-08-15" | sort | head -1)" = "$d" ] \
+       && [ "$d" != "2026-08-15" ]; then echo "$f  ($d)"; fi
+  done
+  ```
+
+  That prints every commons page promoted before the requirement existed — your worklist. Read
+  each one as a newcomer would and remove deliberation that only made sense in its source area.
+  Leave `aligned_on` alone — you are editing the commons copy to match a requirement, not
+  reconciling it with its source, and touching it would suppress a real drift signal. Log the
+  edits in `commons/CHANGELOG.md` as `/amend-commons` would.
+
+- **Data manifests: the type convention is now written down.** A manifest under
+  `data/manifests/` is `type: source` with an `s-` id prefix and
+  `provenance.kind: internal-experiment` — there is no `manifest` type, and Rule 1 checks
+  manifests in full, so filing one as `type: manifest` with an `m-` id fails twice with no
+  document explaining why. This was always what the tooling enforced; only the documentation
+  was missing (`frontmatter.md` → "Data manifests"). **Action:** if you filed a manifest under
+  a different type to satisfy lint, nothing needs changing — but note the convention. If you
+  have a manifest that never passed lint, `type: source` + `s-<date>-<slug>` is the fix.
+
+- **Rule 2 now resolves manifests' `context_pages`.** Rule 12 requires that list be "non-empty
+  wikilinks into `kb/`" and only ever checked non-emptiness, so a manifest could cite pages
+  that don't exist. Those links are now resolved like any other frontmatter wikilink. Also
+  worth knowing: manifests live outside `kb/` and are **not** in the wikilink index, so a
+  `[[data/manifests/…]]` reference from a kb page can never resolve — link a manifest with a
+  relative markdown link, which Release 2026-08-31 made checkable. **Action:** run
+  `python _framework/tools/lint.py`; fix any manifest links it reports.
+
 ---
 
 ## Notes for the agent

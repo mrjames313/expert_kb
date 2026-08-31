@@ -498,6 +498,51 @@ class TestRule02MarkdownLinks:
                 if "/specs/" in f.file_path] == []
 
 
+class TestRule02Manifests:
+    """Rule 12 requires context_pages be a non-empty list of wikilinks into kb/
+    and only ever checked 'non-empty' — a list of links to nowhere satisfied it."""
+
+    def _manifest(self, repo: Path, context_pages: str) -> Path:
+        d = repo / "areas" / "research" / "data" / "manifests"
+        d.mkdir(parents=True, exist_ok=True)
+        path = d / "s-2026-08-runs.md"
+        path.write_text(
+            "---\n"
+            "id: s-2026-08-runs\ntitle: Runs\ntype: source\nstatus: active\n"
+            "area: research\ncreated: 2026-08-27\nupdated: 2026-08-27\n"
+            "summary: Captures.\n"
+            "provenance:\n  kind: internal-experiment\n  retrieved: 2026-08-27\n"
+            "storage_uri: s3://lab/runs/\n"
+            f"context_pages:\n{context_pages}"
+            "---\n# Runs\n"
+        )
+        return path
+
+    def test_unresolvable_context_page_is_an_error(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        self._manifest(tmp_path, '  - "[[findings/f-2026-05-nope]]"\n')
+        findings = rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG)
+        assert any("manifests" in f.file_path and "does not resolve" in f.message
+                   for f in findings)
+
+    def test_resolving_context_page_is_clean(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/research", "finding", "real")
+        self._manifest(tmp_path, '  - "[[findings/f-2026-05-real]]"\n')
+        assert rule_02_forward_links.check(tmp_path, DEFAULT_CONFIG) == []
+
+    def test_manifest_as_type_source_passes_rule_1(self, tmp_path: Path) -> None:
+        """The documented convention: a manifest is type: source with an s-
+        prefix. Filing one as type: manifest with m- fails Rule 1 twice, which
+        is how the convention got discovered the hard way."""
+        make_minimal_repo(tmp_path)
+        write_kb_page(tmp_path, "areas/research", "finding", "real")
+        self._manifest(tmp_path, '  - "[[findings/f-2026-05-real]]"\n')
+        spec_findings = [f for f in rule_01_frontmatter.check(tmp_path, DEFAULT_CONFIG)
+                         if "manifests" in f.file_path]
+        assert spec_findings == []
+
+
 class TestRule02SpecFiles:
     """Spec planning files cite kb pages by wikilink (see /plan, /replan and the
     brief template) and were never checked — the links could rot silently."""

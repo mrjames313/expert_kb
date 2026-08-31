@@ -12,10 +12,11 @@ bootstrap deletes) is skipped, not failed.
 Checks:
   1. config `warnings_visible` keys == the shipped warning-rule `CONFIG_KEY`s.
   2. no pulled doc references a maintainer-only file (`future-work.md`,
-     `maintaining.md`) by name — those are deleted at bootstrap, so a reference
-     dangles in every live project.
+     `maintaining.md`, `clause-audit.md`) by name — those are deleted at
+     bootstrap, so a reference dangles in every live project.
   3. `framework_version` == the latest `**Release <date>**` in `UPGRADING.md`,
-     and the release dates are in ascending order.
+     the release dates are in ascending order, and the latest is not in the
+     future (a future stamp mis-gates the next real release).
 
 Public API:
     run_all(repo_root) -> list[str]      # each string is one problem; [] == clean
@@ -25,6 +26,7 @@ from __future__ import annotations
 
 import re
 import sys
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -36,7 +38,7 @@ from framework import _discover_configurable_lint_rules  # noqa: E402
 # Maintainer-only files: deleted at bootstrap, never pulled — a pulled doc must
 # not reference them by name (see maintaining.md "Don't reference template-only
 # files from pulled docs").
-_MAINTAINER_ONLY = ("future-work.md", "maintaining.md")
+_MAINTAINER_ONLY = ("future-work.md", "maintaining.md", "clause-audit.md")
 
 # Docs pulled into a live project on upgrade (UPGRADING.md Step 3–4). Kept in sync
 # with that step; a reference to a maintainer-only file from any of these dangles.
@@ -137,6 +139,17 @@ def check_version_matches_latest_release(repo_root: Path) -> list[str]:
         problems.append(
             f"framework_version ({version}) != latest UPGRADING.md release ({latest}) "
             f"— bump the version or add the release block so they match."
+        )
+    # A future-dated release mis-gates every migration after it: a project that
+    # upgrades today records tomorrow's date, so Step 5 ("apply those whose
+    # release is newer than your version") silently skips tomorrow's real
+    # release. Versioning is date-based and per-release, so same-day pushes
+    # append to one block rather than inventing the next day's.
+    today = date.today().isoformat()
+    if latest > today:
+        problems.append(
+            f"latest UPGRADING.md release ({latest}) is in the future (today is {today}) "
+            f"— releases are stamped with today's date; append to today's block instead."
         )
     return problems
 

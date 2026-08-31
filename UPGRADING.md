@@ -62,7 +62,8 @@ git checkout framework/main -- \
 **Do not** pull these — they are per-project state or content:
 `_framework/config.yml`, `commons/`, `areas/`, `exchanges/`, `INBOX.md`, `areas-index.md`,
 any `kb/index.md`, `_journal/`, and role files. Author/template-only files
-(`SETUP.md`, `UPGRADING.md`, `_framework/future-work.md`, `_framework/maintaining.md`) are
+(`SETUP.md`, `UPGRADING.md`, `_framework/future-work.md`, `_framework/maintaining.md`,
+`_framework/clause-audit.md`) are
 not part of a live project and this pull does not add them; in the normal case none are
 present. Step 5's cleanup migration removes any stale leftovers from a pre-cleanup bootstrap.
 
@@ -117,7 +118,7 @@ whose release is newer than your version.
   exact pages.
 - **Post-bootstrap cleanup.** Remove any template/author-only files a pre-cleanup bootstrap
   left behind (none in the normal case): `rm -f SETUP.md UPGRADING.md
-  _framework/future-work.md _framework/maintaining.md`. If your top-level `README.md` still
+  _framework/future-work.md _framework/maintaining.md _framework/clause-audit.md`. If your top-level `README.md` still
   describes the *framework* rather than your project, replace it.
 - **Un-supersede promoted sources.** If any area page was marked `superseded` pointing at a
   commons copy (the old, incorrect `/promote` advice), revert it — promotion coexists, it
@@ -411,7 +412,6 @@ Once satisfied, merge the branch.
   it reports, outside a `/wrap-up`. Findings carry a line number. If you upgrade past both
   releases at once, do the two together; they surface the same class of pre-existing breakage.
 
-**Release 2026-09-01**
 
 - **Backfill missed since Release 2026-08-15: commons pages promoted before the curation
   requirement.** That release added a content requirement to `promotion-protocol.md` step 4 —
@@ -453,6 +453,11 @@ Once satisfied, merge the branch.
   `[[data/manifests/…]]` reference from a kb page can never resolve — link a manifest with a
   relative markdown link, which Release 2026-08-31 made checkable. **Action:** run
   `python _framework/tools/lint.py`; fix any manifest links it reports.
+- **`framework_check.py` rejects a future-dated release.** Versioning is date-based, and a
+  release stamped ahead of today mis-gates every migration after it: a project upgrading today
+  records tomorrow's date, so Step 5 ("apply those whose release is newer than your version")
+  silently skips tomorrow's real release. Same-day pushes append to that day's block rather than
+  inventing the next day's. Caught by making the mistake. Code-only; takes effect on pull.
 
 ---
 

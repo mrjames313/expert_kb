@@ -83,6 +83,8 @@ Rule: **when you add or change a requirement clause, name — in the same change
 
 **Un-lintable is not un-backfillable — do not confuse them.** This distinction is load-bearing, and collapsing it is how the 2026-08-15 curation requirement shipped with no migration at all. Lint is deterministic Python with no model in the loop, so it cannot judge whether prose has been curated for a commons audience. It can still *enumerate the candidates* perfectly well — a date comparison over frontmatter. Split the work the way Rule 20's "cannot check for drift" findings already do: **the tool produces the worklist, the human makes the judgement.** Reach for "this is advisory, no checker exists" only when you cannot even name the affected set — which is rarer than it looks, and was not true in that case.
 
+`clause-audit.md` is the baseline this discipline starts from: a one-time pass over all ~65 requirement clauses in the pulled docs, each resolved to its enforcer, with the gaps and contradictions it turned up listed at the top. When you add a requirement clause, add its row; when you close one of its gaps, delete the row. Clause anchors there are quoted verbatim so a grep can tell you when a registered clause has been edited out from under its entry.
+
 A documented backstop that doesn't exist is worse than none — it's the stated reason the primary mechanism "isn't critical."
 
 This generalizes the release discipline above: the version bump makes machinery *arrive*; this makes a new requirement *observable*, on old pages as well as new ones.

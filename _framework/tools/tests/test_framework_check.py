@@ -4,6 +4,7 @@ Tests for _framework/tools/framework_check.py — the hard-edge drift checks.
 
 from __future__ import annotations
 
+from datetime import date, timedelta
 from pathlib import Path
 
 from common import find_repo_root
@@ -86,6 +87,24 @@ class TestVersionMatchesLatestRelease:
         self._upgrading(tmp_path, ["2026-08-25", "2026-08-14"])
         problems = check_version_matches_latest_release(tmp_path)
         assert any("ascending" in p for p in problems)
+
+    def test_flags_a_future_dated_release(self, tmp_path: Path) -> None:
+        """A future stamp mis-gates the next real release: a project upgrading
+        today records tomorrow's date, so Step 5 ("apply those whose release is
+        newer than your version") silently skips tomorrow's actual release.
+        Caught in practice on 2026-08-31, when a same-day change was stamped
+        2026-09-01 instead of appending to that day's block."""
+        tomorrow = (date.today() + timedelta(days=1)).isoformat()
+        _write_config(tmp_path, [], version=tomorrow)
+        self._upgrading(tmp_path, ["2026-08-14", tomorrow])
+        problems = check_version_matches_latest_release(tmp_path)
+        assert any("in the future" in p for p in problems)
+
+    def test_todays_release_is_fine(self, tmp_path: Path) -> None:
+        today = date.today().isoformat()
+        _write_config(tmp_path, [], version=today)
+        self._upgrading(tmp_path, ["2026-08-14", today])
+        assert check_version_matches_latest_release(tmp_path) == []
 
     def test_skips_when_no_upgrading(self, tmp_path: Path) -> None:
         _write_config(tmp_path, [], version="2026-08-25")  # no UPGRADING.md (bootstrapped project)

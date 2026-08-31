@@ -19,8 +19,9 @@ clauses. Each was resolved against the code by reading the relevant rule module 
 **Audited at:** framework_version 2026-08-31. G1 resolved by rewording; C1, C2 and C3 fixed the
 same day. G2 — with C4 and C5, which were found while planning it — shipped 2026-08-31; a fourth
 issue found the same way (C6, sub-area exchange directories) shipped with them, and G4
-(`follow_up` queries surfaced by nothing) was found and fixed immediately after. G3 remains
-planned in the framework repo's backlog.
+(`follow_up` queries surfaced by nothing) was found and fixed immediately after. G3 is the only
+entry still open; it is planned in `future-work.md` (both files are maintainer-only, so the
+reference is safe).
 
 **How to keep it true.** Clause anchors below are quoted verbatim so a grep can verify the
 clause still exists as written — an edited or deleted clause self-reports. Only genuinely *new*

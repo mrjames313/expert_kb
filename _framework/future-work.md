@@ -121,7 +121,13 @@ A distributed approach where several existing skills become lifecycle-aware, sha
    - If a prior session is open and unwrapped: "Last session as role X didn't wrap up cleanly. Wrap-up first, or override and adopt Y now?" (Override is needed for cases where the prior session was abandoned and isn't recoverable.)
    - If `/start B` invoked while role A is active: detect role mismatch, recommend the wrap-up → `/clear` → `/start B` sequence explicitly with each step.
 
-3. **`/wrap-up` asks about next action.** At the end of its flow: "Continuing this session, switching role, or done?" If continuing, suggest `/clear` for a clean frame. If switching, suggest `/clear` then `/start <new-role>`. If done, no action needed.
+3. ~~**`/wrap-up` asks about next action.**~~ — **shipped 2026-08-31** as step 7 of the skill:
+   "Continuing in this role, switching role, or done?" One deviation from the sketch above, and it
+   matters: the sketch said *"if continuing, suggest `/clear` for a clean frame."* That is wrong,
+   and it is close to the advice that caused the incident this item was promoted for — an agent
+   telling a user it had to re-adopt its role after a wrap-up. Continuing in the same role needs
+   **nothing**; `/clear` would throw away the loaded preload for no benefit. `/clear` is
+   load-bearing only on the *switching* branch. The shipped step says so.
 
 4. **Other skills detect mid-flight inconsistency.** `/plan`, `/implement`, `/ingest`, `/replan` could check the session-state marker on invocation. If invoked without a fresh `/start` after a `/clear` (i.e., the marker says role A was last wrapped up but no role is currently open), surface a brief reminder rather than silently proceeding.
 
@@ -131,7 +137,13 @@ A new `/switch-role` skill *could* sit on top of this as a convenience wrapper f
 
 **Revisit when:** v2 dogfood pass exercises multiple roles in the same project. Friction patterns will be clearer when there are 2-3 areas with separate roles being switched between in real work. Without that evidence, the design risks optimizing for cases that don't actually occur. **Or sooner** — the 2026-08-29 instance above suggests item 3 (the `/wrap-up` end-prompt) earns its place on its own, independently of the role-switch evidence the rest of the entry is waiting on. It is a few lines in one skill, and it is the step that would have prevented an agent from inventing a prerequisite.
 
-**Implementation order if this lands:** ~~Session-state marker first~~ (shipped; needs the two extra fields noted in item 1). Then `/wrap-up` end-prompt — now the cheapest and best-evidenced piece, and it depends on nothing. Then `/start` detection. Then SessionStart hook enrichment. Other skills' inconsistency detection last — likely overkill for v1 of this work; can wait for evidence it's needed.
+**Implementation order if this lands:** ~~Session-state marker first~~ (shipped; needs the two extra fields noted in item 1). ~~Then `/wrap-up` end-prompt~~ (shipped 2026-08-31). Then `/start` detection — now the head of the queue, and the only item still blocked on item 1's missing fields: detecting "a prior session didn't wrap up cleanly" needs a last-wrap-up timestamp and a clean/abrupt exit flag that nothing currently records. Then SessionStart hook enrichment.
+
+**What remains, precisely** (items 2, 4 and 5): `/start` detecting an unwrapped prior session or a
+role mismatch; other skills noticing they were invoked without a fresh `/start`; the hook surfacing
+last-session state. All three want the two extra state fields first. Item 4 was already judged
+"likely overkill for v1" and `/kb-vitals` has since absorbed much of its intent, so the honest
+remaining scope is items 2 and 5 — smaller than this entry's length suggests. Other skills' inconsistency detection last — likely overkill for v1 of this work; can wait for evidence it's needed.
 
 ---
 

@@ -728,7 +728,7 @@ The `_journal/` subdirectory holds transient working records — currently just 
 
 **Compaction triggers**:
 - Manual: `/wrap-up` invoked by user before session end or context clear.
-- Hooks: `PreCompact` and `SessionEnd` invoke wrap-up as safety net.
+- Hooks: `PreCompact` and `SessionEnd` invoke wrap-up as a safety net — but only where hooks are active (they are read at process start; see `_framework/hooks/README.md`), so this is a backstop, not a guarantee.
 
 A session that ends without `/wrap-up` and without hooks firing leaves a stale log. Next session's first read of pulse should detect a non-empty log and either compact first or surface a warning.
 

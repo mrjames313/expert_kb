@@ -10,7 +10,7 @@ Closes a working session cleanly: compacts the journal into pulse.md, finalizes 
 ## When to use
 
 - End of a working session (always).
-- Before switching roles (`/start <other-role>` after `/wrap-up`).
+- Before switching roles — the full sequence is `/wrap-up`, then `/clear`, then `/start <other-role>`. The `/clear` is the step that actually drops the old role's context, and the one that gets skipped.
 - Before committing work to git.
 - If the user is stopping for the day and won't return for a while.
 
@@ -72,6 +72,22 @@ If a session ends without `/wrap-up`, pulse.log will be non-empty when the next 
    - What's still open.
    - Any open questions surfaced during the session.
 
+7. **Ask what's next, in one line.** End with: *"Continuing in this role, switching role, or
+   done?"* Then follow their answer:
+
+   - **Continuing** — nothing is required. Keep working in the same role; new pulse entries
+     accumulate in the freshly-truncated log. Do **not** tell them to re-run `/start`: wrap-up
+     didn't un-adopt anything (see the note below). If the session has been running a long time,
+     `/kb-vitals` will say so on its own — don't pre-empt it here.
+   - **Switching role** — `/clear`, then `/start <new-role>`. The `/clear` is the load-bearing
+     step and the one that gets forgotten: without it the new role starts with the old role's
+     context still loaded, which is the failure this prompt exists to catch.
+   - **Done** — nothing further. Suggest `git commit` if the work isn't committed; the project is
+     in a clean, journaled state.
+
+   Keep it to one line and one answer. This is a routing question, not a checklist — if the user
+   has already said what they're doing next, skip it rather than asking redundantly.
+
 ## Notes
 
 - `pulse_compact.py` is idempotent. If you run it twice, the second run is a no-op (empty log, no new state).
@@ -81,7 +97,7 @@ If a session ends without `/wrap-up`, pulse.log will be non-empty when the next 
 - Don't agonize over getting telemetry exactly right. Best-effort is fine; the data is for trend analysis (which preloads aren't being used) not precise accounting.
 - If `por` is enabled, also update `POR.md` for the area if anything material shifted: phase change, completed workstream, new dependency.
 - After `/wrap-up` is the natural place to `git commit`. The skill itself doesn't commit, but the project is in a clean, journaled state ready for one.
-- **Wrap-up does not un-adopt the role.** It closes a working session in the *bookkeeping* sense — journal compacted, specs finalized, lint clean — but it never touches `_session/<session-id>.json`. The adopted role and area survive, the preload is still loaded, and `/kb-vitals` and the status line stay scoped to that role. Only the session-start hook (new session) and the session-end hook (process exit) clear it.
+- **Wrap-up does not un-adopt the role** (this is what step 7's "continuing" branch rests on). It closes a working session in the *bookkeeping* sense — journal compacted, specs finalized, lint clean — but it never touches `_session/<session-id>.json`. The adopted role and area survive, the preload is still loaded, and `/kb-vitals` and the status line stay scoped to that role. Only the session-start hook (new session) and the session-end hook (process exit) clear it.
 
   So if the user carries on in the same role, **nothing is required** — keep working, and new pulse entries accumulate in the freshly-truncated log. Re-run `/start` only when the role is *changing*, or after a `/clear` or restart, which is what actually discards context.
 

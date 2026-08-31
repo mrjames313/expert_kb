@@ -525,6 +525,18 @@ Once satisfied, merge the branch.
   this index actually changed", which is the more useful reading. Code-only; takes effect on pull.
   **Action:** none. On your first run after upgrading you may see one last regeneration if an index
   was genuinely stale; after that, no-op runs leave the tree clean.
+- **`/wrap-up` now ends by asking what's next.** One line — "Continuing in this role, switching
+  role, or done?" — then routes: continuing needs **nothing** (wrap-up doesn't un-adopt the role,
+  so the preload stays loaded and `/start` is not required); switching is `/clear` then
+  `/start <new-role>`, where the `/clear` is the load-bearing step and the one that gets skipped;
+  done suggests a commit. Added because an agent, having run `/wrap-up`, told its user it had to
+  re-adopt its role before continuing — it didn't, and nothing in the flow said so at the moment it
+  mattered. The skill's "When to use" section also now spells out the full role-switch sequence
+  including `/clear`, which it previously omitted. **Action:** none; arrives on pull.
+- **`spec.md`'s pulse safety-net claim qualified.** It said the PreCompact and SessionEnd hooks
+  "invoke wrap-up as safety net" without noting that this holds only where hooks are active. Last
+  of the unqualified safety-net claims — `adoption-guide.md`'s was corrected earlier in this
+  release. **Action:** none.
 
 ---
 

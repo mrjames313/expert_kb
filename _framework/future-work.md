@@ -299,32 +299,6 @@ Open question: is shadow-with-suggestions worth building at all? It risks naggin
 
 ---
 
-## Setup & hooks
-
-### Lifecycle hooks never fire in the session that installs the framework (BUG)
-
-**Reported 2026-08-26 (dogfood), framework_version 2026-08-23; Claude Code 2.1.246. Severity: medium — silent, compounds until restart.**
-
-**The bug.** The documented adoption path (launch Claude Code in an empty dir, *then* ask the agent to run setup — `adoption-guide.md:24`) guarantees **none of the three lifecycle hooks (`SessionStart`, `SessionEnd`, `PreCompact`) ever fire in that session.** Claude Code snapshots hook config at *process start*; setup writes `.claude/settings.json` minutes later into an already-running process that never re-reads it. `/clear` doesn't recover — it starts a new session id inside the *same* process (proof in the report: identical `bridgeSessionId` across the pre- and post-`/clear` transcripts). So the first real working session runs with no orientation block (`areas-index.md`, `INBOX.md`, pulse-state summary) and no pulse-flush safety net — **with no error or warning.** Every piece is individually correct (skills register, the hook scripts run clean by hand, `settings.json` is right); the bug is purely *when* setup writes the file relative to process start.
-
-**Secondary — docs contradict.** `hooks/README.md` says hooks are "active after you clone" (a clone-then-launch flow); `adoption-guide.md` prescribes launch-then-install (the opposite). And the README's "hooks are optional, `/start` covers it" is overstated: per `start/SKILL.md:18-21`, `/start` reads `areas-index.md`/`INBOX.md` **only in the no-role branch** — `/start <role>` skips INBOX, so with hooks dead a user who names their role never sees "Needs decision" items meant to block work.
-
-**Impact.** `SessionEnd`/`PreCompact` never fire, so the stated safety net (`adoption-guide.md:83` — "PreCompact/SessionEnd run wrap-up as a safety net") doesn't hold until a restart; if the user exits without `/wrap-up`, pulse work is unprotected. Silent and easy to miss for many sessions.
-
-**Suggested fixes (ranked, from the report):**
-1. **Make `/start` self-sufficient — the load-bearing fix.** Have `/start` invoke `session-start.sh` itself (idempotent, cheap, ~80 lines). Makes the hook a pure *optimization* rather than a correctness requirement, and fixes the `/start <role>`-skips-INBOX path. Survives all restart/trust/ordering edge cases — do this regardless of the rest.
-2. **End setup with an explicit hard restart step** (a stop, not a footnote): "hooks won't activate until you quit and relaunch; run `/hooks` to confirm three entries."
-3. **Have setup run `session-start.sh` once inline at the end** so the install session isn't blind.
-4. **Fix `hooks/README.md`** — replace "active after you clone" with the real constraint (hook config is read at process start; activates on the *next* launch after `settings.json` exists) and reconcile with `adoption-guide.md`.
-5. **Soften the `adoption-guide.md:83` safety-net claim** — it promises PreCompact/SessionEnd coverage that doesn't exist until after restart.
-6. **Optional detector:** `/check` warns when `settings.json` registers hooks with no evidence of having run — turns the silent failure visible.
-
-**Unverified lead (maintainer check):** `~/.claude.json` shows `hasTrustDialogAccepted: false` for the project; trust may inherit from the trusted parent dir, and 2.1.246 has a string implying *some* project-scoped grants need explicit per-directory trust. Unconfirmed whether hooks are among them — the process-lifetime cause fully explains the behavior on its own. **Security note:** having setup write `hasTrustDialogAccepted: true` would silently bypass the exact prompt that gates auto-executing code in a fresh directory — do **not** do that.
-
-**Recommendation:** fix 1 is the real fix (correctness no longer depends on hook timing) and also closes the `/start <role>` INBOX gap; 4 and 5 are cheap doc-truth fixes to pair with it. Everything else is optional hardening.
-
----
-
 ## Tooling
 
 ### CI check: version stamp must move when framework machinery changes

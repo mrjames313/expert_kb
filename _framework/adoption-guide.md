@@ -29,6 +29,19 @@ Claude will read the guide, ask you a handful of questions (project name, what i
 
 The setup creates one area and one role to start. You can add more areas and capabilities later through the `/framework` skill (covered below).
 
+**The setup session is not your working session.** Setup clones into a new `./<project-name>/`
+directory; when it finishes, quit, `cd` into that directory, and launch Claude Code there. That is
+also what turns the lifecycle hooks on: Claude Code reads hook configuration once, at process
+start, so a process that started before `.claude/settings.json` existed never sees it. Run `/hooks`
+in the new session and confirm three entries.
+
+The trap to avoid is installing *in place* — pointing setup at the directory Claude Code is already
+running in. Then `settings.json` lands under a live process and no hook fires for the rest of that
+session, with no error to tell you; `/clear` does not help, because it starts a new session id
+inside the same process. Nothing is broken — `/start` loads orientation itself, and `/wrap-up`
+works — but the automatic pulse safety net is absent until you relaunch, so invoke `/wrap-up`
+yourself.
+
 ### Skills
 
 Plain-language conversation is the primary way to interact with the framework. The agent picks the right skill based on what you're asking. Some of the skills you'll see invoked early on:
@@ -80,7 +93,7 @@ For requests that genuinely span multiple areas (e.g., "coordinate the handoff b
 - **Pulse** in any area — current state (focus, open questions, recent decisions and findings, active concepts).
 - **`/check`** — runs the linter on demand; shows broken links, missing fields, stale items, and shadow-rule suggestions.
 
-**Wrapping up.** Before closing a session or running `/clear`, invoke `/wrap-up`. It compacts the working log (`_journal/pulse.log`) into the area's `pulse.md`, files any pending findings or decisions as kb pages, prompts you to update POR if relevant changes happened (when POR is enabled), and runs lint. The PreCompact and SessionEnd hooks run wrap-up as a safety net, but invoking it manually lets you review what gets filed.
+**Wrapping up.** Before closing a session or running `/clear`, invoke `/wrap-up`. It compacts the working log (`_journal/pulse.log`) into the area's `pulse.md`, files any pending findings or decisions as kb pages, prompts you to update POR if relevant changes happened (when POR is enabled), and runs lint. The PreCompact and SessionEnd hooks run wrap-up as a safety net **once hooks are active** — which, if you installed the framework into an already-running Claude Code session, means after you quit and relaunch (see `_framework/hooks/README.md`). Until then there is no net, so invoke `/wrap-up` yourself. Doing so manually is better anyway: you get to review what gets filed.
 
 If you forget to wrap up, no work is lost — the log persists. The next session's first read will detect the unflushed log and offer to compact it.
 

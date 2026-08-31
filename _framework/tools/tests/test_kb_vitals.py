@@ -284,3 +284,46 @@ class TestExchangeVitals:
         _exchange(tmp_path, "ex-2026-08-28-thermal", kind="query", status="open",
                   from_area="engineering", to_area="research")
         assert not any("query" in m for m in _msgs(kv.role_vitals(tmp_path, _CONFIG), "role"))
+
+
+# --- Hooks-inactive detector ---
+
+class TestHooksInactive:
+    """`transcript_path` is written only by the lifecycle hooks, so its absence
+    in a repo that registers them means they never fired — the silent failure
+    that happens when the framework is installed into a running process."""
+
+    def _settings(self, repo: Path, hooks: bool = True) -> None:
+        d = repo / ".claude"
+        d.mkdir(parents=True, exist_ok=True)
+        body = '{"hooks": {"SessionStart": []}}' if hooks else '{"model": "opus"}'
+        (d / "settings.json").write_text(body)
+
+    def test_fires_when_hooks_registered_but_never_ran(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        _setup_area(tmp_path)
+        self._settings(tmp_path)
+        ss.adopt(tmp_path, "researcher", "areas/research")   # no transcript_path
+        assert any("didn't fire" in m for m in _msgs(kv.role_vitals(tmp_path, _CONFIG), "role"))
+
+    def test_silent_when_hooks_ran(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        _setup_area(tmp_path)
+        self._settings(tmp_path)
+        ss.adopt(tmp_path, "researcher", "areas/research")
+        ss.write(tmp_path, transcript_path="/tmp/t.jsonl")   # only a hook sets this
+        assert not any("didn't fire" in m for m in _msgs(kv.role_vitals(tmp_path, _CONFIG), "role"))
+
+    def test_silent_when_no_hooks_configured(self, tmp_path: Path) -> None:
+        """Hooks are optional. A project that never registered them isn't broken."""
+        make_minimal_repo(tmp_path)
+        _setup_area(tmp_path)
+        self._settings(tmp_path, hooks=False)
+        ss.adopt(tmp_path, "researcher", "areas/research")
+        assert not any("didn't fire" in m for m in _msgs(kv.role_vitals(tmp_path, _CONFIG), "role"))
+
+    def test_silent_when_no_settings_file(self, tmp_path: Path) -> None:
+        make_minimal_repo(tmp_path)
+        _setup_area(tmp_path)
+        ss.adopt(tmp_path, "researcher", "areas/research")
+        assert not any("didn't fire" in m for m in _msgs(kv.role_vitals(tmp_path, _CONFIG), "role"))

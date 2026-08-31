@@ -349,7 +349,7 @@ Once satisfied, merge the branch.
   right command, and briefs are counted per-role. **Code-only; takes effect on pull in Step 4.**
   The status line's cache gains a per-role `briefs_open` key, written on the next refresh
   (`/kb-vitals`, `/check`, `/wrap-up`, or session start) — no action needed.
-  Worth knowing: `/start` step 5 tells the agent to scan `exchanges/*/` by hand, which masked this
+  Worth knowing: `/start`'s orient-to-current-state step tells the agent to scan `exchanges/*/` by hand, which masked this
   at session start — but it only fires *at* session start. An exchange answered by another area
   while your session is already running had nothing to surface it. If you have been running with
   `multi_area` on, check `exchanges/*/` for answered queries your area filed and never closed;
@@ -492,6 +492,28 @@ Once satisfied, merge the branch.
   in agreement, which is the enumerated-list drift shape `framework_check` exists to catch. Adding
   a file to the tool but not the `rm` line ships it into every bootstrapped project. The check
   found a missed site on its first run. Code-only; takes effect on pull.
+- **`/start` no longer depends on the session-start hook, and no longer skips the INBOX.** Its
+  orientation reads (`areas-index.md`, `INBOX.md`, pulse state) sat in the *no-role* branch, so
+  `/start <role>` — naming your role, the common case — skipped them entirely and never saw "Needs
+  decision" items meant to block work. `/start` now runs
+  `bash _framework/hooks/session-start.sh --orient-only` as its first step, always. The new
+  `--orient-only` flag emits the orientation block and performs no writes: it skips the session
+  reset and vitals refresh (which `/start` already does, authoritatively) and skips re-dumping
+  CLAUDE.md, which the agent already holds as project instructions. This also makes `/start`
+  correct when hooks aren't active. **Action:** none; arrives on pull.
+- **`/kb-vitals` detects hooks that are configured but never fired.** `transcript_path` in the
+  session state file is written only by the lifecycle hooks, so its absence in a repo whose
+  `settings.json` registers them means they didn't run — which happens silently when the framework
+  is installed into an already-running Claude Code process, since hook config is read once at
+  process start. The vital says so and recommends a relaunch (`/clear` reuses the process). Nothing
+  is broken in such a session — `/start` is self-sufficient — but the automatic pulse safety net is
+  absent, so `/wrap-up` must be invoked by hand. **Action:** none.
+- **Hook timing documented honestly.** `hooks/README.md` said the hooks "should be active after you
+  clone"; it is the next *launch* after `settings.json` exists that activates them, and installing
+  in place into a running session leaves them dead for that whole session with no error.
+  `adoption-guide.md` also promised that PreCompact/SessionEnd "run wrap-up as a safety net"
+  without qualifying that this needs active hooks, and now names the setup session as distinct from
+  your working session. **Action:** none.
 
 ---
 

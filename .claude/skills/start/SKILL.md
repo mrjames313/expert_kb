@@ -15,22 +15,37 @@ Picks a role, loads its preload context, records a session_start telemetry event
 
 ## Steps
 
-1. **Determine the role.** If the user named one (e.g. `/start researcher`), use it. Otherwise:
-   - Read `/areas-index.md` for the catalogue of roles available.
-   - Read `/INBOX.md` for pending work and what areas it implicates.
+1. **Load orientation — always, before anything else.** Run:
+   ```
+   bash _framework/hooks/session-start.sh --orient-only
+   ```
+   This prints `areas-index.md`, `INBOX.md`, and the pulse-log state. Run it **whether or not the
+   user named a role**: the INBOX may hold "Needs decision" items meant to block work, and a role
+   named up front is not a reason to skip them.
+
+   Do this even though a SessionStart hook may have printed the same block. It's cheap and
+   idempotent (`--orient-only` performs no writes), and it is what makes `/start` correct on its
+   own. Claude Code snapshots hook configuration at *process start*, so in a workspace where
+   setup wrote `.claude/settings.json` into an already-running process — the documented adoption
+   path — no hook fires for that entire session, and `/clear` does not help because it reuses the
+   process. Treat the hook as an optimization, never as a precondition.
+
+2. **Determine the role.** If the user named one (e.g. `/start researcher`), use it. Otherwise:
+   - Use the `areas-index.md` catalogue from step 1 to see which roles exist.
+   - Use the INBOX items from step 1 to see what work is pending and which areas it implicates.
    - If the user's intent is clear from a previous message, suggest a single role and confirm. If not, ask.
 
-2. **Resolve the role file.** Find one of:
+3. **Resolve the role file.** Find one of:
    - `areas/<area>/roles/<role>/role.md`
    - `commons/roles/<role>/role.md` (only if `coordinator` is enabled via the `por` capability)
 
    If the role file doesn't exist, ask the user whether they meant a different role or want to use `/add-area` to create one.
 
-3. **Load preload context.** Follow the role file's `## Preload context (full)` section: read every listed file in full. Then follow `## Preload context (frontmatter only)`: for each directory pattern, read the frontmatter blocks (between leading and trailing `---`) of every `.md` under that path. Skip `index.md` files.
+4. **Load preload context.** Follow the role file's `## Preload context (full)` section: read every listed file in full. Then follow `## Preload context (frontmatter only)`: for each directory pattern, read the frontmatter blocks (between leading and trailing `---`) of every `.md` under that path. Skip `index.md` files.
 
    Lines wrapped in `# capability: X` / `# end capability: X` markers are conditional. Only load them if capability `X` is enabled in `_framework/config.yml`.
 
-4. **Record telemetry and session state.** Run:
+5. **Record telemetry and session state.** Run:
    ```
    python _framework/tools/telemetry.py session-start --role <path-to-role.md>
    python _framework/tools/session_state.py adopt --role <role-name> --area <area-path>
@@ -42,7 +57,7 @@ Picks a role, loads its preload context, records a session_start telemetry event
 
    Show the user the preload cost in the telemetry output. If it's much higher than expected, suggest `/budget` to investigate.
 
-5. **Orient to current state.** From the role's area:
+6. **Orient to current state.** From the role's area:
    - Read `pulse.md` end-to-end. Note especially the "Current focus" and "Open questions" sections.
    - Read `_journal/pulse.log` if it's non-empty. (A non-empty log usually means the previous session didn't wrap up; offer to run `/wrap-up` first.)
    - If an in-progress spec lives under `areas/<area>/specs/`, read its `plan.md` and `tasks.md`.
@@ -53,7 +68,7 @@ Picks a role, loads its preload context, records a session_start telemetry event
 
      Read only the frontmatter to triage; open a body when the user picks one to act on.
 
-6. **Brief the user.** In one short paragraph: where the role left off, what's open, and one or two suggestions for what to work on next. Don't start working — wait for the user to choose.
+7. **Brief the user.** In one short paragraph: where the role left off, what's open, and one or two suggestions for what to work on next. Don't start working — wait for the user to choose.
 
 ## Notes
 

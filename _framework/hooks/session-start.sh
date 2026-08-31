@@ -10,6 +10,18 @@
 
 set -uo pipefail
 
+# --orient-only: emit just the orientation block, skipping every side effect.
+# `/start` calls the script this way so it does not depend on the hook having
+# fired — hook config is snapshotted at process start, so on the documented
+# adoption path (launch, then install) the hooks are dead for that whole
+# session. The skipped parts are the ones /start already owns: it writes session
+# state via `session_state.py adopt` (authoritative, and a reset here would
+# clobber it) and refreshes the vitals cache itself. CLAUDE.md is skipped too —
+# an agent running /start already has it as project instructions, and re-dumping
+# it costs ~11KB of context for nothing.
+ORIENT_ONLY=0
+if [ "${1:-}" = "--orient-only" ]; then ORIENT_ONLY=1; fi
+
 # Find repo root: the dir containing _framework/. Walk up from the script
 # location, since the script may be invoked from any cwd.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
@@ -31,21 +43,26 @@ cd "$REPO_ROOT"
 # /start; the transcript stamp powers the context-length signal. `new-session` also
 # sweeps state files left behind by sessions that ended without the end hook.
 # Best-effort — never fail the session over it.
-HOOK_JSON=""
-if [ ! -t 0 ]; then HOOK_JSON="$(cat)"; fi
 if [ -x ".venv/bin/python" ]; then PYTHON=".venv/bin/python"
 elif command -v python3 >/dev/null 2>&1; then PYTHON="python3"
 else PYTHON="python"; fi
-printf '%s' "$HOOK_JSON" | "$PYTHON" _framework/tools/session_state.py new-session >/dev/null 2>&1 || true
+
+if [ "$ORIENT_ONLY" -eq 0 ]; then
+  HOOK_JSON=""
+  if [ ! -t 0 ]; then HOOK_JSON="$(cat)"; fi
+  printf '%s' "$HOOK_JSON" | "$PYTHON" _framework/tools/session_state.py new-session >/dev/null 2>&1 || true
+fi
 
 # --- Vitals cache: refresh the status line's expensive counts once per session ---
 # The status line computes the cheap vitals live but reads commons-review,
 # exchange and preload-staleness counts from this snapshot. Refreshing here is
 # what bounds their staleness to a single session. ~100ms, best-effort.
-"$PYTHON" _framework/tools/kb_vitals.py --refresh-cache >/dev/null 2>&1 || true
+if [ "$ORIENT_ONLY" -eq 0 ]; then
+  "$PYTHON" _framework/tools/kb_vitals.py --refresh-cache >/dev/null 2>&1 || true
+fi
 
 # --- CLAUDE.md ---
-if [ -f "CLAUDE.md" ]; then
+if [ "$ORIENT_ONLY" -eq 0 ] && [ -f "CLAUDE.md" ]; then
   echo "==== CLAUDE.md ===="
   echo
   cat CLAUDE.md
@@ -101,7 +118,9 @@ if [ -f "_framework/telemetry/.current-session" ]; then
   echo "Next /wrap-up will record a session_end against it."
 fi
 
-echo
-echo "→ Run /start to adopt a role."
+if [ "$ORIENT_ONLY" -eq 0 ]; then
+  echo
+  echo "→ Run /start to adopt a role."
+fi
 
 exit 0

@@ -270,6 +270,33 @@ def _context_vital(repo_root: Path, config: dict) -> Vital | None:
     return None
 
 
+def _hooks_inactive_vital(repo_root: Path, state: dict) -> Vital | None:
+    """Hooks registered but not firing in this session.
+
+    `transcript_path` is written only by `session_state.new_session`, which only
+    the lifecycle hooks call. So a session whose state file lacks it, in a repo
+    whose settings.json registers hooks, is a session where the hooks never
+    fired — the silent case that happens when the framework is installed into
+    an already-running Claude Code process. Nothing else surfaces it.
+    """
+    if state.get("transcript_path"):
+        return None
+    settings = repo_root / ".claude" / "settings.json"
+    if not settings.is_file():
+        return None
+    try:
+        if '"SessionStart"' not in settings.read_text(encoding="utf-8"):
+            return None
+    except OSError:
+        return None
+    return Vital(
+        "role",
+        "hooks are configured but didn't fire this session — no pulse safety net "
+        "if you exit without /wrap-up",
+        "quit and relaunch Claude Code (/clear won't help — same process)",
+    )
+
+
 def role_vitals(repo_root: Path, config: dict) -> list[Vital]:
     # Keyed on this session's id: a second session in the same repo has its own
     # adopted role, and reading its state would scope these checks to the wrong area.
@@ -284,6 +311,10 @@ def role_vitals(repo_root: Path, config: dict) -> list[Vital]:
     context = _context_vital(repo_root, config)
     if context:
         vitals.append(context)
+
+    hooks = _hooks_inactive_vital(repo_root, state)
+    if hooks:
+        vitals.append(hooks)
 
     if not area:
         vitals.append(Vital("role", "no role adopted this session", "/start"))

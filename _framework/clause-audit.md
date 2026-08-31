@@ -69,6 +69,14 @@ written silently. `raw/` immutability is called out as the one mechanically-enfo
 **Still open:** mechanical enforcement of the `A`/`H` split is the deferred Rule 19, which needs
 git author signals. That is now an honest gap rather than a false claim.
 
+### G1b. `/start <role>` skipped orientation entirely — fixed 2026-08-31
+
+Found while acting on the hooks report. `/start`'s reads of `areas-index.md` and `INBOX.md` sat
+inside the *no-role* branch, so naming your role — the common case — skipped them. A user who ran
+`/start researcher` never saw "Needs decision" items meant to block work. Independent of hooks,
+and the real defect behind a report that blamed them. `/start` now runs
+`session-start.sh --orient-only` as step 1, unconditionally.
+
 ### G2. Exchange files are entirely unlinted, and a skill says otherwise
 
 `common.py` has no exchange-file iterator at all — no `iter_exchange_files`. Rule 2 walks kb

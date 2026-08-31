@@ -23,7 +23,22 @@ Hooks are wired up in your Claude Code settings. The standard locations:
 - `.claude/settings.local.json` — gitignored; for your own machine.
 - `~/.claude/settings.json` — user-wide; applies to all your projects.
 
-The framework ships with `.claude/settings.json` already configured at the repo root, so the hooks should be active after you clone. The file contains:
+The framework ships with `.claude/settings.json` already configured at the repo root. **Claude Code
+reads hook configuration once, at process start**, so hooks are active in any session launched
+*after* that file exists — not from the moment it appears on disk. The normal paths are fine:
+clone then launch, or run setup (which clones into a new directory) then launch there.
+
+The one case that catches people is installing **in place**, into the directory Claude Code is
+already running in. `settings.json` then lands under a live process, no hook fires for the rest of
+that session, and there is no error to tell you. `/clear` does not help — it starts a new session
+id inside the same process. Quit and relaunch, then run `/hooks` to confirm three entries.
+
+Either way this is a degradation, not a failure, which is why the hooks are optional: `/start`
+calls `session-start.sh --orient-only` itself, so orientation is correct with or without them.
+What a hook-less session loses is the automatic pulse safety net — exit without `/wrap-up` and
+nothing flushes the log for you.
+
+The file contains:
 
 ```json
 {

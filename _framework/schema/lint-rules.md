@@ -116,7 +116,7 @@ For each page, identify `links_out` targets updated more recently than the page 
 
 ### Rule 14 — Exchange staleness (planned)
 
-Exchanges with `status: open` older than `exchange_stale_active_days` (default 7) surface to INBOX. Only runs when `multi_area` is enabled.
+Exchanges awaiting a move older than `exchange_stale_active_days` (default 7) surface to INBOX: queries at `status: open` **or `follow_up`** (both mean the responder owes an answer), and briefs with a non-empty `open_for`. Only runs when `multi_area` is enabled.
 
 ### Rule 16 — Cross-area read pattern (planned)
 

@@ -484,6 +484,29 @@ Once satisfied, merge the branch.
   pre-existing defects in files nothing has ever checked, so expect findings on a repo that has
   been reporting `lint: clean`.
 
+- **A query at `status: follow_up` now reaches the responder.** The protocol's query cycle is
+  that an unsatisfied asker fills the `# Follow-up` section, sets `status: follow_up`, and "the
+  responder cycle repeats" — but nothing surfaced that status. `kb_vitals.exchange_counts` routed
+  `open` → `/respond-exchange` and `answered` → `/close-exchange` and dropped `follow_up` through
+  both branches; `/respond-exchange` scanned for `status: open`; `/start` surfaced "open
+  queries". So a query the asker drilled into was stranded: filed, lint-clean, and never handed
+  back to the role that owed the next answer. `follow_up` now counts and routes exactly as `open`
+  does, in `exchange_counts`, `/respond-exchange` and `/start` — and Rule 14's documented
+  predicate says the same, so it is right when that rule lands. The asker is owed nothing by it;
+  they set the status.
+
+  Found because `/close-exchange` step 3 told the asker to set `status: open` on the follow-up
+  path — contradicting the protocol, but accidentally keeping the routing alive. The skill now
+  says `follow_up`, per schema-wins.
+
+  **Action:** none for new exchanges. If you have `multi_area` on and a query has been sitting in
+  `follow_up`, it will start appearing in `/kb-vitals` and `/start` after this upgrade — that is
+  the fix working, not new work appearing. To see them first:
+
+  ```bash
+  grep -l "^status: follow_up" exchanges/*/ex-*.md 2>/dev/null
+  ```
+
 - **Sub-area exchanges: the directory name flattens a slash to `-`.** `exchanges/<a>--<b>/` sorts
   the two areas alphabetically, and every consumer globs exactly one level (`/start`,
   `/kb-vitals`, `/respond-exchange`, `/close-exchange` all scan `exchanges/*/`). A sub-area id

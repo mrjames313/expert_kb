@@ -18,7 +18,8 @@ clauses. Each was resolved against the code by reading the relevant rule module 
 
 **Audited at:** framework_version 2026-08-31. G1 resolved by rewording; C1, C2 and C3 fixed the
 same day. G2 — with C4 and C5, which were found while planning it — shipped 2026-08-31; a fourth
-issue found the same way (C6, sub-area exchange directories) shipped with them. G3 remains
+issue found the same way (C6, sub-area exchange directories) shipped with them, and G4
+(`follow_up` queries surfaced by nothing) was found and fixed immediately after. G3 remains
 planned in the framework repo's backlog.
 
 **How to keep it true.** Clause anchors below are quoted verbatim so a grep can verify the
@@ -105,9 +106,9 @@ list). It was fixed by migration, and the clause warning against a recurrence ha
 **Mechanizable:** a role file's `## Allowed skills` section, outside `# capability:` blocks,
 should not list baseline skill names. Cheap grep-level check.
 
-### G4. A query in `follow_up` is stranded — no consumer surfaces it
+### G4. A query in `follow_up` is stranded — fixed 2026-08-31
 
-Found 2026-08-31 while reconciling `/close-exchange` against the protocol. `exchange-protocol.md`
+Found while reconciling `/close-exchange` against the protocol. `exchange-protocol.md`
 defines the query cycle as "the asker fills the Follow-up section, sets status `follow_up`, and
 the responder cycle repeats", and `spec.md` lists `follow_up` in the query status vocabulary.
 Nothing routes it:
@@ -124,10 +125,15 @@ owes the next answer. `/close-exchange` step 3 said `status: open` — contradic
 but accidentally keeping the routing alive. Corrected to `follow_up` under schema-wins, which
 makes the gap reachable rather than masked.
 
-**Fix (not yet made):** treat `follow_up` as responder-actionable wherever `open` is — the
-`to_answer` branch of `exchange_counts`, `/respond-exchange`'s scan, `/start`'s surfacing, and
-Rule 14's threshold when it lands. Rule 22 already accepts the status, so no lint change. Worth
-doing with Rule 14, which needs the same predicate.
+**Fixed** by treating `follow_up` as responder-actionable wherever `open` is: the `to_answer`
+branch of `exchange_counts`, `/respond-exchange`'s scan, `/start`'s surfacing, and Rule 14's
+documented predicate for when it lands. Rule 22 already accepted the status, so no lint change.
+The asker is deliberately owed nothing — they set the status, and the next move is the
+responder's.
+
+The routing half is the part worth pinning: a count computed correctly and sent to the wrong
+command is the failure mode a counts-only assertion misses, which is how the 2026-08-29 brief
+mis-routing survived a passing test. Four tests, two verified to fail against the old predicate.
 
 ---
 

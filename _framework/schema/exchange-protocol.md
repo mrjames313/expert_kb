@@ -98,7 +98,7 @@ _(each targeted role records what it did — see "Disposing")_
 
 **Respond.** The responder area invokes `/respond-exchange <id>`. When `task_subagents` is on, this spawns a subagent with the responder area's role context, restricted to the Response section; it may use `/answer-from-kb` to pull kb pages by reference (summarize, don't duplicate) — the "expert summarization" payoff. On completion, status flips to `answered`.
 
-**Review & close.** The asker — the receiver of the answer — reviews. If sufficient, `/close-exchange <id>` runs the disposition step (below) and sets status `closed`. If not, the asker fills the Follow-up section, sets status `follow_up`, and the responder cycle repeats.
+**Review & close.** The asker — the receiver of the answer — reviews. If sufficient, `/close-exchange <id>` runs the disposition step (below) and sets status `closed`. If not, the asker fills the Follow-up section, sets status `follow_up`, and the responder cycle repeats — `follow_up` is surfaced to the responder wherever `open` is, since it means the same thing about who owes the next move.
 
 ## Brief lifecycle
 
@@ -147,9 +147,9 @@ Exchange files follow `link-conventions.md` exactly, and lint now enforces it he
 
 Pending exchanges reach the right role three ways:
 
-- **`/start`** scans `exchanges/*/` for the adopted role R in area A and surfaces: open queries `to_area==A` (respond), answered queries `from_area==A` (close), and briefs `to_area==A` where `R ∈ open_for` (dispose).
+- **`/start`** scans `exchanges/*/` for the adopted role R in area A and surfaces: queries `to_area==A` at `open` or `follow_up` (respond), answered queries `from_area==A` (close), and briefs `to_area==A` where `R ∈ open_for` (dispose).
 - **`/kb-vitals`** (and the status line's **R** indicator) reports the same three as role vitals, each with its command. This is the only path that fires *during* a session: `/start`'s scan runs once at adoption, so an exchange another area answers while you are working reaches you here or not at all.
-- **Staleness lint** flags items aged past `exchange_stale_active_days` — open queries, and briefs with a non-empty `open_for` (naming the outstanding roles) — to INBOX under "Heads up."
+- **Staleness lint** flags items aged past `exchange_stale_active_days` — queries at `open` or `follow_up`, and briefs with a non-empty `open_for` (naming the outstanding roles) — to INBOX under "Heads up."
 
 ## Persistence
 

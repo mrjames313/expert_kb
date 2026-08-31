@@ -62,7 +62,7 @@ Picks a role, loads its preload context, records a session_start telemetry event
    - Read `_journal/pulse.log` if it's non-empty. (A non-empty log usually means the previous session didn't wrap up; offer to run `/wrap-up` first.)
    - If an in-progress spec lives under `areas/<area>/specs/`, read its `plan.md` and `tasks.md`.
    - **If `multi_area` is enabled**, scan `exchanges/*/` for items involving this area and surface them:
-     - Open queries with `to_area` == this area → to answer (`/respond-exchange`).
+     - Queries with `status: open` or `follow_up` and `to_area` == this area → to answer (`/respond-exchange`). A `follow_up` is one the asker drilled into after your area answered; the responder cycle repeats.
      - Answered queries with `from_area` == this area → to close (`/close-exchange`).
      - Open briefs with `to_area` == this area where the adopted role is in `open_for` → to dispose (`/close-exchange`).
 

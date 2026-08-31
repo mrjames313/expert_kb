@@ -44,10 +44,16 @@ class Vital:
 @dataclass
 class ExchangeCounts:
     """An area's outstanding exchanges, split by kind because they dispose
-    differently: queries route to /respond-exchange (open, to you) or
-    /close-exchange (answered, yours); briefs have no responder and are owed
-    only by the roles still listed in `open_for`."""
-    to_answer: int = 0   # open queries addressed to the area
+    differently: queries route to /respond-exchange (open or follow_up, to you)
+    or /close-exchange (answered, yours); briefs have no responder and are owed
+    only by the roles still listed in `open_for`.
+
+    `follow_up` counts with `open`: the protocol's query cycle is that an
+    unsatisfied asker fills the Follow-up section and sets that status, and
+    "the responder cycle repeats" — so the ball is back with the responder
+    exactly as it was when the query was first filed. Counting only `open`
+    stranded those queries; nothing surfaced them and nothing aged them."""
+    to_answer: int = 0   # open or follow_up queries addressed to the area
     to_close: int = 0    # answered queries the area filed
     briefs_by_role: dict[str, int] = field(default_factory=dict)
 
@@ -150,7 +156,7 @@ def exchange_counts(repo_root: Path, area: str) -> ExchangeCounts:
                     counts.briefs_by_role[name] = counts.briefs_by_role.get(name, 0) + 1
         elif status == "answered" and fm.get("from_area") == me:
             counts.to_close += 1
-        elif status == "open" and fm.get("to_area") == me:
+        elif status in ("open", "follow_up") and fm.get("to_area") == me:
             counts.to_answer += 1
     return counts
 
@@ -386,7 +392,7 @@ def _exchange_vitals(repo_root: Path, area: str, role: str | None) -> list[Vital
     counts = exchange_counts(repo_root, area)
     vitals: list[Vital] = []
     if counts.to_answer:
-        vitals.append(Vital("role", f"{counts.to_answer} open query(ies) addressed to your area", "/respond-exchange"))
+        vitals.append(Vital("role", f"{counts.to_answer} query(ies) awaiting your area's answer", "/respond-exchange"))
     if counts.to_close:
         vitals.append(Vital("role", f"{counts.to_close} answered query(ies) to close", "/close-exchange"))
     briefs = counts.briefs_by_role.get(role or "", 0)

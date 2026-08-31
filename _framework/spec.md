@@ -772,7 +772,7 @@ The drift model now predicts ~2x the responsivity swing at 85 C.
 
 **Disposing (close).** The party that received information disposes and closes — the asker for a query, each targeted role for a brief. Options: **preload** the referenced page into the disposing role's `role.md`, **file/cite** it in that role's kb, or **none**.
 
-**Surfacing.** `/start` scans `exchanges/*/` for the adopted role and surfaces open queries to answer, answered queries to close, and briefs where the role is still in `open_for`. Staleness lint flags open queries and briefs with a non-empty `open_for` to INBOX.
+**Surfacing.** `/start` scans `exchanges/*/` for the adopted role and surfaces queries at `open` or `follow_up` to answer, answered queries to close, and briefs where the role is still in `open_for`. `follow_up` routes with `open` because it means the same thing about who owes the next move — the responder. Staleness lint flags the same two query states and briefs with a non-empty `open_for` to INBOX.
 
 **On disable.** Existing exchange directories remain, and lint keeps their indexes regenerated and their links checked. Skills become unavailable; CLAUDE.md's "Cross-area reads" section is removed. Re-enabling picks up existing exchanges.
 
@@ -830,7 +830,8 @@ Rule 9.  Cross-area link threshold (>= N areas; commons pages exempt).
 Rule 10. Promotion freshness (human_reviewed: false > 14 active days).
 Rule 11. Spec hygiene (tasks non-terminal > 60 active days).
 Rule 13. Backlinker freshness.
-Rule 14. Exchange staleness (status: open > 7 active days, if multi_area on).
+Rule 14. Exchange staleness (queries at status open|follow_up, briefs with non-empty open_for,
+         > 7 active days, if multi_area on).
 Rule 16. Cross-area read pattern.
 Rule 20. Commons drift (source updated after the commons page's aligned_on; also flags any commons page it cannot drift-check — missing aligned_on/promoted_from_page — rather than skipping it silently).
 Rule 21. Commons twin-link preference (commons page cites an area page that has a twin).

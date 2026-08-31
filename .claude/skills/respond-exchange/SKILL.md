@@ -9,7 +9,7 @@ Picks up an open **query** where the role's area is the `to_area`, drafts a resp
 
 ## When to use
 
-- A `/start` scan showed an open query in `exchanges/<a>--<b>/` with `to_area` matching the adopted area.
+- A `/start` scan showed a query awaiting an answer (`status: open` or `follow_up`) in `exchanges/<a>--<b>/` with `to_area` matching the adopted area.
 - An INBOX staleness heads-up surfaced a pending query.
 - The user explicitly invokes `/respond-exchange <id>`.
 
@@ -17,7 +17,7 @@ Picks up an open **query** where the role's area is the `to_area`, drafts a resp
 
 1. **Find the exchange.** Either:
    - User named it by id → read `exchanges/*/<id>.md` directly.
-   - User didn't name one → scan `exchanges/*/` for files with `kind: query`, `status: open`, and `to_area:` matching the role's area; list them and let the user pick.
+   - User didn't name one → scan `exchanges/*/` for files with `kind: query`, `status: open` **or `follow_up`**, and `to_area:` matching the role's area; list them and let the user pick. A `follow_up` is a query you already answered once and the asker drilled into — read the `# Follow-up` section, not just the original question.
 
 2. **Read the question carefully.** Note:
    - Exactly what's being asked.

@@ -225,6 +225,40 @@ class TestExchangeCounts:
         assert counts.briefs_by_role == {"researcher": 1}
         assert counts.to_answer == 0  # never folded into the query total
 
+    def test_follow_up_query_is_owed_by_the_responder(self, tmp_path: Path) -> None:
+        """`exchange-protocol.md`: an unsatisfied asker "fills the Follow-up
+        section, sets status `follow_up`, and the responder cycle repeats" — so
+        the ball is back with the responder, exactly as when the query was
+        filed. Counting only `open` stranded it: no vital, no /start surfacing,
+        and (once Rule 14 lands) no staleness ageing either."""
+        _exchange(tmp_path, "ex-2026-08-28-thermal", kind="query", status="follow_up",
+                  from_area="engineering", to_area="research")
+        counts = kv.exchange_counts(tmp_path, "areas/research")
+        assert (counts.to_answer, counts.to_close) == (1, 0)
+
+    def test_follow_up_is_not_owed_by_the_asker(self, tmp_path: Path) -> None:
+        """The asker set the status; nothing is owed back to them until the
+        responder answers again."""
+        _exchange(tmp_path, "ex-2026-08-28-thermal", kind="query", status="follow_up",
+                  from_area="engineering", to_area="research")
+        counts = kv.exchange_counts(tmp_path, "areas/engineering")
+        assert (counts.to_answer, counts.to_close) == (0, 0)
+
+    def test_follow_up_routes_to_respond_exchange(self, tmp_path: Path) -> None:
+        """A count computed correctly and sent to the wrong command is the
+        failure mode a counts-only assertion misses."""
+        _exchange(tmp_path, "ex-2026-08-28-thermal", kind="query", status="follow_up",
+                  from_area="engineering", to_area="research")
+        vitals = kv._exchange_vitals(tmp_path, "areas/research", "researcher")
+        assert [v.command for v in vitals] == ["/respond-exchange"]
+
+    def test_closed_query_is_owed_by_nobody(self, tmp_path: Path) -> None:
+        _exchange(tmp_path, "ex-2026-08-28-thermal", kind="query", status="closed",
+                  from_area="engineering", to_area="research")
+        for area in ("areas/research", "areas/engineering"):
+            counts = kv.exchange_counts(tmp_path, area)
+            assert (counts.to_answer, counts.to_close) == (0, 0)
+
     def test_no_exchanges_dir(self, tmp_path: Path) -> None:
         counts = kv.exchange_counts(tmp_path, "areas/research")
         assert (counts.to_answer, counts.to_close, counts.briefs_by_role) == (0, 0, {})

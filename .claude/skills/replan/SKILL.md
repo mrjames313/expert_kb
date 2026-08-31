@@ -1,11 +1,11 @@
 ---
 name: replan
-description: Revise an in-progress spec when assumptions change, a blocker appears, or the goal shifts. Updates plan.md and tasks.md while preserving history.
+description: Revise an in-progress spec when assumptions change, a blocker appears, or the goal shifts. Logs the revision to revisions.md and updates plan.md and tasks.md in place.
 ---
 
 # /replan
 
-Updates an existing `plan.md` and `tasks.md` in response to changed circumstances. Preserves the audit trail rather than rewriting silently.
+Updates an existing `plan.md` and `tasks.md` in response to changed circumstances, and logs what changed to the spec's `revisions.md`. Preserves the audit trail rather than rewriting silently.
 
 ## When to use
 
@@ -22,19 +22,33 @@ If the existing plan is mostly fine and only one task needs to change, just edit
 
 2. **Discuss with the user.** Explicitly: what changed, and what does the user want to do about it? Don't replan unilaterally — confirm the new direction. If the user is reacting to something you discovered, lay out the discovery and 2–3 options for how to proceed.
 
-3. **Update `plan.md`.** Don't rewrite it. Append a new section at the bottom:
+3. **Append the revision to `revisions.md`.** The replan log lives in its own file, not at the bottom of `plan.md`. If the spec has no `revisions.md` yet, create it from `_framework/schema/spec-template/revisions.md.tmpl` — a spec gets one on its first replan, the way it gets an `outcome.md` at close. Append at the bottom, in the template's shape:
+
    ```markdown
-   ## Revision YYYY-MM-DD
+   ## [YYYY-MM-DD] replan after <triggering event>
 
-   **Trigger:** What prompted this revision. Cite any kb pages with `[[wikilinks]]`.
+   Triggered by: <what surfaced the need to replan — usually a task outcome or new finding. Cite kb pages with `[[wikilinks]]`.>
 
-   **Change:** What's different now (e.g., "Approach now sequences X before Y because Z").
+   Changes:
+   - Plan: <what changed in plan.md>
+   - Tasks: <task additions, supersessions, renumberings>
 
-   **Carried forward:** Which parts of the original plan still hold.
+   Rationale: <1–3 sentences>
+
+   Approved by: human (in conversation, YYYY-MM-DD)
    ```
-   Leave the original approach/milestones text intact above. The history matters.
 
-4. **Update `tasks.md`.** For each task:
+   The file is append-only and oldest-first. Never edit or squash an earlier entry — the history is the point.
+
+4. **Update `plan.md` in place.** `plan.md` states the *current* approach, so amend the text the revision invalidates — approach, key assumptions, risks, what we're producing — to say what's true now. Don't append a `## Revision` section to it: the audit trail is `revisions.md`, and whatever the revision leaves standing stays visible as `plan.md`'s own text, which is what "carried forward" means. If `plan.md` has no pointer to the log yet, add one line under the title:
+
+   ```markdown
+   _Revised — see [revisions.md](revisions.md) for the replan log._
+   ```
+
+   A reference to a file outside `kb/` is a relative markdown link, not a wikilink (`link-conventions.md`); Rule 2 resolves it.
+
+5. **Update `tasks.md`.** For each task:
    - Done tasks stay done (`_Status:_ done`). Don't touch them.
    - Unstarted tasks that are no longer needed: set `_Status:_ superseded` and note the reason in a trailing comment. Don't delete them — the record of what was dropped and why is the point.
    - Unstarted tasks that still apply: leave as-is, or edit if the revision changes their scope.
@@ -62,7 +76,7 @@ If the existing plan is mostly fine and only one task needs to change, just edit
    _Owner role:_ researcher
    ```
 
-5. **Record in pulse.log.** Append a `decision` event:
+6. **Record in pulse.log.** Append a `decision` event:
    ```
    ## [YYYY-MM-DD HH:MM] decision <role>
    Replanned <spec-name>: <one-line summary of the change>.
@@ -70,13 +84,13 @@ If the existing plan is mostly fine and only one task needs to change, just edit
    ```
    Then create the corresponding `decision` page under `areas/<area>/kb/decisions/` documenting the rationale (including alternatives considered).
 
-6. **Verify.** Run `python _framework/tools/lint.py`. Fix any new errors.
+7. **Verify.** Run `python _framework/tools/lint.py`. Fix any new errors.
 
-7. **Brief the user.** Summarize what changed in the plan and what task to do next.
+8. **Brief the user.** Summarize what changed in the plan and what task to do next.
 
 ## Notes
 
-- The history-preserving format is intentional. Specs are not just current state — they're a record of how the work evolved. Squashing history makes it impossible to learn from past course corrections.
+- The split between the two files is intentional. `plan.md` is current state — a reader should be able to trust it without reconstructing it from a stack of appended revisions — while `revisions.md` is the record of how the work evolved. Squashing either makes it impossible to learn from past course corrections.
 - A `/replan` always produces a `decision` page. The rationale ("why we changed direction") is one of the most valuable things to preserve.
 - If a `/replan` would mean abandoning more than half the tasks, consider whether you really want a new spec instead. Talk to the user.
 - If `por` is enabled, also update `POR.md` for the area (and `commons/POR.md` if the change has cross-area implications). The coordinator role (if present) is responsible for the commons POR; otherwise update it yourself.

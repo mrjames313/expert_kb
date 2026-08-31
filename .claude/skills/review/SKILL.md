@@ -23,7 +23,8 @@ A review is run by the **reviewer role**, not by the implementer. The orchestrat
 
 2. **Re-read the spec.** From `areas/<area>/specs/<spec>/`:
    - `brief.md` — what was supposed to be accomplished.
-   - `plan.md` — how it was supposed to be approached. Note any `## Revision` sections from `/replan`.
+   - `plan.md` — how it was supposed to be approached, as currently revised.
+   - `revisions.md` — the replan log, if the spec has one: what changed mid-flight, and why.
    - `tasks.md` — what tasks were declared and which are done.
 
 3. **Re-read the work.** Read what the implementer produced:

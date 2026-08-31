@@ -21,7 +21,8 @@ same day. G2 — with C4 and C5, which were found while planning it — shipped 
 issue found the same way (C6, sub-area exchange directories) shipped with them, and G4
 (`follow_up` queries surfaced by nothing) was found and fixed immediately after. G3 is the only
 entry still open; it is planned in `future-work.md` (both files are maintainer-only, so the
-reference is safe).
+reference is safe). C7 arrived afterwards as a downstream report — a class this method cannot
+see, noted in its own entry — and was fixed the same day.
 
 **How to keep it true.** Clause anchors below are quoted verbatim so a grep can verify the
 clause still exists as written — an edited or deleted clause self-reports. Only genuinely *new*
@@ -241,6 +242,37 @@ reaches the role that owes it a response.
 every existing one-level glob working, and by having Rule 22 check that a file sits in the
 canonical directory for its pair. No migration — the shape was unreachable in practice, since
 no project had filed a sub-area exchange.
+
+### C7. `/replan` logs revisions into `plan.md`; every schema doc says `revisions.md` — fixed 2026-08-31
+
+Reported from a downstream project, not found by this sweep. `replan/SKILL.md` step 3 said:
+
+> **Update `plan.md`.** Don't rewrite it. Append a new section at the bottom: `## Revision YYYY-MM-DD`
+
+Against it: `CLAUDE.md:123` ("`/replan` … appends to `revisions.md`"), `spec.md:641` (the spec
+tree) and `spec.md:660` (the phase-gate line), `spec-template/revisions.md.tmpl` — which carries
+its own entry format, different from the skill's — and Rule 2's scope note, which lists
+`revisions.md` among the spec files whose wikilinks are checked. The skill is the drifted side by
+every measure, and both halves date from the same week in May 2026: the disagreement shipped with
+the skeleton and survived three months.
+
+The consequence is not cosmetic. An agent following the skill never creates `revisions.md`, so the
+file the schema treats as the spec's audit trail is absent from every spec, and revision history
+accumulates in the one file that is supposed to read as current state. Two specs replanned by
+agents that resolved the conflict differently end up in different formats, and a later reader has
+to work out which convention each used.
+
+**Fixed** by correcting the skill: append to `revisions.md` in the template's shape, creating it
+from the template on first replan; amend `plan.md` *in place* so it states the current approach,
+with a relative link to the log. `/review` no longer looks for `## Revision` sections in
+`plan.md`, and `/plan` says explicitly that a new spec is three files. `spec.md`'s skills table
+now names the file.
+
+**Why the sweep missed it, which matters for the next pass.** The method greps for requirement
+words (`must`, `never`, `always`, `required`, `is an error`). This contradiction has none — it is
+an imperative step naming the wrong *file*, and reads as ordinary procedure. The lesson is
+registered in `maintaining.md`: when checking a skill against its schema, compare the **set of
+files the skill writes** against the schema's file set, independent of any keyword.
 
 ---
 

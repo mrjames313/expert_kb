@@ -27,6 +27,14 @@ Skills (`.claude/skills/*/SKILL.md`) are runbooks that implement the schema docs
 
 - When you change a protocol, update **every skill that implements it** in the same commit.
 - When you change a skill, confirm it still matches its schema.
+- **Compare the file *set*, not just the wording.** The cheapest form of this drift is a skill that
+  writes the right content to the wrong file — `/replan` appended its revision log to `plan.md` for
+  three months while every schema doc said `revisions.md`, and the `revisions.md.tmpl` sitting in
+  `spec-template/` was never opened by anything. Nothing about such a step reads as wrong: it
+  carries no requirement words, so a keyword sweep (`clause-audit.md`'s method) cannot see it. When
+  a schema owns a set of files — the spec template's five, the exchange directory's — check that
+  each skill touching that set names the same files for the same purposes. An unused template file
+  is the tell.
 - On a disagreement, fix the side that drifted — usually the skill, occasionally the schema. Corroborate against the tool behavior and sibling skills, not just the schema doc: e.g. "leave the source unchanged" on promotion is confirmed by `promote.py` never touching the area page and by `link-conventions.md` making superseded-links an error.
 
 ## Releasing a framework change (bump the version, write the migration)

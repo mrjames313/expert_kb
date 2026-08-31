@@ -611,6 +611,19 @@ Once satisfied, merge the branch.
   never fired — a different problem, which now has its own vital. The sequence is `/wrap-up`, then
   `/clear`, then `/start <role>` to reload the preload. **Action:** none; arrives on pull.
 
+- **`/replan` writes the revision to `revisions.md`, not to the bottom of `plan.md`.** The skill has
+  said "append a `## Revision YYYY-MM-DD` section to `plan.md`" since it was written (2026-05-25),
+  while `CLAUDE.md`'s spec lifecycle, `spec.md` §10/§15, the `revisions.md.tmpl` shipped in the
+  same era, and Rule 2's scope note all say the log is `revisions.md` — so an agent following the
+  skill never created the file, and the format diverged spec by spec. The skill now appends to
+  `revisions.md` in the template's shape (creating it from the template on first replan, the way
+  `outcome.md` appears at close) and amends `plan.md` **in place** so it states the current
+  approach, with a one-line relative link to the log. `/review` reads the log from `revisions.md`
+  rather than looking for `## Revision` sections. **Action:** none required for correctness. If a
+  spec of yours accumulated revisions at the bottom of `plan.md`, move those sections into a
+  `revisions.md` and fold what still holds into the plan's own text — `grep -l "^## Revision" \
+  areas/*/specs/*/plan.md` lists them.
+
 ---
 
 ## Notes for the agent

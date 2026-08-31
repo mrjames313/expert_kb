@@ -638,8 +638,8 @@ specs/2026-05-photodetector-noise/
 ├── brief.md         # what we're doing and why; one screen
 ├── plan.md          # method, architecture, or approach
 ├── tasks.md         # discrete steps with _Boundary:_ and _Depends:_
-├── revisions.md     # append-only log of replans
-└── outcome.md       # what happened; produced pages; superseded plans
+├── revisions.md     # append-only log of replans (created by the first /replan)
+└── outcome.md       # what happened; produced pages; superseded plans (written at close)
 ```
 
 Per-task annotations:
@@ -861,7 +861,7 @@ Each skill is a Claude Code Agent Skill with a `SKILL.md`. Skills can be invoked
 | `ask` | Query the wiki; synthesize an answer; optionally file as kb page. |
 | `plan` | Bootstrap a spec: brief → plan → tasks (human gates in conversation). |
 | `implement` | Execute one task. Behavior depends on `task_subagents`. |
-| `replan` | Append revision entry; update plan and tasks; require human approval. |
+| `replan` | Append the revision entry to `revisions.md`; update `plan.md` and `tasks.md` in place; require human approval. |
 | `propose-promotion` | Copy area page to `commons/_proposed/`; generate proposal; register in INBOX. |
 | `promote` | Apply promotion after consensus or human override; write CHANGELOG entry. Behavior depends on `formal_review`. |
 | `amend-commons` | Edit an existing commons page in place (correction, link rewrite, drift reconciliation); light-gated + CHANGELOG entry. |

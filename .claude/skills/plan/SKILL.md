@@ -53,7 +53,7 @@ Reads a spec brief (or drafts one with the user) and writes `plan.md`. After the
 
 ## Notes
 
-- Don't include an `outcome.md` yet. That gets written at `/wrap-up` after work completes, not before.
+- Don't include an `outcome.md` or a `revisions.md` yet. `outcome.md` gets written at `/wrap-up` after work completes; `revisions.md` is created by the first `/replan`, if there ever is one. A new spec is `brief.md`, `plan.md`, `tasks.md`.
 - If the user wants a very small change (one finding, one edit), `/plan` is overkill — go straight to making the edit and journaling it. `/plan` is for work that needs scoping.
 - The plan can cite concepts under test as evidence. If the plan depends on a concept being supported and it isn't, mark this as a precondition in the plan (a task to validate the concept).
 - If, while planning, you discover the work spans multiple areas: ask the user. With `multi_area` enabled, use `/exchange` to coordinate. Without it, the user has to choose one area to own the work, or run `/add-area` to create a new area.

@@ -19,6 +19,9 @@ Checks:
   3. `framework_version` == the latest `**Release <date>**` in `UPGRADING.md`,
      the release dates are in ascending order, and the latest is not in the
      future (a future stamp mis-gates the next real release).
+  5. every place that adds the `framework` remote also disables its push URL —
+     the remote is fetch-only, and a push to it publishes a project's knowledge
+     base into the shared template repo.
 
 Public API:
     run_all(repo_root) -> list[str]      # each string is one problem; [] == clean
@@ -195,11 +198,79 @@ def check_maintainer_only_enumerations_agree(repo_root: Path) -> list[str]:
     return problems
 
 
+# The `framework` remote is added by two documents — UPGRADING.md Step 0 and
+# `/framework update` — and is **fetch-only**: the template is upstream, and no
+# project ever pushes to it. `git push framework main` from a live project would
+# publish that project's entire kb into the shared template repo, and it is one
+# tab-completion away from the `git fetch framework` the runbook asks for. Both
+# sites therefore disable the push URL, which also makes the asymmetry visible in
+# `git remote -v`. This check keeps a third site (or an edited one) from adding
+# the remote without the guard.
+_REMOTE_ADD = "git remote add framework"
+_REMOTE_GUARD = "git remote set-url --push framework DISABLED"
+
+# Files that may legitimately add the remote. Deliberately not every doc: a live
+# project's own notes may *mention* the command, and this check ships downstream.
+# Within them, only fenced command blocks count — see `_fenced_blocks`.
+_REMOTE_ADD_SITES = ("SETUP.md", "UPGRADING.md", ".claude/skills/framework/SKILL.md")
+
+
+def _fenced_blocks(text: str) -> list[tuple[int, list[str]]]:
+    """Yield (first-line-number, lines) for each ``` fenced block in a markdown
+    file. Only a fenced block is a command an agent runs; the same command named
+    in prose — a release note recalling this very fix — is not."""
+    blocks: list[tuple[int, list[str]]] = []
+    current: list[str] | None = None
+    start = 0
+    for n, line in enumerate(text.splitlines(), 1):
+        if line.strip().startswith("```"):
+            if current is None:
+                current, start = [], n + 1
+            else:
+                blocks.append((start, current))
+                current = None
+            continue
+        if current is not None:
+            current.append(line)
+    if current is not None:  # unterminated fence — treat what we have as a block
+        blocks.append((start, current))
+    return blocks
+
+
+def check_framework_remote_is_push_disabled(repo_root: Path) -> list[str]:
+    """Wherever a command block adds the `framework` remote, the same block must
+    disable its push URL."""
+    problems: list[str] = []
+    for rel in _REMOTE_ADD_SITES:
+        path = repo_root / rel
+        if not path.is_file():
+            continue  # bootstrap removes SETUP.md/UPGRADING.md — skip downstream
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for start, lines in _fenced_blocks(text):
+            block = "\n".join(lines)
+            if _REMOTE_ADD not in block or _REMOTE_GUARD in block:
+                continue
+            offset = next(
+                i for i, line in enumerate(lines) if _REMOTE_ADD in line
+            )
+            problems.append(
+                f"{rel}:{start + offset} adds the `framework` remote without "
+                f"`{_REMOTE_GUARD}` in the same command block — the remote is "
+                f"fetch-only, and a push to it would publish a project's kb "
+                f"into the template repo."
+            )
+    return problems
+
+
 _CHECKS = (
     check_config_matches_rules,
     check_no_dangling_maintainer_refs,
     check_maintainer_only_enumerations_agree,
     check_version_matches_latest_release,
+    check_framework_remote_is_push_disabled,
 )
 
 

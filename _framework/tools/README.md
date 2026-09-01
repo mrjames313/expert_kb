@@ -192,7 +192,7 @@ python _framework/tools/activity_days.py --back 30    # calendar date 30 active 
 
 ### `framework_check.py` — hard-edge self-consistency checks
 
-Maintainer/CI tool. Verifies the mechanical invariants between a derived value and its source — the edges a `[[wikilink]]` can't express and discipline alone keeps forgetting: config `warnings_visible` matches the shipped warning-rule modules, no pulled doc references a maintainer-only file, and `framework_version` equals the latest `UPGRADING.md` release (with releases in ascending order).
+Maintainer/CI tool. Verifies the mechanical invariants between a derived value and its source — the edges a `[[wikilink]]` can't express and discipline alone keeps forgetting: config `warnings_visible` matches the shipped warning-rule modules, no pulled doc references a maintainer-only file, `framework_version` equals the latest `UPGRADING.md` release (with releases in ascending order), and every document that adds the fetch-only `framework` remote also disables its push URL.
 
 ```bash
 python _framework/tools/framework_check.py

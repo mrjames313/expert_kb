@@ -25,9 +25,17 @@ If you are reading a local copy, fetch the newest one and follow *that* instead:
 
 ```bash
 git remote add framework https://github.com/mrjames313/expert_kb.git 2>/dev/null || true
+git remote set-url --push framework DISABLED   # fetch-only: never push this project to the template
 git fetch framework
 git show framework/main:UPGRADING.md
 ```
+
+The `set-url --push` line is deliberate, and safe to re-run: `framework` is a **fetch-only**
+remote — the template is upstream, and nothing in your project is ever pushed to it. Disabling
+its push URL turns `git push framework <branch>` (which would publish your project's knowledge
+base into the shared template repo) into an immediate `'DISABLED' does not appear to be a git
+repository`, and makes the asymmetry visible in `git remote -v`, which prints two lines per
+remote — read both. Your `origin` is untouched: a bare `git push` still goes there.
 
 Follow the fetched version from here on — the steps below may have changed since this copy.
 `git show` *prints* this file; it is never written into your project, so a live project keeps
@@ -623,6 +631,28 @@ Once satisfied, merge the branch.
   spec of yours accumulated revisions at the bottom of `plan.md`, move those sections into a
   `revisions.md` and fold what still holds into the plan's own text — `grep -l "^## Revision" \
   areas/*/specs/*/plan.md` lists them.
+
+- **The `framework` remote is now added push-disabled.** Step 0 of this runbook (and `/framework
+  update`, which runs the same block) has told every project since the upgrade path shipped to
+  `git remote add framework <template-url>` — a remote you only ever fetch from. Nothing marked it
+  as such, so a project ends up with two remotes that look interchangeable, and `git push framework
+  main` — one tab-completion away from the `git fetch framework` the runbook asks for — would
+  publish that project's entire knowledge base into the shared template repo. Both sites now run
+  `git remote set-url --push framework DISABLED` right after the add, which makes such a push fail
+  with `'DISABLED' does not appear to be a git repository` and shows the asymmetry in `git remote
+  -v`. `origin` is untouched: a bare `git push` still goes there. `framework_check.py` gained a
+  check so a third site can't add the remote without the guard. Reported from a project where the
+  near-miss came from reading a truncated `git remote -v` — it prints **two lines per remote**, so
+  `head -2` shows you one of them.
+  **Action (one-time, if you added the remote before this release):**
+
+  ```bash
+  git remote -v                                       # expect: framework ... (fetch) / DISABLED (push)
+  git remote set-url --push framework DISABLED        # idempotent; run if the push line is a URL
+  ```
+
+  Reversible with `git remote set-url --push framework <url>` if you ever genuinely need to push
+  to the template — from a project, you don't.
 
 ---
 

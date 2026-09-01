@@ -22,7 +22,8 @@ issue found the same way (C6, sub-area exchange directories) shipped with them, 
 (`follow_up` queries surfaced by nothing) was found and fixed immediately after. G3 is the only
 entry still open; it is planned in `future-work.md` (both files are maintainer-only, so the
 reference is safe). C7 arrived afterwards as a downstream report — a class this method cannot
-see, noted in its own entry — and was fixed the same day.
+see, noted in its own entry — and was fixed the same day, as was C8, which came from the same
+project's session.
 
 **How to keep it true.** Clause anchors below are quoted verbatim so a grep can verify the
 clause still exists as written — an edited or deleted clause self-reports. Only genuinely *new*
@@ -273,6 +274,30 @@ words (`must`, `never`, `always`, `required`, `is an error`). This contradiction
 an imperative step naming the wrong *file*, and reads as ordinary procedure. The lesson is
 registered in `maintaining.md`: when checking a skill against its schema, compare the **set of
 files the skill writes** against the schema's file set, independent of any keyword.
+
+### C8. The upgrade runbook creates a remote it never says is fetch-only — fixed 2026-08-31
+
+Also reported from downstream, as a near-miss rather than a defect. `UPGRADING.md` Step 0 and
+`/framework update` both run:
+
+> `git remote add framework https://github.com/mrjames313/expert_kb.git`
+
+Nothing in either document says the remote is fetch-only, and nothing made it so. A project that
+has upgraded therefore carries two remotes that `git remote -v` presents identically, one of which
+must never be pushed to: `git push framework main` publishes that project's whole knowledge base
+into the template repo other projects clone. It is one tab-completion from the `git fetch
+framework` the runbook asks for, and the reporter came within one command of it after reading a
+truncated `git remote -v` (it prints two lines per remote).
+
+Not a contradiction between docs — a requirement that no document stated and nothing enforced,
+which is why the keyword sweep had nothing to find.
+
+**Fixed** by making the remote fetch-only at the moment it is created: both sites now run
+`git remote set-url --push framework DISABLED`, which fails such a push outright and shows
+`DISABLED` in the push line of `git remote -v`. Per "every requirement clause needs an enforcer or
+a backfill": the enforcer is `framework_check.check_framework_remote_is_push_disabled` (a command
+block adding the remote must disable the push URL in the same block); the backfill is the Release
+2026-08-31 entry, which gives existing projects the one idempotent command.
 
 ---
 

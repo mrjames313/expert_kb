@@ -12,6 +12,7 @@ from framework import _discover_configurable_lint_rules
 from framework_check import (
     _MAINTAINER_ONLY,
     check_config_matches_rules,
+    check_framework_remote_is_push_disabled,
     check_maintainer_only_enumerations_agree,
     check_no_dangling_maintainer_refs,
     check_version_matches_latest_release,
@@ -139,6 +140,64 @@ class TestMaintainerOnlyEnumerationsAgree:
 
     def test_skips_when_files_absent(self, tmp_path: Path) -> None:
         assert check_maintainer_only_enumerations_agree(tmp_path) == []
+
+
+class TestFrameworkRemoteIsPushDisabled:
+    """The failure this prevents: a doc tells a project to add the `framework`
+    remote, nothing disables its push URL, and one `git push framework main`
+    publishes that project's whole knowledge base into the shared template repo.
+    Fixtures copy the runbook's own command block (UPGRADING.md Step 0), which is
+    the contract these docs are accountable to."""
+
+    def test_flags_an_add_without_the_guard(self, tmp_path: Path) -> None:
+        (tmp_path / "UPGRADING.md").write_text(
+            "```bash\n"
+            "git remote add framework https://github.com/mrjames313/expert_kb.git\n"
+            "git fetch framework\n"
+            "```\n"
+        )
+        problems = check_framework_remote_is_push_disabled(tmp_path)
+        assert len(problems) == 1
+        assert "fetch-only" in problems[0]
+
+    def test_clean_when_the_guard_follows(self, tmp_path: Path) -> None:
+        (tmp_path / "UPGRADING.md").write_text(
+            "```bash\n"
+            "git remote add framework https://github.com/mrjames313/expert_kb.git\n"
+            "git remote set-url --push framework DISABLED\n"
+            "git fetch framework\n"
+            "```\n"
+        )
+        assert check_framework_remote_is_push_disabled(tmp_path) == []
+
+    def test_guard_in_a_different_block_does_not_count(self, tmp_path: Path) -> None:
+        """It must be in the *same* command block. An agent runs the block it is
+        given; a guard in some later block is one it may never reach."""
+        (tmp_path / "UPGRADING.md").write_text(
+            "```bash\n"
+            "git remote add framework https://github.com/mrjames313/expert_kb.git\n"
+            "```\n"
+            "Some prose in between.\n"
+            "```bash\n"
+            "git remote set-url --push framework DISABLED\n"
+            "```\n"
+        )
+        assert check_framework_remote_is_push_disabled(tmp_path) != []
+
+    def test_prose_mention_is_not_a_command(self, tmp_path: Path) -> None:
+        """Caught on this check's first run: the release note announcing the fix
+        names `git remote add framework` in prose, and an unfenced match flagged
+        the changelog describing the very guard it documents."""
+        (tmp_path / "UPGRADING.md").write_text(
+            "- Step 0 has told every project to `git remote add framework <url>` "
+            "since the upgrade path shipped; it is now push-disabled.\n"
+        )
+        assert check_framework_remote_is_push_disabled(tmp_path) == []
+
+    def test_skips_when_files_absent(self, tmp_path: Path) -> None:
+        """SETUP.md and UPGRADING.md are removed at bootstrap; the check ships
+        downstream and must stay quiet there."""
+        assert check_framework_remote_is_push_disabled(tmp_path) == []
 
 
 def test_real_repo_is_self_consistent() -> None:

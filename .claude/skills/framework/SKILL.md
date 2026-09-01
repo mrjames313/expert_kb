@@ -74,9 +74,12 @@ A pass-through to `_framework/tools/framework.py` for capability and lint-visibi
 6. **For `update`** — this is *not* a `framework.py` call. Pull the latest framework by fetching and following the canonical upgrade runbook, so the procedure stays current even if this skill is itself outdated:
    ```
    git remote add framework https://github.com/mrjames313/expert_kb.git 2>/dev/null || true
+   git remote set-url --push framework DISABLED   # fetch-only: never push this project to the template
    git fetch framework
    git show framework/main:UPGRADING.md
    ```
+   `framework` is **fetch-only** — the template is upstream and nothing here is ever pushed to it — so the `set-url --push` line (idempotent, safe to re-run) makes `git push framework <branch>` fail instead of publishing this project's kb into the shared template repo. `origin` is untouched; a bare `git push` still goes there.
+
    Read that file and follow it exactly — it handles the clean-committed-tree safety gate (so the upgrade is reversible), pulling framework files (not project content), reconciling CLAUDE.md, running version-keyed migrations, and lint verification. Don't substitute these local steps for the fetched instructions.
 
 7. **Brief the user.** Summarize what changed. For capability changes, point at the relevant `_framework/schema/capabilities.md` section so they can read about the new behavior.
